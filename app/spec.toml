@@ -1,0 +1,14 @@
+id_width = 16
+spatial_hash_key = 'coord'
+
+[components]
+coord = { type = '::cgmath::Vector2<i32>', storage = 'vector' }
+solid = { storage = 'vector' }
+collider = { storage = 'vector' }
+player = { storage = 'btree' }
+tile = { type = '::tile::Tile', storage = 'vector' }
+depth = { type = 'i32', storage = 'vector' }
+
+[spatial_hash]
+solid_count = { component = 'solid', aggregate = 'count' }
+player_count = { component = 'player', aggregate = 'count' }
