@@ -1,0 +1,9 @@
+[package]
+name = "punchcards_unix"
+version = "0.1.0"
+authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
+
+[dependencies]
+punchcards_prototty = { path = "../prototty" }
+prototty = "0.11"
+prototty_unix = "0.11"

@@ -1,4 +1,7 @@
+use std::time::Duration;
 use entity_store::*;
+use input::Input;
+use policy;
 use cgmath::*;
 use prototypes;
 
@@ -7,6 +10,7 @@ pub struct State {
     spatial_hash: SpatialHashTable,
     player_id: EntityId,
     changes: Vec<EntityChange>,
+    count: u64,
 }
 
 impl State {
@@ -65,6 +69,37 @@ impl State {
             spatial_hash,
             player_id,
             changes,
+            count: 0,
+        }
+    }
+
+    pub fn entity_store(&self) -> &EntityStore { &self.entity_store }
+    pub fn spatial_hash(&self) -> &SpatialHashTable { &self.spatial_hash }
+
+    pub fn tick<I>(&mut self, inputs: I, _period: Duration)
+        where I: IntoIterator<Item=Input>,
+    {
+        for input in inputs {
+            let change = match input {
+                Input::Move(direction) => {
+                    let current = self.entity_store.coord.get(&self.player_id).unwrap();
+                    let delta = direction.vector();
+                    let new = current + delta;
+                    insert::coord(self.player_id, new)
+                }
+            };
+            self.changes.push(change);
+        }
+
+        for change in self.changes.drain(..) {
+
+            if !policy::check(&change, &self.entity_store, &self.spatial_hash) {
+                continue;
+            }
+
+            self.spatial_hash.update(&self.entity_store, &change, self.count);
+            self.entity_store.commit(change);
+            self.count += 1;
         }
     }
 }

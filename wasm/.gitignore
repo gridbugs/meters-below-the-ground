@@ -1,0 +1,4 @@
+/dist/bundle.*
+/dist/*.wasm
+/package-lock.json
+/node_modules

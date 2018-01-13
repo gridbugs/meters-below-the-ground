@@ -10,8 +10,10 @@ pub mod entity_store {
     include_entity_store!("entity_store.rs");
 }
 
+mod policy;
 mod prototypes;
 
 pub mod input;
 pub mod tile;
+pub mod tile_info;
 pub mod state;

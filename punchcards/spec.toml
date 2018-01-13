@@ -6,8 +6,7 @@ coord = { type = '::cgmath::Vector2<i32>', storage = 'vector' }
 solid = { storage = 'vector' }
 collider = { storage = 'vector' }
 player = { storage = 'btree' }
-tile = { type = '::tile::Tile', storage = 'vector' }
-depth = { type = 'i32', storage = 'vector' }
+tile_info = { type = '::tile_info::TileInfo', storage = 'vector' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }
