@@ -1,0 +1,11 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+os:
+  - osx
+  - linux
+dist: trusty
+script:
+  - scripts/build.sh
