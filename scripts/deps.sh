@@ -12,6 +12,8 @@ if [ -z ${TRAVIS_OS_NAME+x} ]; then
     esac
 fi
 
+echo ">>>>> RUST_VERSION: $TRAVIS_RUST_VERSION"
+
 case $TRAVIS_OS_NAME in
     linux)
         pyenv version 3.6
