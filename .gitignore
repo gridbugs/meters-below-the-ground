@@ -2,3 +2,4 @@
 **/*.rs.bk
 **/*.sw?
 **/Cargo.lock
+/build
