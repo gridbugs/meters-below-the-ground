@@ -142,8 +142,12 @@ def main(args):
   args.root_path = os.path.normpath(args.root_path)
   args.manifest_path = os.path.join(args.crate_path, "Cargo.toml")
   args.manifest = toml.load(args.manifest_path)
-  args.version = args.manifest['package']['version']
-  args.branch = sh.git("rev-parse", "--abbrev-ref", "HEAD").strip()
+  args.version = args.manifest["package"]["version"]
+
+  try:
+    args.branch = os.environ["TRAVIS_BRANCH"]
+  except KeyError:
+    args.branch = sh.git("rev-parse", "--abbrev-ref", "HEAD").strip()
   BUILD_FNS[args.frontend](args)
 
 if __name__ == "__main__":
