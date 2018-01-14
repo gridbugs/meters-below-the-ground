@@ -33,6 +33,7 @@ build_script:
     copy %BIN_PATH%\%IN_NAME%.exe tmp\%FULL_NAME%\%OUT_NAME%.exe
 
     copy README.md tmp\%FULL_NAME%\README.md
+    copy LICENSE tmp\%FULL_NAME%\LICENSE
 
     powershell.exe -nologo -noprofile -command "& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('tmp', '%FULL_NAME%.zip'); }"
 
