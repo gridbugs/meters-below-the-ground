@@ -52,12 +52,12 @@ def build_common(args):
       os.path.join(output_dir_path, APP_NAME))
   shutil.copy(
       os.path.join(args.root_path, README_NAME),
-      os.path.join(output_dir_path, README_NAME))
+      os.path.join(output_dir_path, "README.txt"))
   shutil.copy(
       os.path.join(args.root_path, LICENSE_NAME),
-      os.path.join(output_dir_path, LICENSE_NAME))
+      os.path.join(output_dir_path, "LICENCE.txt"))
   sh.git("rev-parse", "HEAD", _err="/dev/stderr",
-      _out=os.path.join(output_dir_path, "revision.txt"))
+      _out=os.path.join(output_dir_path, "REVISION.txt"))
 
   if not os.path.exists(args.upload_path):
     os.makedirs(args.upload_path)
@@ -96,12 +96,12 @@ def make_macos_app(args):
   shutil.copy(args.bin_path, os.path.join(full_dir_path, MACOS_APP_NAME))
   shutil.copy(
       os.path.join(args.output_dir_path, README_NAME),
-      os.path.join(dmg_dir_path, README_NAME))
+      os.path.join(dmg_dir_path, "README.txt"))
   shutil.copy(
       os.path.join(args.output_dir_path, LICENSE_NAME),
-      os.path.join(dmg_dir_path, LICENSE_NAME))
+      os.path.join(dmg_dir_path, "LICENSE.txt"))
   sh.git("rev-parse", "HEAD", _err="/dev/stderr",
-      _out=os.path.join(dmg_dir_path, "revision.txt"))
+      _out=os.path.join(dmg_dir_path, "REVISION.txt"))
 
   dmg_name = "%s-v%s.dmg" % (MACOS_APP_NAME, args.version)
 
