@@ -3,3 +3,5 @@
 **/*.sw?
 **/Cargo.lock
 /build
+/uploads
+/web_uploads

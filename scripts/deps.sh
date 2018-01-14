@@ -12,17 +12,23 @@ if [ -z ${TRAVIS_OS_NAME+x} ]; then
     esac
 fi
 
-if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-    pyenv version 3.6
-    PIP=pip
-    PYTHON=python
-elif [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    PIP=pip3.6
-    PYTHON=python3.6
-elif [[ "$TRAVIS_OS_NAME" == "local-archlinux" ]]; then
-    # this allows for local testing before submitting to travis-ci
-    PIP=pip3.6
-    PYTHON=python3.6
-fi
+case $TRAVIS_OS_NAME in
+    linux)
+        pyenv version 3.6
+        PIP=pip
+        PYTHON=python
+
+        rustup target add wasm32-unknown-unknown
+        cargo install --git https://github.com/alexcrichton/wasm-gc
+        ;;
+    osx)
+        PIP=pip3
+        PYTHON=python3
+        ;;
+    local-archlinux)
+        PIP=pip3.6
+        PYTHON=python3.6
+        ;;
+esac
 
 $PIP install --quiet --user sh toml
