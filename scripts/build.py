@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sh
 import sys
 import toml

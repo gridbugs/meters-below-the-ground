@@ -12,6 +12,6 @@ BUILD_DIR=$PROJECT_ROOT/build
 
 BUILD_PY=$DIR/build.py
 
-pip3 install --quiet --user sh toml
+source $DIR/deps.sh
 
-$BUILD_PY
+$PYTHON $BUILD_PY
