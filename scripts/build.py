@@ -71,6 +71,15 @@ def build_common(args):
         arcname = os.path.join(os.path.basename(subdir), f)
         zip_file.write(os.path.join(subdir, f), arcname)
 
+  revision_zip_name = "%(prefix)s-%(os)s-%(architecture)s-%(branch)s.zip" % {
+      "prefix": OUTPUT_PREFIXES[args.frontend],
+      "os": args.os,
+      "architecture": args.architecture,
+      "branch": args.branch,
+  }
+
+  shutil.copy(zip_path, os.path.join(args.upload_path, revision_zip_name))
+
   if args.os == "macos" and args.frontend == "glutin":
     args.output_dir_path = output_dir_path
     args.bin_path = os.path.join(output_dir_path, APP_NAME)
@@ -94,11 +103,16 @@ def make_macos_app(args):
   sh.git("rev-parse", "HEAD", _err="/dev/stderr",
       _out=os.path.join(dmg_dir_path, "revision.txt"))
 
-  dmg_name = "%s.dmg" % MACOS_APP_NAME
+  dmg_name = "%s-v%s.dmg" % (MACOS_APP_NAME, args.version)
 
   sh.hdiutil.create(
       os.path.join(args.upload_path, dmg_name),
       "-srcfolder", dmg_dir_path)
+
+  revision_dmg_name = "%s-%s.dmg" % (MACOS_APP_NAME, args.branch)
+  shutil.copy(
+      os.path.join(args.upload_path, dmg_name),
+      os.path.join(args.upload_path, revision_dmg_name))
 
 def build_wasm(args):
   crate_path = os.path.normpath(args.crate_path)
@@ -110,6 +124,11 @@ def build_wasm(args):
   shutil.copytree(
       os.path.join(args.crate_path, "dist"),
       os.path.join(output_dir_path, "v%s" % args.version))
+
+  shutil.copytree(
+      os.path.join(args.crate_path, "dist"),
+      os.path.join(output_dir_path, "%s" % args.branch))
+
 
 BUILD_FNS = { "unix": build_common,
               "glutin": build_common,
@@ -124,6 +143,7 @@ def main(args):
   args.manifest_path = os.path.join(args.crate_path, "Cargo.toml")
   args.manifest = toml.load(args.manifest_path)
   args.version = args.manifest['package']['version']
+  args.branch = sh.git("rev-parse", "--abbrev-ref", "HEAD").strip()
   BUILD_FNS[args.frontend](args)
 
 if __name__ == "__main__":
