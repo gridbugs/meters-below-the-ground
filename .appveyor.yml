@@ -23,7 +23,7 @@ install:
 build_script:
 - cmd: >-
 
-    cargo rustc --release -- -Clink-args="/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" -Ctarget-feature=+crt-static -Zunstable-options
+    cargo rustc --manifest-path=glutin/Cargo.toml --release -- -Clink-args="/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" -Ctarget-feature=+crt-static -Zunstable-options
 
     set FULL_NAME=%BIN_NAME%-%APPVEYOR_REPO_BRANCH%
 
