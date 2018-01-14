@@ -24,6 +24,7 @@ case $TRAVIS_OS_NAME in
         fi
         ;;
     osx)
+        brew install python3
         PIP=pip3
         PYTHON=python3
         ;;
