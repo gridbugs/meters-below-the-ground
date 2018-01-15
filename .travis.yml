@@ -1,11 +1,12 @@
 language: rust
-rust:
-- stable
-- beta
-- nightly
-os:
-- osx
-- linux
+matrix:
+  include:
+    - os: linux
+      rust: stable
+    - os: linux
+      rust: nightly
+    - os: osx
+      rust: stable
 dist: trusty
 script:
 - scripts/build.sh
