@@ -4,21 +4,31 @@ use input::Input;
 use policy;
 use cgmath::*;
 use prototypes;
+use card::*;
+use card_deck::*;
+use card_table::*;
+use tile::*;
+use reaction::*;
 
 pub struct State {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
+    entity_components: EntityComponentTable,
     player_id: EntityId,
     changes: Vec<EntityChange>,
+    reactions: Vec<Reaction>,
     count: u64,
+    deck: CardDeck,
+    table: CardTable,
 }
+
 
 impl State {
     pub fn new() -> Self {
 
         let strings = vec![
             "##########",
-            "#........#",
+            "#..m.....#",
             "#....#...#",
             "#..@.#...#",
             "#....#...#",
@@ -46,6 +56,10 @@ impl State {
                     '.' => {
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
+                    'm' => {
+                        prototypes::card(id_allocator.allocate(), coord, Card::Move, Tile::CardMove, &mut changes);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                    }
                     '@' => {
                         let id = id_allocator.allocate();
                         player_id = Some(id);
@@ -59,17 +73,39 @@ impl State {
 
         let player_id = player_id.expect("No player in level");
 
+        let mut entity_components = EntityComponentTable::new();
+
         for change in changes.drain(..) {
             spatial_hash.update(&entity_store, &change, 0);
+            entity_components.update(&change);
             entity_store.commit(change);
         }
+
+        let mut deck = CardDeck::new(vec![
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+            Card::Move,
+        ]);
+
+        let table = CardTable::new(&mut deck);
 
         Self {
             entity_store,
             spatial_hash,
+            entity_components,
             player_id,
             changes,
+            reactions: Vec::new(),
             count: 0,
+            deck,
+            table,
         }
     }
 
@@ -80,26 +116,41 @@ impl State {
         where I: IntoIterator<Item=Input>,
     {
         for input in inputs {
-            let change = match input {
+            match input {
                 Input::Move(direction) => {
-                    let current = self.entity_store.coord.get(&self.player_id).unwrap();
-                    let delta = direction.vector();
-                    let new = current + delta;
-                    insert::coord(self.player_id, new)
+                    if let Some(card) = self.table.take_replacing(direction, &mut self.deck) {
+                        card.play(self.player_id, &self.entity_store, direction, &mut self.changes);
+                    }
                 }
             };
-            self.changes.push(change);
         }
 
-        for change in self.changes.drain(..) {
+        loop {
+            for change in self.changes.drain(..) {
 
-            if !policy::check(&change, &self.entity_store, &self.spatial_hash) {
-                continue;
+                if !policy::check(&change, &self.entity_store, &self.spatial_hash, &mut self.reactions) {
+                    continue;
+                }
+                self.spatial_hash.update(&self.entity_store, &change, self.count);
+                self.entity_components.update(&change);
+                self.entity_store.commit(change);
+                self.count += 1;
             }
 
-            self.spatial_hash.update(&self.entity_store, &change, self.count);
-            self.entity_store.commit(change);
-            self.count += 1;
+            if self.reactions.is_empty() {
+                break;
+            } else {
+                for reaction in self.reactions.drain(..) {
+                    match reaction {
+                        Reaction::TakeCard(entity_id, card) => {
+                            self.deck.add_to_top(card);
+                            for component in self.entity_components.components(entity_id) {
+                                self.changes.push(EntityChange::Remove(entity_id, component));
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

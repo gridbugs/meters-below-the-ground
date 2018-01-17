@@ -3,4 +3,5 @@ pub enum Tile {
     Player,
     Wall,
     Floor,
+    CardMove,
 }

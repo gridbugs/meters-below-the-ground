@@ -7,7 +7,9 @@ solid = { storage = 'vector' }
 collider = { storage = 'vector' }
 player = { storage = 'btree' }
 tile_info = { type = '::tile_info::TileInfo', storage = 'vector' }
+card = { type = '::card::Card', storage = 'btree' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }
 player_count = { component = 'player', aggregate = 'count' }
+card_set = { component = 'card', aggregate = 'set' }

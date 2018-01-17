@@ -3,10 +3,18 @@ use cgmath::Vector2;
 use append::Append;
 use tile::Tile;
 use tile_info::TileInfo;
+use card::Card;
 
-const PLAYER_DEPTH: i32 = 3;
+const PLAYER_DEPTH: i32 = 4;
+const CARD_DEPTH: i32 = 3;
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
+
+pub fn card<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, card: Card, tile: Tile, changes: &mut A) {
+    changes.append(insert::coord(id, coord));
+    changes.append(insert::tile_info(id, TileInfo::new(tile, CARD_DEPTH)));
+    changes.append(insert::card(id, card));
+}
 
 pub fn player<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes: &mut A) {
     changes.append(insert::coord(id, coord));

@@ -27,6 +27,11 @@ fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
             cell.set_foreground_colour(Rgb24::new(127, 127, 127));
             cell.set_character('.');
         }
+        Tile::CardMove => {
+            cell.set_foreground_colour(colours::YELLOW);
+            cell.set_bold(true);
+            cell.set_character('m');
+        }
     }
 }
 
