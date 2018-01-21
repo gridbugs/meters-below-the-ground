@@ -5,8 +5,7 @@ use policy;
 use cgmath::*;
 use prototypes;
 use card::*;
-use card_deck::*;
-use card_table::*;
+use card_state::*;
 use tile::*;
 use reaction::*;
 
@@ -18,8 +17,7 @@ pub struct State {
     changes: Vec<EntityChange>,
     reactions: Vec<Reaction>,
     count: u64,
-    deck: CardDeck,
-    table: CardTable,
+    card_state: CardState,
 }
 
 
@@ -81,7 +79,7 @@ impl State {
             entity_store.commit(change);
         }
 
-        let mut deck = CardDeck::new(vec![
+        let card_state = CardState::new(vec![
             Card::Move,
             Card::Move,
             Card::Move,
@@ -94,8 +92,6 @@ impl State {
             Card::Move,
         ]);
 
-        let table = CardTable::new(&mut deck);
-
         Self {
             entity_store,
             spatial_hash,
@@ -104,13 +100,13 @@ impl State {
             changes,
             reactions: Vec::new(),
             count: 0,
-            deck,
-            table,
+            card_state,
         }
     }
 
     pub fn entity_store(&self) -> &EntityStore { &self.entity_store }
     pub fn spatial_hash(&self) -> &SpatialHashTable { &self.spatial_hash }
+    pub fn card_state(&self) -> &CardState { &self.card_state }
 
     pub fn tick<I>(&mut self, inputs: I, _period: Duration)
         where I: IntoIterator<Item=Input>,
@@ -118,7 +114,7 @@ impl State {
         for input in inputs {
             match input {
                 Input::Move(direction) => {
-                    if let Some(card) = self.table.take_replacing(direction, &mut self.deck) {
+                    if let Some(card) = self.card_state.play(direction) {
                         card.play(self.player_id, &self.entity_store, direction, &mut self.changes);
                     }
                 }
@@ -143,7 +139,7 @@ impl State {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.deck.add_to_top(card);
+                            self.card_state.add_top(card);
                             for component in self.entity_components.components(entity_id) {
                                 self.changes.push(EntityChange::Remove(entity_id, component));
                             }

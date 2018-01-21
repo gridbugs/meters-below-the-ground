@@ -12,16 +12,19 @@ use punchcards_prototty::{App, AppView, ControlFlow};
 pub struct WebApp {
     app: App,
     context: Context,
+    view: AppView,
 }
 
 impl WebApp {
     fn new(_seed: usize) -> Self {
         let app = App::new();
         let context = Context::new();
+        let view = AppView::new();
 
         Self {
             app,
             context,
+            view,
         }
     }
     fn tick<I>(&mut self, inputs: I, period: Duration)
@@ -35,7 +38,7 @@ impl WebApp {
                 }
             }
         }
-        self.context.render(&AppView, &self.app).unwrap();
+        self.context.render(&self.view, &self.app).unwrap();
     }
 }
 

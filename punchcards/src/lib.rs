@@ -14,8 +14,8 @@ mod policy;
 mod prototypes;
 mod reaction;
 
-pub mod card_table;
-pub mod card_deck;
+pub mod cardinal_direction_table;
+pub mod card_state;
 pub mod input;
 pub mod tile;
 pub mod tile_info;

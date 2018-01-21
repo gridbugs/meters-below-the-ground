@@ -16,7 +16,7 @@ fn main() {
         .with_cell_dimensions(32, 32)
         .with_underline_position(28)
         .with_underline_width(2)
-        .with_max_grid_size(20, 20)
+        .with_max_grid_size(30, 20)
         .build().unwrap();
 
     let mut app = App::new();
@@ -26,8 +26,10 @@ fn main() {
 
     let mut running = true;
 
+    let view = AppView::new();
+
     loop {
-        context.render(&AppView, &app).unwrap();
+        context.render(&view, &app).unwrap();
 
         if !running {
             break;
