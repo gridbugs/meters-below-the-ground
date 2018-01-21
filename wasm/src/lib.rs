@@ -38,7 +38,7 @@ impl WebApp {
                 }
             }
         }
-        self.context.render(&self.view, &self.app).unwrap();
+        self.context.render(&mut self.view, &self.app).unwrap();
     }
 }
 

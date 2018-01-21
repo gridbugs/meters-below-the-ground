@@ -1,5 +1,6 @@
 extern crate punchcards;
 extern crate prototty;
+extern crate prototty_common;
 extern crate direction;
 
 use std::fmt::Write;
@@ -10,6 +11,7 @@ use punchcards::tile::Tile;
 use prototty::*;
 use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
+use prototty_common::{StringView, RichStringView};
 use punchcards::input::Input as PunchcardsInput;
 use punchcards::card::Card;
 
@@ -50,33 +52,157 @@ impl App {
     pub fn new() -> Self {
         let state = State::new();
         let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
-        let string_buffer = String::with_capacity(INITIAL_STRING_BUFFER_SIZE);
 
         Self { state, input_buffer }
     }
 }
 
-const INITIAL_STRING_BUFFER_SIZE: usize = 16;
+struct DeckView {
+    scratch: String,
+}
+
+impl DeckView {
+    fn new() -> Self {
+        Self {
+            scratch: String::new(),
+        }
+    }
+}
+
+struct QueueView {
+    title_view: RichStringView,
+    scratch: String,
+}
+
+impl QueueView {
+    fn new() -> Self {
+        let mut title_view = RichStringView::new();
+        title_view.info.underline = true;
+        Self {
+            title_view,
+            scratch: String::new(),
+        }
+    }
+}
+
+struct HandView {
+    scratch: String,
+    title_view: RichStringView,
+}
+
+impl HandView {
+    fn new() -> Self {
+        let mut title_view = RichStringView::new();
+        title_view.info.underline = true;
+        Self {
+            title_view,
+            scratch: String::new(),
+        }
+    }
+}
+
+struct HudView {
+    deck_view: DeckView,
+    queue_view: QueueView,
+    hand_view: HandView,
+}
+
+impl HudView {
+    fn new() -> Self {
+        Self {
+            deck_view: DeckView::new(),
+            queue_view: QueueView::new(),
+            hand_view: HandView::new(),
+        }
+    }
+}
 
 pub struct AppView {
-    string_buffer: String,
+    hud_view: HudView,
 }
 
 impl AppView {
     pub fn new() -> Self {
-        let string_buffer = String::with_capacity(INITIAL_STRING_BUFFER_SIZE);
-        Self { string_buffer }
+        Self {
+            hud_view: HudView::new(),
+        }
     }
 }
 
-fn write_card(card: Card, string: &mut String) {
-    match card {
-        Card::Move => write!(string, "Move").unwrap(),
+fn write_card(card: Option<Card>, string: &mut String) {
+    if let Some(card)  = card {
+        match card {
+            Card::Move => write!(string, "Move").unwrap(),
+        }
+    } else {
+        write!(string, "-").unwrap();
+    }
+}
+
+impl View<App> for DeckView {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+        write!(&mut self.scratch, "Deck Size: {}", app.state.card_state().deck().len()).unwrap();
+        StringView.view(&self.scratch, offset, depth, grid);
+        self.scratch.clear();
+    }
+}
+
+impl View<App> for QueueView {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+
+        write!(&mut self.scratch, "Next").unwrap();
+        self.title_view.view(&self.scratch, offset, depth, grid);
+        self.scratch.clear();
+
+        let card_state = app.state.card_state();
+        let queue = card_state.queue();
+
+        for i in 0..card_state.queue_size() {
+            write!(&mut self.scratch, "{}: " , i).unwrap();
+            write_card(queue.get(i).cloned(), &mut self.scratch);
+            StringView.view(&self.scratch, offset + Coord::new(0, 1 + i as i32), depth, grid);
+            self.scratch.clear();
+        }
+    }
+}
+
+impl View<App> for HandView {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+        write!(&mut self.scratch, "Hand").unwrap();
+        self.title_view.view(&self.scratch, offset, depth, grid);
+        self.scratch.clear();
+
+        let hand = app.state.card_state().hand();
+
+        write_card(hand.get(CardinalDirection::North).cloned(), &mut self.scratch);
+        StringView.view(&self.scratch, offset + Coord::new(4, 1), depth, grid);
+        self.scratch.clear();
+
+        write_card(hand.get(CardinalDirection::East).cloned(), &mut self.scratch);
+        StringView.view(&self.scratch, offset + Coord::new(9, 2), depth, grid);
+        self.scratch.clear();
+
+        write_card(hand.get(CardinalDirection::South).cloned(), &mut self.scratch);
+        StringView.view(&self.scratch, offset + Coord::new(4, 3), depth, grid);
+        self.scratch.clear();
+
+        write_card(hand.get(CardinalDirection::West).cloned(), &mut self.scratch);
+        StringView.view(&self.scratch, offset + Coord::new(0, 2), depth, grid);
+        self.scratch.clear();
+    }
+}
+
+impl View<App> for HudView {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+        const QUEUE_WIDTH: i32 = 10;
+        self.deck_view.view(app, offset, depth, grid);
+        self.queue_view.view(app, offset + Coord::new(0, 2), depth, grid);
+        self.hand_view.view(app, offset + Coord::new(QUEUE_WIDTH, 2), depth, grid);
     }
 }
 
 impl View<App> for AppView {
-    fn view<G: ViewGrid>(&self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
 
         let entity_store = app.state.entity_store();
 
@@ -88,107 +214,7 @@ impl View<App> for AppView {
             }
         }
 
-        let card_state = app.state.card_state();
-        let mut string_buffer = String::new();
-        write!(&mut string_buffer, "Deck Size: {}", card_state.deck().len());
-
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 1 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        write!(&mut string_buffer, "Queue");
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(i as i32, 3 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        for i in 0..card_state.queue_size() {
-            write!(&mut string_buffer, "{}:" , i);
-            if let Some(card) = card_state.queue().get(i) {
-                write_card(*card, &mut string_buffer);
-            } else {
-                write!(&mut string_buffer, "-");
-            }
-
-            for (j, ch) in string_buffer.chars().enumerate() {
-                if let Some(cell) = grid.get_mut(offset + Coord::new(j as i32, (4 + i as u32 + GAME_HEIGHT) as i32), depth) {
-                    cell.set_character(ch);
-                }
-            }
-            string_buffer.clear();
-        }
-
-        const QUEUE_WIDTH: i32 = 10;
-
-        write!(&mut string_buffer, "Hand");
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(QUEUE_WIDTH + i as i32, 3 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        if let Some(card) = card_state.hand().get(CardinalDirection::North) {
-            write_card(*card, &mut string_buffer);
-        } else {
-            write!(&mut string_buffer, "-");
-        }
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(4 + QUEUE_WIDTH + i as i32, 4 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        write!(&mut string_buffer, "Hand");
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(QUEUE_WIDTH + i as i32, 3 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-
-        if let Some(card) = card_state.hand().get(CardinalDirection::East) {
-            write_card(*card, &mut string_buffer);
-        } else {
-            write!(&mut string_buffer, "-");
-        }
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(9 + QUEUE_WIDTH + i as i32, 5 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        if let Some(card) = card_state.hand().get(CardinalDirection::South) {
-            write_card(*card, &mut string_buffer);
-        } else {
-            write!(&mut string_buffer, "-");
-        }
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(4 + QUEUE_WIDTH + i as i32, 6 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
-
-        if let Some(card) = card_state.hand().get(CardinalDirection::West) {
-            write_card(*card, &mut string_buffer);
-        } else {
-            write!(&mut string_buffer, "-");
-        }
-        for (i, ch) in string_buffer.chars().enumerate() {
-            if let Some(cell) = grid.get_mut(offset + Coord::new(QUEUE_WIDTH + i as i32, 5 + GAME_HEIGHT as i32), depth) {
-                cell.set_character(ch);
-            }
-        }
-        string_buffer.clear();
+        self.hud_view.view(app, offset + Coord::new(0, GAME_HEIGHT as i32), depth, grid);
     }
 }
 

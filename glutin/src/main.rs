@@ -26,10 +26,10 @@ fn main() {
 
     let mut running = true;
 
-    let view = AppView::new();
+    let mut view = AppView::new();
 
     loop {
-        context.render(&view, &app).unwrap();
+        context.render(&mut view, &app).unwrap();
 
         if !running {
             break;
