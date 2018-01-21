@@ -15,7 +15,7 @@ const env = {
 
 $(() => {
     console.log("Loading...");
-    prototty.loadProtottyApp("punchcards_wasm.wasm", 20, 20, protottyTerminal, env).then(app => {
+    prototty.loadProtottyApp("punchcards_wasm.wasm", 30, 20, protottyTerminal, env).then(app => {
         console.log("Done!");
         app.start();
     });
