@@ -43,16 +43,33 @@ impl CardState {
         }
     }
 
-    pub fn play(&mut self, direction: CardinalDirection) -> Option<Card> {
+    pub fn hand_is_full(&self) -> bool {
+        self.hand.is_full()
+    }
 
-        let card = self.hand.take(direction);
+    fn check_invariant(&self) {
+        assert!(self.hand.is_full());
+        self.check_after();
+    }
 
-        for direction in CardinalDirections {
-            if !self.hand.contains(direction) {
-                if let Some(card) = self.queue.pop_front() {
-                    self.hand.insert(direction, card);
-                }
-            }
+    fn check_after(&self) {
+        assert!(self.queue.len() <= self.queue_size);
+        if !self.deck.is_empty() {
+            assert!(!self.queue.is_empty());
+        }
+    }
+
+    pub fn play(&mut self, direction: CardinalDirection) -> Card {
+        self.check_invariant();
+
+        let card = if let Some(card) = self.queue.pop_front() {
+            self.hand.insert(direction, card)
+        } else {
+            self.hand.take(direction)
+        }.expect("Card is not in hand");
+
+        if let Some(card) = self.deck.pop() {
+            self.queue.push_back(card);
         }
 
         while !self.deck.is_empty() && self.queue.len() < self.queue_size {
@@ -61,15 +78,24 @@ impl CardState {
             }
         }
 
-        if let Some(card) = card {
-            self.discard_deck.push(card);
-        }
+        self.discard_deck.push(card);
+
+        self.check_after();
 
         card
     }
 
-    pub fn add_top(&mut self, card: Card) {
-        self.deck.push(card);
+    pub fn add_card(&mut self, card: Card) {
+        self.check_invariant();
+
+        if self.queue.len() < self.queue_size {
+            self.queue.push_back(card);
+        } else {
+            self.deck.push(card);
+            // TODO shuffle deck
+        }
+
+        self.check_invariant();
     }
 
     pub fn hand(&self) -> &CardinalDirectionTable<Card> { &self.hand }

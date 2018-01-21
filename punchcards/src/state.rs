@@ -9,6 +9,10 @@ use card_state::*;
 use tile::*;
 use reaction::*;
 
+pub enum Meta {
+    GameOver,
+}
+
 pub struct State {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
@@ -80,15 +84,15 @@ impl State {
         }
 
         let card_state = CardState::new(vec![
+            Card::OtherMove,
             Card::Move,
+            Card::OtherMove,
             Card::Move,
+            Card::OtherMove,
             Card::Move,
+            Card::OtherMove,
             Card::Move,
-            Card::Move,
-            Card::Move,
-            Card::Move,
-            Card::Move,
-            Card::Move,
+            Card::OtherMove,
             Card::Move,
         ]);
 
@@ -108,15 +112,14 @@ impl State {
     pub fn spatial_hash(&self) -> &SpatialHashTable { &self.spatial_hash }
     pub fn card_state(&self) -> &CardState { &self.card_state }
 
-    pub fn tick<I>(&mut self, inputs: I, _period: Duration)
+    pub fn tick<I>(&mut self, inputs: I, _period: Duration) -> Option<Meta>
         where I: IntoIterator<Item=Input>,
     {
         for input in inputs {
             match input {
                 Input::Move(direction) => {
-                    if let Some(card) = self.card_state.play(direction) {
-                        card.play(self.player_id, &self.entity_store, direction, &mut self.changes);
-                    }
+                    let card = self.card_state.play(direction);
+                    card.play(self.player_id, &self.entity_store, direction, &mut self.changes);
                 }
             };
         }
@@ -134,12 +137,16 @@ impl State {
             }
 
             if self.reactions.is_empty() {
-                break;
+                if self.card_state.hand_is_full() {
+                    break None;
+                } else {
+                    break Some(Meta::GameOver);
+                }
             } else {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.add_top(card);
+                            self.card_state.add_card(card);
                             for component in self.entity_components.components(entity_id) {
                                 self.changes.push(EntityChange::Remove(entity_id, component));
                             }

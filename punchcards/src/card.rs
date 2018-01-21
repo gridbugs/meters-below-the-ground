@@ -5,6 +5,7 @@ use direction::CardinalDirection;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Card {
     Move,
+    OtherMove,
 }
 
 impl Card {
@@ -12,7 +13,7 @@ impl Card {
                                          direction: CardinalDirection, changes: &mut A) {
 
         match self {
-            Card::Move => {
+            Card::Move | Card::OtherMove => {
                 let current = entity_store.coord.get(&entity_id).unwrap();
                 let delta = direction.vector();
                 let new = current + delta;
