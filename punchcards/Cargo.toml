@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
+rand = "0.4"
 append = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
 direction = "0.2"

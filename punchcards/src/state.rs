@@ -8,12 +8,13 @@ use card::*;
 use card_state::*;
 use tile::*;
 use reaction::*;
+use rand::Rng;
 
 pub enum Meta {
     GameOver,
 }
 
-pub struct State {
+pub struct State<R: Rng> {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
     entity_components: EntityComponentTable,
@@ -22,11 +23,12 @@ pub struct State {
     reactions: Vec<Reaction>,
     count: u64,
     card_state: CardState,
+    rng: R,
 }
 
 
-impl State {
-    pub fn new() -> Self {
+impl<R: Rng> State<R> {
+    pub fn new(rng: R) -> Self {
 
         let strings = vec![
             "##########",
@@ -105,6 +107,7 @@ impl State {
             reactions: Vec::new(),
             count: 0,
             card_state,
+            rng,
         }
     }
 
@@ -146,7 +149,7 @@ impl State {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.add_card(card);
+                            self.card_state.add_card(card, &mut self.rng);
                             for component in self.entity_components.components(entity_id) {
                                 self.changes.push(EntityChange::Remove(entity_id, component));
                             }

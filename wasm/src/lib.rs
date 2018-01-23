@@ -1,8 +1,10 @@
+extern crate rand;
 extern crate prototty;
 extern crate prototty_wasm;
 extern crate punchcards_prototty;
 
 use std::time::Duration;
+use rand::{StdRng, SeedableRng};
 use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
@@ -10,14 +12,15 @@ use prototty::Input as ProtottyInput;
 use punchcards_prototty::{App, AppView, ControlFlow};
 
 pub struct WebApp {
-    app: App,
+    app: App<StdRng>,
     context: Context,
     view: AppView,
 }
 
 impl WebApp {
-    fn new(_seed: usize) -> Self {
-        let app = App::new();
+    fn new(seed: usize) -> Self {
+        let rng = StdRng::from_seed(&[seed]);
+        let app = App::new(rng);
         let context = Context::new();
         let view = AppView::new();
 

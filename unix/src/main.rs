@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate punchcards_prototty;
 extern crate prototty;
 extern crate prototty_unix;
@@ -11,7 +12,7 @@ use prototty::Renderer;
 const TICK_MILLIS: u64 = 33;
 
 fn main() {
-    let mut app = App::new();
+    let mut app = App::new(rand::thread_rng());
     let mut context = Context::new().unwrap();
 
     let mut view = AppView::new();

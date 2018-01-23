@@ -2,22 +2,31 @@ extern crate punchcards;
 extern crate prototty;
 extern crate prototty_common;
 extern crate direction;
+extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
+use rand::Rng;
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
 use prototty::*;
 use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
-use prototty_common::{StringView, RichStringView};
+use prototty_common::*;
 use punchcards::input::Input as PunchcardsInput;
 use punchcards::card::Card;
+use punchcards::card_state::CardState;
 use punchcards::state::Meta;
 
 const GAME_OVER_MS: u64 = 1000;
 const GAME_HEIGHT: u32 = 10;
+const HAND_WIDTH: u32 = 12;
+const HAND_HEIGHT: u32 = 3;
+const QUEUE_WIDTH: u32 = 10;
+const DECK_WIDTH: u32 = 10;
+const DECK_HEIGHT: u32 = 1;
+const HUD_SPACE: u32 = 1;
 
 fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
     match tile {
@@ -51,16 +60,16 @@ enum AppState {
     GameOver,
 }
 
-pub struct App {
+pub struct App<R: Rng> {
     app_state: AppState,
-    state: State,
+    state: State<R>,
     input_buffer: Vec<PunchcardsInput>,
     game_over_duration: Duration,
 }
 
-impl App {
-    pub fn new() -> Self {
-        let state = State::new();
+impl<R: Rng> App<R> {
+    pub fn new(rng: R) -> Self {
+        let state = State::new(rng);
         let app_state = AppState::Game;
         let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
         let game_over_duration = Duration::default();
@@ -82,8 +91,13 @@ impl DeckView {
 }
 
 struct QueueView {
-    title_view: RichStringView,
     scratch: String,
+}
+
+impl ViewSize<CardState> for QueueView {
+    fn size(&mut self, card_state: &CardState) -> Size {
+        Size::new(QUEUE_WIDTH, card_state.queue_size() as u32)
+    }
 }
 
 impl QueueView {
@@ -91,7 +105,6 @@ impl QueueView {
         let mut title_view = RichStringView::new();
         title_view.info.underline = true;
         Self {
-            title_view,
             scratch: String::new(),
         }
     }
@@ -99,32 +112,51 @@ impl QueueView {
 
 struct HandView {
     scratch: String,
-    title_view: RichStringView,
+    north_view: Decorated<StringView, Align>,
+    east_view: Decorated<StringView, Align>,
+    south_view: Decorated<StringView, Align>,
+    west_view: Decorated<StringView, Align>,
 }
 
 impl HandView {
     fn new() -> Self {
         let mut title_view = RichStringView::new();
         title_view.info.underline = true;
+        let size = Size::new(HAND_WIDTH, HAND_HEIGHT);
+
+        use self::Alignment::*;
+        let north_view = Decorated::new(StringView, Align::new(size, Centre, TopLeft));
+        let south_view = Decorated::new(StringView, Align::new(size, Centre, BottomRight));
+        let west_view = Decorated::new(StringView, Align::new(size, TopLeft, Centre));
+        let east_view = Decorated::new(StringView, Align::new(size, BottomRight, Centre));
         Self {
-            title_view,
             scratch: String::new(),
+            north_view,
+            east_view,
+            south_view,
+            west_view,
         }
     }
 }
 
+impl ViewSize<CardState> for HandView {
+    fn size(&mut self, _card_state: &CardState) -> Size {
+        Size::new(HAND_WIDTH, HAND_HEIGHT)
+    }
+}
+
 struct HudView {
-    deck_view: DeckView,
-    queue_view: QueueView,
-    hand_view: HandView,
+    deck_view: Decorated<DeckView, Border>,
+    queue_view: Decorated<QueueView, Border>,
+    hand_view: Decorated<HandView, Border>,
 }
 
 impl HudView {
     fn new() -> Self {
         Self {
-            deck_view: DeckView::new(),
-            queue_view: QueueView::new(),
-            hand_view: HandView::new(),
+            deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
+            queue_view: Decorated::new(QueueView::new(), Border::with_title("Queue")),
+            hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
         }
     }
 }
@@ -156,70 +188,74 @@ fn maybe_write_card(card: Option<Card>, string: &mut String) {
     }
 }
 
-impl View<State> for DeckView {
-    fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
-        write!(&mut self.scratch, "Deck Size: {}", state.card_state().deck().len()).unwrap();
+impl View<CardState> for DeckView {
+    fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
+        write!(&mut self.scratch, "Size: {}", card_state.deck().len()).unwrap();
         StringView.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
     }
 }
 
-impl View<State> for QueueView {
-    fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
+impl ViewSize<CardState> for DeckView {
+    fn size(&mut self, _card_state: &CardState) -> Size {
+        Size::new(DECK_WIDTH, DECK_HEIGHT)
+    }
+}
 
-        write!(&mut self.scratch, "Next").unwrap();
-        self.title_view.view(&self.scratch, offset, depth, grid);
-        self.scratch.clear();
+impl View<CardState> for QueueView {
+    fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
 
-        let card_state = state.card_state();
         let queue = card_state.queue();
 
         for i in 0..card_state.queue_size() {
             write!(&mut self.scratch, "{}: " , i).unwrap();
             maybe_write_card(queue.get(i).cloned(), &mut self.scratch);
-            StringView.view(&self.scratch, offset + Coord::new(0, 1 + i as i32), depth, grid);
+            StringView.view(&self.scratch, offset + Coord::new(0, i as i32), depth, grid);
             self.scratch.clear();
         }
     }
 }
 
-impl View<State> for HandView {
-    fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
-        write!(&mut self.scratch, "Hand").unwrap();
-        self.title_view.view(&self.scratch, offset, depth, grid);
-        self.scratch.clear();
+impl View<CardState> for HandView {
+    fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
 
-        let hand = state.card_state().hand();
+        let hand = card_state.hand();
 
         maybe_write_card(hand.get(CardinalDirection::North).cloned(), &mut self.scratch);
-        StringView.view(&self.scratch, offset + Coord::new(4, 1), depth, grid);
+        self.north_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
         maybe_write_card(hand.get(CardinalDirection::East).cloned(), &mut self.scratch);
-        StringView.view(&self.scratch, offset + Coord::new(9, 2), depth, grid);
+        self.east_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
         maybe_write_card(hand.get(CardinalDirection::South).cloned(), &mut self.scratch);
-        StringView.view(&self.scratch, offset + Coord::new(4, 3), depth, grid);
+        self.south_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
         maybe_write_card(hand.get(CardinalDirection::West).cloned(), &mut self.scratch);
-        StringView.view(&self.scratch, offset + Coord::new(0, 2), depth, grid);
+        self.west_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
     }
 }
 
-impl View<State> for HudView {
-    fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
-        const QUEUE_WIDTH: i32 = 10;
-        self.deck_view.view(state, offset, depth, grid);
-        self.queue_view.view(state, offset + Coord::new(0, 2), depth, grid);
-        self.hand_view.view(state, offset + Coord::new(QUEUE_WIDTH, 2), depth, grid);
+impl<R: Rng> View<State<R>> for HudView {
+    fn view<G: ViewGrid>(&mut self, state: &State<R>, offset: Coord, depth: i32, grid: &mut G) {
+
+        let card_state = state.card_state();
+
+        self.deck_view.view(card_state, offset, depth, grid);
+
+        let deck_size = self.deck_view.size(card_state);
+        self.queue_view.view(card_state, offset + Coord::new(0, deck_size.y() as i32), depth, grid);
+
+        let hand_x = ::std::cmp::max(self.queue_view.size(card_state).x(), deck_size.x());
+        self.hand_view.view(card_state, offset + Coord::new(hand_x as i32, 0), depth, grid);
     }
 }
 
-impl View<App> for AppView {
-    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+impl<R: Rng> View<App<R>> for AppView {
+    fn view<G: ViewGrid>(&mut self, app: &App<R>, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
             AppState::Game => {
                 let entity_store = app.state.entity_store();
@@ -232,7 +268,7 @@ impl View<App> for AppView {
                     }
                 }
 
-                self.hud_view.view(&app.state, offset + Coord::new(0, GAME_HEIGHT as i32), depth, grid);
+                self.hud_view.view(&app.state, offset + Coord::new(0, GAME_HEIGHT as i32 + HUD_SPACE as i32), depth, grid);
             }
             AppState::GameOver => {
                 StringView.view(&"Game Over", offset, depth, grid);
@@ -250,7 +286,7 @@ enum InputType {
     ControlFlow(ControlFlow),
 }
 
-impl App {
+impl<R: Rng> App<R> {
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
         where I: IntoIterator<Item=ProtottyInput>,
     {

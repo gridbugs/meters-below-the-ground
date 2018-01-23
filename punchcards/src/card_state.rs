@@ -1,4 +1,6 @@
+use std::mem;
 use std::collections::VecDeque;
+use rand::Rng;
 use direction::*;
 use cardinal_direction_table::*;
 use card::*;
@@ -85,14 +87,19 @@ impl CardState {
         card
     }
 
-    pub fn add_card(&mut self, card: Card) {
+    pub fn add_card<R: Rng>(&mut self, card: Card, rng: &mut R) {
         self.check_invariant();
 
         if self.queue.len() < self.queue_size {
             self.queue.push_back(card);
         } else {
-            self.deck.push(card);
-            // TODO shuffle deck
+            if self.deck.is_empty() {
+                self.deck.push(card);
+            } else {
+                let index: usize = rng.gen();
+                let to_push = mem::replace(&mut self.deck[index], card);
+                self.deck.push(to_push);
+            }
         }
 
         self.check_invariant();

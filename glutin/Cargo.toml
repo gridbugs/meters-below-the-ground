@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
+rand = "0.4"
 punchcards_prototty = { path = "../prototty" }
-prototty = "0.12"
-prototty_glutin = "0.12"
+prototty = "0.13"
+prototty_glutin = "0.13"
