@@ -4,7 +4,6 @@ extern crate prototty_wasm;
 extern crate punchcards_prototty;
 
 use std::time::Duration;
-use rand::{StdRng, SeedableRng};
 use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
@@ -12,15 +11,14 @@ use prototty::Input as ProtottyInput;
 use punchcards_prototty::{App, AppView, ControlFlow};
 
 pub struct WebApp {
-    app: App<StdRng>,
+    app: App,
     context: Context,
     view: AppView,
 }
 
 impl WebApp {
-    fn new(seed: usize) -> Self {
-        let rng = StdRng::from_seed(&[seed]);
-        let app = App::new(rng);
+    fn new(seed: u32) -> Self {
+        let app = App::new(seed);
         let context = Context::new();
         let view = AppView::new();
 
@@ -46,7 +44,7 @@ impl WebApp {
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_app(seed: usize) -> *mut WebApp {
+pub extern "C" fn alloc_app(seed: u32) -> *mut WebApp {
     alloc::into_boxed_raw(WebApp::new(seed))
 }
 

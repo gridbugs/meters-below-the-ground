@@ -5,6 +5,7 @@ extern crate prototty_unix;
 
 use std::time::Duration;
 use std::thread;
+use rand::Rng;
 use punchcards_prototty::{App, AppView, ControlFlow};
 use prototty_unix::Context;
 use prototty::Renderer;
@@ -12,7 +13,7 @@ use prototty::Renderer;
 const TICK_MILLIS: u64 = 33;
 
 fn main() {
-    let mut app = App::new(rand::thread_rng());
+    let mut app = App::new(rand::thread_rng().gen());
     let mut context = Context::new().unwrap();
 
     let mut view = AppView::new();

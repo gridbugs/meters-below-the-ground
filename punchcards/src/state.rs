@@ -9,7 +9,7 @@ use card_state::*;
 use tile::*;
 use reaction::*;
 use animation::*;
-use rand::Rng;
+use rand::{SeedableRng, StdRng};
 use append::Append;
 
 pub enum Meta {
@@ -33,19 +33,21 @@ impl GameState {
 }
 
 
-pub struct State<R: Rng> {
+pub struct State {
     game_state: GameState,
     player_id: EntityId,
     changes: Vec<EntityChange>,
     reactions: Vec<Reaction>,
     animations: Vec<Animation>,
     card_state: CardState,
-    rng: R,
+    rng: StdRng,
 }
 
 
-impl<R: Rng> State<R> {
-    pub fn new(mut rng: R) -> Self {
+impl State {
+    pub fn new(seed: u32) -> Self {
+
+        let mut rng = StdRng::from_seed(&[seed as usize]);
 
         let strings = vec![
             "##########",
@@ -161,7 +163,8 @@ impl<R: Rng> State<R> {
         loop {
             for change in self.changes.drain(..) {
 
-                if !policy::check(&change, &self.game_state.entity_store, &self.game_state.spatial_hash, &mut self.reactions) {
+                if !policy::check(&change, &self.game_state.entity_store, &self.game_state.spatial_hash,
+                                  &mut self.reactions) {
                     continue;
                 }
                 self.game_state.spatial_hash.update(&self.game_state.entity_store, &change, self.game_state.count);

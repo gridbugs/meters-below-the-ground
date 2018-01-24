@@ -4,6 +4,7 @@ extern crate prototty_glutin;
 extern crate punchcards_prototty;
 
 use std::time::Instant;
+use rand::Rng;
 use prototty::Renderer;
 use prototty_glutin::*;
 use punchcards_prototty::{App, AppView, ControlFlow};
@@ -20,7 +21,7 @@ fn main() {
         .with_max_grid_size(30, 20)
         .build().unwrap();
 
-    let mut app = App::new(rand::thread_rng());
+    let mut app = App::new(rand::thread_rng().gen());
     let mut input_buffer = Vec::with_capacity(64);
 
     let mut last_instant = Instant::now();

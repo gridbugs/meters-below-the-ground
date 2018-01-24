@@ -6,7 +6,6 @@ extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
-use rand::Rng;
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
@@ -71,16 +70,16 @@ enum AppState {
     GameOver,
 }
 
-pub struct App<R: Rng> {
+pub struct App {
     app_state: AppState,
-    state: State<R>,
+    state: State,
     input_buffer: Vec<PunchcardsInput>,
     game_over_duration: Duration,
 }
 
-impl<R: Rng> App<R> {
-    pub fn new(rng: R) -> Self {
-        let state = State::new(rng);
+impl App {
+    pub fn new(seed: u32) -> Self {
+        let state = State::new(seed);
         let app_state = AppState::Game;
         let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
         let game_over_duration = Duration::default();
@@ -247,8 +246,8 @@ impl View<CardState> for HandView {
     }
 }
 
-impl<R: Rng> View<State<R>> for HudView {
-    fn view<G: ViewGrid>(&mut self, state: &State<R>, offset: Coord, depth: i32, grid: &mut G) {
+impl View<State> for HudView {
+    fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
 
         let card_state = state.card_state();
 
@@ -262,8 +261,8 @@ impl<R: Rng> View<State<R>> for HudView {
     }
 }
 
-impl<R: Rng> View<App<R>> for AppView {
-    fn view<G: ViewGrid>(&mut self, app: &App<R>, offset: Coord, depth: i32, grid: &mut G) {
+impl View<App> for AppView {
+    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
             AppState::Game => {
                 let entity_store = app.state.entity_store();
@@ -294,7 +293,7 @@ enum InputType {
     ControlFlow(ControlFlow),
 }
 
-impl<R: Rng> App<R> {
+impl App {
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
         where I: IntoIterator<Item=ProtottyInput>,
     {
