@@ -14,6 +14,7 @@ pub mod entity_store {
 mod policy;
 mod prototypes;
 mod reaction;
+mod animation;
 
 pub mod cardinal_direction_table;
 pub mod card_state;

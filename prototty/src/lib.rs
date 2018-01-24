@@ -19,6 +19,8 @@ use punchcards::card::Card;
 use punchcards::card_state::CardState;
 use punchcards::state::Meta;
 
+use self::CardinalDirection::*;
+
 const GAME_OVER_MS: u64 = 1000;
 const GAME_HEIGHT: u32 = 10;
 const HAND_WIDTH: u32 = 12;
@@ -48,6 +50,15 @@ fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
             cell.set_foreground_colour(colours::YELLOW);
             cell.set_bold(true);
             cell.set_character('m');
+        }
+        Tile::Punch(direction) => {
+            let ch = match direction {
+                North | South => '|',
+                East | West => '-',
+            };
+            cell.set_character(ch);
+            cell.set_foreground_colour(colours::CYAN);
+            cell.set_bold(false);
         }
     }
 }
@@ -176,7 +187,7 @@ impl AppView {
 fn write_card(card: Card, string: &mut String) {
     match card {
         Card::Move => write!(string, "Move").unwrap(),
-        Card::OtherMove => write!(string, "Move2").unwrap(),
+        Card::Punch => write!(string, "Punch").unwrap(),
     }
 }
 
@@ -218,19 +229,19 @@ impl View<CardState> for HandView {
 
         let hand = card_state.hand();
 
-        maybe_write_card(hand.get(CardinalDirection::North).cloned(), &mut self.scratch);
+        maybe_write_card(hand.get(North).cloned(), &mut self.scratch);
         self.north_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
-        maybe_write_card(hand.get(CardinalDirection::East).cloned(), &mut self.scratch);
+        maybe_write_card(hand.get(East).cloned(), &mut self.scratch);
         self.east_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
-        maybe_write_card(hand.get(CardinalDirection::South).cloned(), &mut self.scratch);
+        maybe_write_card(hand.get(South).cloned(), &mut self.scratch);
         self.south_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
 
-        maybe_write_card(hand.get(CardinalDirection::West).cloned(), &mut self.scratch);
+        maybe_write_card(hand.get(West).cloned(), &mut self.scratch);
         self.west_view.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
     }
@@ -291,10 +302,10 @@ impl<R: Rng> App<R> {
             AppState::Game => {
                 for input in inputs {
                     let input_type = match input {
-                        ProtottyInput::Up => InputType::Game(PunchcardsInput::Move(CardinalDirection::North)),
-                        ProtottyInput::Down => InputType::Game(PunchcardsInput::Move(CardinalDirection::South)),
-                        ProtottyInput::Left => InputType::Game(PunchcardsInput::Move(CardinalDirection::West)),
-                        ProtottyInput::Right => InputType::Game(PunchcardsInput::Move(CardinalDirection::East)),
+                        ProtottyInput::Up => InputType::Game(PunchcardsInput::Move(North)),
+                        ProtottyInput::Down => InputType::Game(PunchcardsInput::Move(South)),
+                        ProtottyInput::Left => InputType::Game(PunchcardsInput::Move(West)),
+                        ProtottyInput::Right => InputType::Game(PunchcardsInput::Move(East)),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         _ => continue,
                     };

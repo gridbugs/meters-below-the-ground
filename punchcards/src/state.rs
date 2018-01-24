@@ -8,20 +8,37 @@ use card::*;
 use card_state::*;
 use tile::*;
 use reaction::*;
+use animation::*;
 use rand::Rng;
+use append::Append;
 
 pub enum Meta {
     GameOver,
 }
 
-pub struct State<R: Rng> {
+pub struct GameState {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
     entity_components: EntityComponentTable,
+    id_allocator: EntityIdAllocator,
+    count: u64,
+}
+
+impl GameState {
+    fn delete_entity<A: Append<EntityChange>>(&mut self, entity_id: EntityId, changes: &mut A) {
+        for component in self.entity_components.components(entity_id) {
+            changes.append(EntityChange::Remove(entity_id, component));
+        }
+    }
+}
+
+
+pub struct State<R: Rng> {
+    game_state: GameState,
     player_id: EntityId,
     changes: Vec<EntityChange>,
     reactions: Vec<Reaction>,
-    count: u64,
+    animations: Vec<Animation>,
     card_state: CardState,
     rng: R,
 }
@@ -47,6 +64,7 @@ impl<R: Rng> State<R> {
         let mut spatial_hash = SpatialHashTable::new(strings[0].len() as u32, strings.len() as u32);
         let mut id_allocator = EntityIdAllocator::new();
         let mut changes = Vec::new();
+        let animations = Vec::new();
         let mut player_id = None;
 
         for (y, line) in strings.iter().enumerate() {
@@ -86,57 +104,70 @@ impl<R: Rng> State<R> {
         }
 
         let card_state = CardState::new(vec![
-            Card::OtherMove,
+            Card::Punch,
+            Card::Punch,
+            Card::Punch,
+            Card::Punch,
+            Card::Punch,
             Card::Move,
-            Card::OtherMove,
             Card::Move,
-            Card::OtherMove,
             Card::Move,
-            Card::OtherMove,
             Card::Move,
-            Card::OtherMove,
             Card::Move,
         ], &mut rng);
 
         Self {
-            entity_store,
-            spatial_hash,
-            entity_components,
+            game_state: GameState {
+                entity_store,
+                spatial_hash,
+                entity_components,
+                id_allocator,
+                count: 0,
+            },
             player_id,
             changes,
+            animations,
             reactions: Vec::new(),
-            count: 0,
             card_state,
             rng,
         }
     }
 
-    pub fn entity_store(&self) -> &EntityStore { &self.entity_store }
-    pub fn spatial_hash(&self) -> &SpatialHashTable { &self.spatial_hash }
+    pub fn entity_store(&self) -> &EntityStore { &self.game_state.entity_store }
+    pub fn spatial_hash(&self) -> &SpatialHashTable { &self.game_state.spatial_hash }
     pub fn card_state(&self) -> &CardState { &self.card_state }
 
-    pub fn tick<I>(&mut self, inputs: I, _period: Duration) -> Option<Meta>
+    pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<Meta>
         where I: IntoIterator<Item=Input>,
     {
-        for input in inputs {
-            match input {
-                Input::Move(direction) => {
-                    let card = self.card_state.play(direction);
-                    card.play(self.player_id, &self.entity_store, direction, &mut self.changes);
-                }
-            };
+
+        if self.animations.is_empty() {
+            for input in inputs {
+                match input {
+                    Input::Move(direction) => {
+                        let card = self.card_state.play(direction);
+                        card.play(self.player_id, &self.game_state.entity_store,
+                                  direction, &mut self.game_state.id_allocator,
+                                  &mut self.changes, &mut self.reactions);
+                    }
+                };
+            }
+        } else {
+            for animation in self.animations.drain(..) {
+                animation.step(period, &mut self.reactions);
+            }
         }
 
         loop {
             for change in self.changes.drain(..) {
 
-                if !policy::check(&change, &self.entity_store, &self.spatial_hash, &mut self.reactions) {
+                if !policy::check(&change, &self.game_state.entity_store, &self.game_state.spatial_hash, &mut self.reactions) {
                     continue;
                 }
-                self.spatial_hash.update(&self.entity_store, &change, self.count);
-                self.entity_components.update(&change);
-                self.entity_store.commit(change);
-                self.count += 1;
+                self.game_state.spatial_hash.update(&self.game_state.entity_store, &change, self.game_state.count);
+                self.game_state.entity_components.update(&change);
+                self.game_state.entity_store.commit(change);
+                self.game_state.count += 1;
             }
 
             if self.reactions.is_empty() {
@@ -150,9 +181,16 @@ impl<R: Rng> State<R> {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
                             self.card_state.add_card(card, &mut self.rng);
-                            for component in self.entity_components.components(entity_id) {
-                                self.changes.push(EntityChange::Remove(entity_id, component));
-                            }
+                            self.game_state.delete_entity(entity_id, &mut self.changes);
+                        }
+                        Reaction::RemoveEntity(entity_id) => {
+                            self.game_state.delete_entity(entity_id, &mut self.changes);
+                        }
+                        Reaction::StartAnimation(animation) => {
+                            self.animations.push(animation);
+                        }
+                        Reaction::EntityChange(change) => {
+                            self.changes.push(change);
                         }
                     }
                 }
