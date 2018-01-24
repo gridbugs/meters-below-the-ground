@@ -28,7 +28,7 @@ pub struct State<R: Rng> {
 
 
 impl<R: Rng> State<R> {
-    pub fn new(rng: R) -> Self {
+    pub fn new(mut rng: R) -> Self {
 
         let strings = vec![
             "##########",
@@ -96,7 +96,7 @@ impl<R: Rng> State<R> {
             Card::Move,
             Card::OtherMove,
             Card::Move,
-        ]);
+        ], &mut rng);
 
         Self {
             entity_store,

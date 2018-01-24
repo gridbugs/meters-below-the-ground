@@ -96,7 +96,7 @@ struct QueueView {
 
 impl ViewSize<CardState> for QueueView {
     fn size(&mut self, card_state: &CardState) -> Size {
-        Size::new(QUEUE_WIDTH, card_state.queue_size() as u32)
+        Size::new(QUEUE_WIDTH, card_state.queue().max_size() as u32)
     }
 }
 
@@ -190,7 +190,7 @@ fn maybe_write_card(card: Option<Card>, string: &mut String) {
 
 impl View<CardState> for DeckView {
     fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
-        write!(&mut self.scratch, "Size: {}", card_state.deck().len()).unwrap();
+        write!(&mut self.scratch, "Size: {}", card_state.deck().num_cards()).unwrap();
         StringView.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
     }
@@ -204,12 +204,9 @@ impl ViewSize<CardState> for DeckView {
 
 impl View<CardState> for QueueView {
     fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
-
-        let queue = card_state.queue();
-
-        for i in 0..card_state.queue_size() {
+        for (i, maybe_card) in card_state.queue().iter().enumerate() {
             write!(&mut self.scratch, "{}: " , i).unwrap();
-            maybe_write_card(queue.get(i).cloned(), &mut self.scratch);
+            maybe_write_card(maybe_card.cloned(), &mut self.scratch);
             StringView.view(&self.scratch, offset + Coord::new(0, i as i32), depth, grid);
             self.scratch.clear();
         }
