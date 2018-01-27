@@ -22,6 +22,7 @@ fn main() {
         .build().unwrap();
 
     let mut app = App::new(rand::thread_rng().gen());
+
     let mut input_buffer = Vec::with_capacity(64);
 
     let mut last_instant = Instant::now();

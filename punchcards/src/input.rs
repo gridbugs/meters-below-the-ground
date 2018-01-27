@@ -1,5 +1,7 @@
 use direction::CardinalDirection;
+use card_state::HandIndex;
 
 pub enum Input {
-    Move(CardinalDirection),
+    Direction(CardinalDirection),
+    SelectCard(HandIndex),
 }

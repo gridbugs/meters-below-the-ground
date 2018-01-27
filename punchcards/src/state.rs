@@ -12,6 +12,8 @@ use animation::*;
 use rand::{SeedableRng, StdRng};
 use append::Append;
 
+const INITIAL_HAND_SIZE: usize = 4;
+
 pub enum Meta {
     GameOver,
 }
@@ -32,6 +34,11 @@ impl GameState {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum InputState {
+    WaitingForCardSelection,
+    WaitingForDirection(HandIndex, Card),
+}
 
 pub struct State {
     game_state: GameState,
@@ -40,6 +47,7 @@ pub struct State {
     reactions: Vec<Reaction>,
     animations: Vec<Animation>,
     card_state: CardState,
+    input_state: InputState,
     rng: StdRng,
 }
 
@@ -116,7 +124,7 @@ impl State {
             Card::Move,
             Card::Move,
             Card::Move,
-        ], &mut rng);
+        ], INITIAL_HAND_SIZE, &mut rng);
 
         Self {
             game_state: GameState {
@@ -126,6 +134,7 @@ impl State {
                 id_allocator,
                 count: 0,
             },
+            input_state: InputState::WaitingForCardSelection,
             player_id,
             changes,
             animations,
@@ -138,26 +147,44 @@ impl State {
     pub fn entity_store(&self) -> &EntityStore { &self.game_state.entity_store }
     pub fn spatial_hash(&self) -> &SpatialHashTable { &self.game_state.spatial_hash }
     pub fn card_state(&self) -> &CardState { &self.card_state }
+    pub fn input_state(&self) -> &InputState { &self.input_state }
 
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<Meta>
         where I: IntoIterator<Item=Input>,
     {
 
+        let mut played_card = None;
+        let mut input_state_change = None;
+
         if self.animations.is_empty() {
             for input in inputs {
                 match input {
-                    Input::Move(direction) => {
-                        let card = self.card_state.play(direction);
-                        card.play(self.player_id, &self.game_state.entity_store,
-                                  direction, &mut self.game_state.id_allocator,
-                                  &mut self.changes, &mut self.reactions);
+                    Input::SelectCard(index) => {
+                        if let Some(card) = self.card_state.hand.get(index) {
+                            input_state_change = Some(InputState::WaitingForDirection(index, *card));
+                        }
                     }
-                };
+                    Input::Direction(direction) => {
+                        if let InputState::WaitingForDirection(index, card) = self.input_state {
+                            played_card = Some((index, card, direction));
+                        }
+                    }
+                }
             }
         } else {
             for animation in self.animations.drain(..) {
                 animation.step(period, &mut self.reactions);
             }
+        }
+
+        if let Some(input_state) = input_state_change {
+            self.input_state = input_state;
+        }
+
+        if let Some((_, card, direction)) = played_card {
+            card.play(self.player_id, &self.game_state.entity_store,
+                      direction, &mut self.game_state.id_allocator,
+                      &mut self.changes, &mut self.reactions);
         }
 
         loop {
@@ -167,6 +194,14 @@ impl State {
                                   &mut self.reactions) {
                     continue;
                 }
+
+                if let Some((index, card, _)) = played_card.take() {
+                    let card_to_check = self.card_state.hand.remove_card(index);
+                    assert_eq!(card, card_to_check);
+                    self.card_state.fill_hand();
+                    self.input_state = InputState::WaitingForCardSelection;
+                }
+
                 self.game_state.spatial_hash.update(&self.game_state.entity_store, &change, self.game_state.count);
                 self.game_state.entity_components.update(&change);
                 self.game_state.entity_store.commit(change);
@@ -174,16 +209,16 @@ impl State {
             }
 
             if self.reactions.is_empty() {
-                if self.card_state.hand_is_full() {
-                    break None;
-                } else {
+                if self.card_state.hand.is_empty() {
                     break Some(Meta::GameOver);
+                } else {
+                    break None;
                 }
             } else {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.add_card(card, &mut self.rng);
+                            self.card_state.deck.add_random(card, &mut self.rng);
                             self.game_state.delete_entity(entity_id, &mut self.changes);
                         }
                         Reaction::RemoveEntity(entity_id) => {

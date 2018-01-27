@@ -16,7 +16,6 @@ mod prototypes;
 mod reaction;
 mod animation;
 
-pub mod cardinal_direction_table;
 pub mod card_state;
 pub mod input;
 pub mod tile;
