@@ -118,8 +118,8 @@ impl HandView {
     }
 }
 
-impl<R: Rng> ViewSize<State<R>> for HandView {
-    fn size(&mut self, _state: &State<R>) -> Size {
+impl ViewSize<State> for HandView {
+    fn size(&mut self, _state: &State) -> Size {
         Size::new(HAND_WIDTH, HAND_HEIGHT)
     }
 }
