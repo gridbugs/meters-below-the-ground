@@ -6,6 +6,7 @@ extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
+use rand::{StdRng, SeedableRng};
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
@@ -18,6 +19,8 @@ use punchcards::card::Card;
 use punchcards::card_state::CardState;
 
 use self::CardinalDirection::*;
+
+const SAVE_FILE: &'static str = "save";
 
 const GAME_OVER_MS: u64 = 1000;
 const GAME_HEIGHT: u32 = 10;
@@ -64,30 +67,6 @@ fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
 
 const INITIAL_INPUT_BUFFER_SIZE: usize = 16;
 
-#[derive(Debug, Clone, Copy)]
-enum AppState {
-    Game,
-    GameOver,
-}
-
-pub struct App {
-    app_state: AppState,
-    state: State,
-    input_buffer: Vec<PunchcardsInput>,
-    game_over_duration: Duration,
-}
-
-impl App {
-    pub fn new(seed: u32) -> Self {
-        let state = State::new(seed);
-        let app_state = AppState::Game;
-        let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
-        let game_over_duration = Duration::default();
-
-        Self { state, app_state, input_buffer, game_over_duration }
-    }
-}
-
 struct DeckView {
     scratch: String,
 }
@@ -121,20 +100,6 @@ impl HandView {
 impl ViewSize<State> for HandView {
     fn size(&mut self, _state: &State) -> Size {
         Size::new(HAND_WIDTH, HAND_HEIGHT)
-    }
-}
-
-pub struct AppView {
-    deck_view: Decorated<DeckView, Border>,
-    hand_view: Decorated<HandView, Border>,
-}
-
-impl AppView {
-    pub fn new() -> Self {
-        Self {
-            deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
-            hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
-        }
     }
 }
 
@@ -191,9 +156,62 @@ impl View<State> for HandView {
     }
 }
 
-impl View<App> for AppView {
-    fn view<G: ViewGrid>(&mut self, app: &App, offset: Coord, depth: i32, grid: &mut G) {
+#[derive(Debug, Clone, Copy)]
+enum AppState {
+    Game,
+    GameOver,
+    MainMenu,
+}
+
+pub enum ControlFlow {
+    Quit,
+}
+
+enum InputType {
+    Game(PunchcardsInput),
+    ControlFlow(ControlFlow),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum MainMenuChoice {
+    Play,
+    Quit,
+    Save,
+    Load,
+}
+
+pub struct App<S: Storage> {
+    main_menu: MenuInstance<MainMenuChoice>,
+    app_state: AppState,
+    state: State,
+    input_buffer: Vec<PunchcardsInput>,
+    game_over_duration: Duration,
+    rng: StdRng,
+    storage: S,
+}
+
+pub struct AppView {
+    deck_view: Decorated<DeckView, Border>,
+    hand_view: Decorated<HandView, Border>,
+    main_menu_view: Decorated<DefaultMenuInstanceView, Border>,
+}
+
+impl AppView {
+    pub fn new() -> Self {
+        Self {
+            deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
+            hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
+            main_menu_view: Decorated::new(DefaultMenuInstanceView, Border::new()),
+        }
+    }
+}
+
+impl<S: Storage> View<App<S>> for AppView {
+    fn view<G: ViewGrid>(&mut self, app: &App<S>, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
+            AppState::MainMenu => {
+                self.main_menu_view.view(&app.main_menu, offset, depth, grid);
+            }
             AppState::Game => {
                 let entity_store = app.state.entity_store();
 
@@ -218,20 +236,69 @@ impl View<App> for AppView {
     }
 }
 
-pub enum ControlFlow {
-    Quit,
-}
+impl<S: Storage> App<S> {
 
-enum InputType {
-    Game(PunchcardsInput),
-    ControlFlow(ControlFlow),
-}
+    pub fn new(storage: S, seed: usize) -> Self {
 
-impl App {
+        let mut rng = StdRng::from_seed(&[seed]);
+
+        let main_menu = Menu::smallest(
+            vec![("Play", MainMenuChoice::Play),
+                 ("Save", MainMenuChoice::Save),
+                 ("Load", MainMenuChoice::Load),
+                 ("Quit", MainMenuChoice::Quit),
+            ]);
+
+        let main_menu = MenuInstance::new(main_menu).unwrap();
+
+        let state = State::new(&mut rng);
+        let app_state = AppState::MainMenu;
+        let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
+        let game_over_duration = Duration::default();
+
+        Self {
+            main_menu,
+            state,
+            app_state,
+            input_buffer,
+            game_over_duration,
+            storage,
+            rng,
+        }
+    }
+
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
         where I: IntoIterator<Item=ProtottyInput>,
     {
         match self.app_state {
+            AppState::MainMenu => {
+                if let Some(menu_output) = self.main_menu.tick(inputs) {
+                    match menu_output {
+                        MenuOutput::Quit => Some(ControlFlow::Quit),
+                        MenuOutput::Cancel => None,
+                        MenuOutput::Finalise(selection) => match selection {
+                            MainMenuChoice::Quit => Some(ControlFlow::Quit),
+                            MainMenuChoice::Play => {
+                                self.app_state = AppState::Game;
+                                None
+                            }
+                            MainMenuChoice::Save => {
+                                if let Err(_) = self.storage.store(SAVE_FILE, &self.state) {}
+                                None
+                            }
+                            MainMenuChoice::Load => {
+                                match self.storage.load(SAVE_FILE) {
+                                    Ok(state) => self.state = state,
+                                    Err(_e) => (),
+                                }
+                                None
+                            }
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
             AppState::Game => {
                 for input in inputs {
                     let input_type = match input {
@@ -246,6 +313,10 @@ impl App {
                         ProtottyInput::Char('5') => InputType::Game(PunchcardsInput::SelectCard(4)),
                         ProtottyInput::Char('6') => InputType::Game(PunchcardsInput::SelectCard(5)),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
+                        prototty_inputs::ESCAPE => {
+                            self.app_state = AppState::MainMenu;
+                            break;
+                        }
                         _ => continue,
                     };
                     match input_type {
@@ -256,7 +327,7 @@ impl App {
                     }
                 }
 
-                if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period) {
+                if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period, &mut self.rng) {
                     match meta {
                         Meta::GameOver => {
                             self.app_state = AppState::GameOver;
@@ -270,10 +341,11 @@ impl App {
             AppState::GameOver => {
                 if let Some(remaining) = self.game_over_duration.checked_sub(period) {
                     self.game_over_duration = remaining;
-                    None
                 } else {
-                    Some(ControlFlow::Quit)
+                    self.app_state = AppState::MainMenu;
+                    self.state = State::new(&mut self.rng);
                 }
+                None
             }
         }
     }

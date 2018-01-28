@@ -3,6 +3,7 @@ extern crate prototty;
 extern crate prototty_wasm;
 extern crate punchcards_prototty;
 
+use std::slice;
 use std::time::Duration;
 use prototty_wasm::*;
 use prototty::Renderer;
@@ -11,14 +12,14 @@ use prototty::Input as ProtottyInput;
 use punchcards_prototty::{App, AppView, ControlFlow};
 
 pub struct WebApp {
-    app: App,
+    app: App<WasmStorage>,
     context: Context,
     view: AppView,
 }
 
 impl WebApp {
-    fn new(seed: u32) -> Self {
-        let app = App::new(seed);
+    fn new(seed: usize, storage: WasmStorage) -> Self {
+        let app = App::new(storage, seed);
         let context = Context::new();
         let view = AppView::new();
 
@@ -44,8 +45,10 @@ impl WebApp {
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_app(seed: u32) -> *mut WebApp {
-    alloc::into_boxed_raw(WebApp::new(seed))
+pub unsafe extern "C" fn alloc_app(seed: usize, storage_buf: *const u8, storage_len: usize) -> *mut WebApp {
+    let slice = slice::from_raw_parts(storage_buf, storage_len);
+    let storage = WasmStorage::from_bytes(slice).unwrap_or_else(WasmStorage::new);
+    alloc::into_boxed_raw(WebApp::new(seed, storage))
 }
 
 #[no_mangle]

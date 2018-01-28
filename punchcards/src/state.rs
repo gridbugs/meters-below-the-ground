@@ -9,7 +9,7 @@ use card_state::*;
 use tile::*;
 use reaction::*;
 use animation::*;
-use rand::{SeedableRng, StdRng};
+use rand::Rng;
 use append::Append;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -18,6 +18,7 @@ pub enum Meta {
     GameOver,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameState {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
@@ -40,6 +41,7 @@ pub enum InputState {
     WaitingForDirection(HandIndex, Card),
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct State {
     game_state: GameState,
     player_id: EntityId,
@@ -48,14 +50,11 @@ pub struct State {
     animations: Vec<Animation>,
     card_state: CardState,
     input_state: InputState,
-    rng: StdRng,
 }
 
 
 impl State {
-    pub fn new(seed: u32) -> Self {
-
-        let mut rng = StdRng::from_seed(&[seed as usize]);
+    pub fn new<R: Rng>(rng: &mut R) -> Self {
 
         let strings = vec![
             "##########",
@@ -124,7 +123,7 @@ impl State {
             Card::Move,
             Card::Move,
             Card::Move,
-        ], INITIAL_HAND_SIZE, &mut rng);
+        ], INITIAL_HAND_SIZE, rng);
 
         Self {
             game_state: GameState {
@@ -140,7 +139,6 @@ impl State {
             animations,
             reactions: Vec::new(),
             card_state,
-            rng,
         }
     }
 
@@ -149,8 +147,9 @@ impl State {
     pub fn card_state(&self) -> &CardState { &self.card_state }
     pub fn input_state(&self) -> &InputState { &self.input_state }
 
-    pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<Meta>
+    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<Meta>
         where I: IntoIterator<Item=Input>,
+              R: Rng,
     {
 
         let mut played_card = None;
@@ -218,7 +217,7 @@ impl State {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.deck.add_random(card, &mut self.rng);
+                            self.card_state.deck.add_random(card, rng);
                             self.game_state.delete_entity(entity_id, &mut self.changes);
                         }
                         Reaction::RemoveEntity(entity_id) => {

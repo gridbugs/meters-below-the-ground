@@ -3,6 +3,7 @@ use entity_store::*;
 use append::Append;
 use reaction::Reaction;
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Animation {
     RemoveEntity(EntityId, Duration),
 }

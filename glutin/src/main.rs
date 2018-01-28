@@ -1,13 +1,17 @@
 extern crate rand;
 extern crate prototty;
 extern crate prototty_glutin;
+extern crate prototty_file_storage;
 extern crate punchcards_prototty;
 
 use std::time::Instant;
 use rand::Rng;
 use prototty::Renderer;
+use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
 use punchcards_prototty::{App, AppView, ControlFlow};
+
+const USER_DIR: &'static str = "user";
 
 fn main() {
 
@@ -21,7 +25,10 @@ fn main() {
         .with_max_grid_size(30, 20)
         .build().unwrap();
 
-    let mut app = App::new(rand::thread_rng().gen());
+    let storage = FileStorage::next_to_exe(USER_DIR, true)
+        .expect("Failed to find user dir");
+
+    let mut app = App::new(storage, rand::thread_rng().gen());
 
     let mut input_buffer = Vec::with_capacity(64);
 
