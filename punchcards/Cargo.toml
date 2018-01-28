@@ -9,9 +9,9 @@ append = "0.1"
 cgmath = { version = "0.16", features = ["serde"] }
 direction = "0.2"
 enum_primitive = "0.1"
-entity_store_helper = { path = "/home/steve/src/entity-store-helper" }
+entity_store_helper = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 
 [build-dependencies]
-entity_store_code_gen = { path = "/home/steve/src/entity-store-code-gen" }
+entity_store_code_gen = "0.4"

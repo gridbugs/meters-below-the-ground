@@ -3,7 +3,6 @@ extern crate prototty;
 extern crate prototty_wasm;
 extern crate punchcards_prototty;
 
-use std::slice;
 use std::time::Duration;
 use prototty_wasm::*;
 use prototty::Renderer;
@@ -46,8 +45,7 @@ impl WebApp {
 
 #[no_mangle]
 pub unsafe extern "C" fn alloc_app(seed: usize, storage_buf: *const u8, storage_len: usize) -> *mut WebApp {
-    let slice = slice::from_raw_parts(storage_buf, storage_len);
-    let storage = WasmStorage::from_bytes(slice).unwrap_or_else(WasmStorage::new);
+    let storage = WasmStorage::from_ptr(storage_buf, storage_len);
     alloc::into_boxed_raw(WebApp::new(seed, storage))
 }
 

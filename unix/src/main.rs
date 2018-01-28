@@ -1,19 +1,26 @@
 extern crate rand;
-extern crate punchcards_prototty;
 extern crate prototty;
 extern crate prototty_unix;
+extern crate prototty_file_storage;
+extern crate punchcards_prototty;
 
 use std::time::Duration;
 use std::thread;
 use rand::Rng;
-use punchcards_prototty::{App, AppView, ControlFlow};
 use prototty_unix::Context;
 use prototty::Renderer;
+use prototty_file_storage::FileStorage;
+use punchcards_prototty::{App, AppView, ControlFlow};
 
+const USER_DIR: &'static str = "user";
 const TICK_MILLIS: u64 = 33;
 
 fn main() {
-    let mut app = App::new(rand::thread_rng().gen());
+
+    let storage = FileStorage::next_to_exe(USER_DIR, true)
+        .expect("Failed to find user dir");
+
+    let mut app = App::new(storage, rand::thread_rng().gen());
     let mut context = Context::new().unwrap();
 
     let mut view = AppView::new();
