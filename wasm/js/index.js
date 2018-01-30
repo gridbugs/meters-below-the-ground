@@ -1,8 +1,12 @@
 import $ from 'jquery';
 import prototty from 'prototty-terminal-js';
 
-const env = {
-    quit: () => console.log("not implemented"),
+let quit_after_save = false;
+
+const config = {
+    quit: () => {
+        quit_after_save = true;
+    },
     cell_style: {
         "font-family": "PxPlus_IBM_CGAthin",
         "font-size": "16px",
@@ -11,12 +15,20 @@ const env = {
     bold_style: {
         "font-family": "PxPlus_IBM_CGA",
     },
+    before_store: () => console.log("Saving..."),
+    after_store: () => {
+        console.log("Saved!");
+        if (quit_after_save) {
+            console.log("Quitting...");
+            open(location, "_self").close();
+        }
+    }
 };
 
 $(() => {
-    console.log("Loading...");
-    prototty.loadProtottyApp("punchcards_wasm.wasm", 30, 20, protottyTerminal, env).then(app => {
-        console.log("Done!");
+    console.log("Loading wasm program...");
+    prototty.loadProtottyApp("punchcards_wasm.wasm", 30, 20, protottyTerminal, config).then(app => {
+        console.log("Loaded wasm program!");
         app.start();
     });
 });
