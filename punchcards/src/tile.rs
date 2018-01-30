@@ -7,4 +7,5 @@ pub enum Tile {
     Floor,
     CardMove,
     Punch(CardinalDirection),
+    TargetDummy,
 }

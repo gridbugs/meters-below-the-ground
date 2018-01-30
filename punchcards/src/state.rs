@@ -60,7 +60,7 @@ impl State {
             "##########",
             "#..m.....#",
             "#....#...#",
-            "#..@.#...#",
+            "#.0@.#...#",
             "#....#...#",
             "#.####...#",
             "#........#",
@@ -89,6 +89,10 @@ impl State {
                     }
                     'm' => {
                         prototypes::card(id_allocator.allocate(), coord, Card::Move, Tile::CardMove, &mut changes);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                    }
+                    '0' => {
+                        prototypes::target_dummy(id_allocator.allocate(), coord, &mut changes);
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
                     '@' => {

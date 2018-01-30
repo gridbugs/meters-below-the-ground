@@ -10,6 +10,7 @@ use rand::{StdRng, SeedableRng};
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
+use punchcards::tile_info::TileInfo;
 use prototty::*;
 use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
@@ -32,8 +33,8 @@ const DECK_HEIGHT: u32 = 1;
 const GAME_PADDING_BOTTOM: u32 = 1;
 const GAME_PADDING_RIGHT: u32 = 1;
 
-fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
-    match tile {
+fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
+    match tile_info.tile {
         Tile::Player => {
             cell.set_bold(true);
             cell.set_character('@');
@@ -61,6 +62,15 @@ fn view_tile<C: ViewCell>(tile: Tile, cell: &mut C) {
             cell.set_character(ch);
             cell.set_foreground_colour(colours::CYAN);
             cell.set_bold(false);
+        }
+        Tile::TargetDummy => {
+            if tile_info.damaged {
+                cell.set_foreground_colour(Rgb24::new(127, 0, 0));
+            } else {
+                cell.set_foreground_colour(colours::BRIGHT_BLUE);
+            }
+            cell.set_bold(true);
+            cell.set_character('0');
         }
     }
 }
@@ -220,7 +230,7 @@ impl<S: Storage> View<App<S>> for AppView {
                 for (id, tile_info) in entity_store.tile_info.iter() {
                     if let Some(coord) = entity_store.coord.get(&id) {
                         if let Some(cell) = grid.get_mut(offset + Coord::new(coord.x, coord.y), tile_info.depth + depth) {
-                            view_tile(tile_info.tile, cell);
+                            view_tile(*tile_info, cell);
                         }
                     }
                 }

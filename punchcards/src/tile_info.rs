@@ -4,10 +4,15 @@ use tile::Tile;
 pub struct TileInfo {
     pub tile: Tile,
     pub depth: i32,
+    pub damaged: bool,
 }
 
 impl TileInfo {
     pub fn new(tile: Tile, depth: i32) -> Self {
-        Self { tile, depth }
+        Self {
+            tile,
+            depth,
+            damaged: false,
+        }
     }
 }
