@@ -174,16 +174,18 @@ enum InputType {
 
 #[derive(Debug, Clone, Copy)]
 enum MainMenuChoice {
-    Play,
+    NewGame,
+    Continue,
+    SaveAndQuit,
     Quit,
-    Save,
-    Load,
+    ClearData,
 }
 
 pub struct App<S: Storage> {
     main_menu: MenuInstance<MainMenuChoice>,
     app_state: AppState,
     state: State,
+    in_progress: bool,
     input_buffer: Vec<PunchcardsInput>,
     game_over_duration: Duration,
     rng: StdRng,
@@ -236,22 +238,40 @@ impl<S: Storage> View<App<S>> for AppView {
     }
 }
 
+fn make_main_menu(in_progress: bool) -> MenuInstance<MainMenuChoice> {
+    let menu_items = if in_progress {
+        vec![
+            ("Continue", MainMenuChoice::Continue),
+            ("Save and Quit", MainMenuChoice::SaveAndQuit),
+            ("New Game", MainMenuChoice::NewGame),
+            ("Clear Data", MainMenuChoice::ClearData),
+        ]
+    } else {
+        vec![
+            ("New Game", MainMenuChoice::NewGame),
+            ("Quit", MainMenuChoice::Quit),
+        ]
+    };
+    let main_menu = Menu::smallest(menu_items);
+    MenuInstance::new(main_menu).unwrap()
+}
+
 impl<S: Storage> App<S> {
 
     pub fn new(storage: S, seed: usize) -> Self {
 
         let mut rng = StdRng::from_seed(&[seed]);
 
-        let main_menu = Menu::smallest(
-            vec![("Play", MainMenuChoice::Play),
-                 ("Save", MainMenuChoice::Save),
-                 ("Load", MainMenuChoice::Load),
-                 ("Quit", MainMenuChoice::Quit),
-            ]);
+        let existing_state: Option<State> = storage.load(SAVE_FILE).ok();
 
-        let main_menu = MenuInstance::new(main_menu).unwrap();
+        let (in_progress, state) = if let Some(state) = existing_state {
+            (true, state)
+        } else {
+            (false, State::new(&mut rng))
+        };
 
-        let state = State::new(&mut rng);
+        let main_menu = make_main_menu(in_progress);
+
         let app_state = AppState::MainMenu;
         let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
         let game_over_duration = Duration::default();
@@ -260,6 +280,7 @@ impl<S: Storage> App<S> {
             main_menu,
             state,
             app_state,
+            in_progress,
             input_buffer,
             game_over_duration,
             storage,
@@ -278,18 +299,29 @@ impl<S: Storage> App<S> {
                         MenuOutput::Cancel => None,
                         MenuOutput::Finalise(selection) => match selection {
                             MainMenuChoice::Quit => Some(ControlFlow::Quit),
-                            MainMenuChoice::Play => {
+                            MainMenuChoice::SaveAndQuit => {
+                                self.storage.store(SAVE_FILE, &self.state)
+                                    .expect("Failed to save");
+                                Some(ControlFlow::Quit)
+                            }
+                            MainMenuChoice::Continue => {
                                 self.app_state = AppState::Game;
+                                self.in_progress = true;
                                 None
                             }
-                            MainMenuChoice::Save => {
-                                if let Err(_) = self.storage.store(SAVE_FILE, &self.state) {}
+                            MainMenuChoice::NewGame => {
+                                self.state = State::new(&mut self.rng);
+                                self.app_state = AppState::Game;
+                                self.in_progress = true;
+                                self.main_menu = make_main_menu(true);
                                 None
                             }
-                            MainMenuChoice::Load => {
-                                match self.storage.load(SAVE_FILE) {
-                                    Ok(state) => self.state = state,
-                                    Err(_e) => (),
+                            MainMenuChoice::ClearData => {
+                                self.in_progress = false;
+                                self.main_menu = make_main_menu(false);
+                                match self.storage.remove_raw(SAVE_FILE) {
+                                    Err(LoadError::IoError) => eprintln!("Failed to delete game data"),
+                                    _ => (),
                                 }
                                 None
                             }
