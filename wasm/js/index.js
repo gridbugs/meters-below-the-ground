@@ -27,7 +27,7 @@ const config = {
 
 $(() => {
     console.log("Loading wasm program...");
-    prototty.loadProtottyApp("punchcards_wasm.wasm", 30, 20, protottyTerminal, config).then(app => {
+    prototty.loadProtottyApp("punchcards_wasm.wasm", 30, 15, protottyTerminal, config).then(app => {
         console.log("Loaded wasm program!");
         app.start();
     });

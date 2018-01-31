@@ -9,7 +9,7 @@ use rand::Rng;
 use prototty::Renderer;
 use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
-use punchcards_prototty::{App, AppView, ControlFlow};
+use punchcards_prototty::*;
 
 const USER_DIR: &'static str = "user";
 
@@ -28,7 +28,7 @@ fn main() {
     let storage = FileStorage::next_to_exe(USER_DIR, true)
         .expect("Failed to find user dir");
 
-    let mut app = App::new(storage, rand::thread_rng().gen());
+    let mut app = App::new(Frontend::Glutin, storage, rand::thread_rng().gen());
 
     let mut input_buffer = Vec::with_capacity(64);
 
@@ -36,9 +36,10 @@ fn main() {
 
     let mut running = true;
 
-    let mut view = AppView::new();
+    let mut view = AppView::new(context.size());
 
     loop {
+        view.set_size(context.size());
         context.render(&mut view, &app).unwrap();
 
         if !running {
@@ -59,6 +60,5 @@ fn main() {
                 ControlFlow::Quit => running = false,
             }
         }
-
     }
 }

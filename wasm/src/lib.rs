@@ -7,8 +7,7 @@ use std::time::Duration;
 use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
-
-use punchcards_prototty::{App, AppView, ControlFlow};
+use punchcards_prototty::*;
 
 pub struct WebApp {
     app: App<WasmStorage>,
@@ -18,9 +17,9 @@ pub struct WebApp {
 
 impl WebApp {
     fn new(seed: usize, storage: WasmStorage) -> Self {
-        let app = App::new(storage, seed);
+        let app = App::new(Frontend::Wasm, storage, seed);
         let context = Context::new();
-        let view = AppView::new();
+        let view = AppView::new(context.size());
 
         Self {
             app,
@@ -31,6 +30,7 @@ impl WebApp {
     fn tick<I>(&mut self, inputs: I, period: Duration)
         where I: IntoIterator<Item=ProtottyInput>,
     {
+        self.view.set_size(self.context.size());
         if let Some(control_flow) = self.app.tick(inputs, period) {
             match control_flow {
                 ControlFlow::Quit => {

@@ -21,6 +21,7 @@ use punchcards::card_state::CardState;
 
 use self::CardinalDirection::*;
 
+const SAVE_PERIOD_MS: u64 = 2000;
 const SAVE_FILE: &'static str = "save";
 
 const GAME_OVER_MS: u64 = 1000;
@@ -32,6 +33,25 @@ const DECK_WIDTH: u32 = 8;
 const DECK_HEIGHT: u32 = 1;
 const GAME_PADDING_BOTTOM: u32 = 1;
 const GAME_PADDING_RIGHT: u32 = 1;
+
+const TITLE_WIDTH: u32 = 16;
+const TITLE_HEIGHT: u32 = 6;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Frontend {
+    Unix,
+    Glutin,
+    Wasm,
+}
+
+impl Frontend {
+    fn supports_saving(self) -> bool {
+        match self {
+            Frontend::Wasm => false,
+            _ => true,
+        }
+    }
+}
 
 fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
     match tile_info.tile {
@@ -187,8 +207,55 @@ enum MainMenuChoice {
     NewGame,
     Continue,
     SaveAndQuit,
+    Save,
     Quit,
     ClearData,
+}
+
+struct TitleScreenView {
+    title_view: RichStringView,
+    main_menu_view: DefaultMenuInstanceView,
+}
+
+impl TitleScreenView {
+    fn new() -> Self {
+        Self {
+            title_view: RichStringView::with_info(TextInfo::default().bold().underline()),
+            main_menu_view: DefaultMenuInstanceView,
+        }
+    }
+}
+
+pub struct AppView {
+    deck_view: Decorated<DeckView, Border>,
+    hand_view: Decorated<HandView, Border>,
+    title_screen_view: Decorated<TitleScreenView, Align>,
+}
+
+impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
+    fn view<G: ViewGrid>(&mut self, menu: &MenuInstance<MainMenuChoice>, offset: Coord, depth: i32, grid: &mut G) {
+        self.title_view.view("Punchcards", offset, depth, grid);
+        self.main_menu_view.view(menu, offset + Coord::new(0, 2), depth, grid);
+    }
+}
+impl ViewSize<MenuInstance<MainMenuChoice>> for TitleScreenView {
+    fn size(&mut self, _menu: &MenuInstance<MainMenuChoice>) -> Size {
+        Size::new(TITLE_WIDTH, TITLE_HEIGHT)
+    }
+}
+
+impl AppView {
+    pub fn new(size: Size) -> Self {
+        let align = Align::new(size, Alignment::Centre, Alignment::Centre);
+        Self {
+            deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
+            hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
+            title_screen_view: Decorated::new(TitleScreenView::new(), align),
+        }
+    }
+    pub fn set_size(&mut self, size: Size) {
+        self.title_screen_view.decorator.size = size;
+    }
 }
 
 pub struct App<S: Storage> {
@@ -200,29 +267,15 @@ pub struct App<S: Storage> {
     game_over_duration: Duration,
     rng: StdRng,
     storage: S,
-}
-
-pub struct AppView {
-    deck_view: Decorated<DeckView, Border>,
-    hand_view: Decorated<HandView, Border>,
-    main_menu_view: Decorated<DefaultMenuInstanceView, Border>,
-}
-
-impl AppView {
-    pub fn new() -> Self {
-        Self {
-            deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
-            hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
-            main_menu_view: Decorated::new(DefaultMenuInstanceView, Border::new()),
-        }
-    }
+    frontend: Frontend,
+    save_remaining: Duration,
 }
 
 impl<S: Storage> View<App<S>> for AppView {
     fn view<G: ViewGrid>(&mut self, app: &App<S>, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
             AppState::MainMenu => {
-                self.main_menu_view.view(&app.main_menu, offset, depth, grid);
+                self.title_screen_view.view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
                 let entity_store = app.state.entity_store();
@@ -248,14 +301,18 @@ impl<S: Storage> View<App<S>> for AppView {
     }
 }
 
-fn make_main_menu(in_progress: bool) -> MenuInstance<MainMenuChoice> {
+fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMenuChoice> {
     let menu_items = if in_progress {
         vec![
-            ("Continue", MainMenuChoice::Continue),
-            ("Save and Quit", MainMenuChoice::SaveAndQuit),
-            ("New Game", MainMenuChoice::NewGame),
-            ("Clear Data", MainMenuChoice::ClearData),
-        ]
+            Some(("Continue", MainMenuChoice::Continue)),
+            if frontend.supports_saving() {
+                Some(("Save and Quit", MainMenuChoice::SaveAndQuit))
+            } else {
+                Some(("Save", MainMenuChoice::Save))
+            },
+            Some(("New Game", MainMenuChoice::NewGame)),
+            Some(("Clear Data", MainMenuChoice::ClearData)),
+        ].into_iter().filter_map(|x| x).collect()
     } else {
         vec![
             ("New Game", MainMenuChoice::NewGame),
@@ -268,7 +325,7 @@ fn make_main_menu(in_progress: bool) -> MenuInstance<MainMenuChoice> {
 
 impl<S: Storage> App<S> {
 
-    pub fn new(storage: S, seed: usize) -> Self {
+    pub fn new(frontend: Frontend, storage: S, seed: usize) -> Self {
 
         let mut rng = StdRng::from_seed(&[seed]);
 
@@ -280,11 +337,13 @@ impl<S: Storage> App<S> {
             (false, State::new(&mut rng))
         };
 
-        let main_menu = make_main_menu(in_progress);
+        let main_menu = make_main_menu(in_progress, frontend);
 
         let app_state = AppState::MainMenu;
         let input_buffer = Vec::with_capacity(INITIAL_INPUT_BUFFER_SIZE);
         let game_over_duration = Duration::default();
+
+        let save_remaining = Duration::from_millis(SAVE_PERIOD_MS);
 
         Self {
             main_menu,
@@ -295,23 +354,52 @@ impl<S: Storage> App<S> {
             game_over_duration,
             storage,
             rng,
+            frontend,
+            save_remaining,
+        }
+    }
+
+    pub fn store(&mut self) {
+        if self.in_progress {
+            self.storage.store(SAVE_FILE, &self.state)
+                .expect("Failed to save");
+        } else {
+            match self.storage.remove_raw(SAVE_FILE) {
+                Err(LoadError::IoError) => eprintln!("Failed to delete game data"),
+                _ => (),
+            }
         }
     }
 
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
         where I: IntoIterator<Item=ProtottyInput>,
     {
+        if period < self.save_remaining {
+            self.save_remaining -= period;
+        } else {
+            self.save_remaining = Duration::from_millis(SAVE_PERIOD_MS);
+            self.store();
+        }
+
         match self.app_state {
             AppState::MainMenu => {
                 if let Some(menu_output) = self.main_menu.tick(inputs) {
                     match menu_output {
                         MenuOutput::Quit => Some(ControlFlow::Quit),
-                        MenuOutput::Cancel => None,
+                        MenuOutput::Cancel => {
+                            if self.in_progress {
+                                self.app_state = AppState::Game;
+                            }
+                            None
+                        }
                         MenuOutput::Finalise(selection) => match selection {
                             MainMenuChoice::Quit => Some(ControlFlow::Quit),
+                            MainMenuChoice::Save => {
+                                self.store();
+                                None
+                            }
                             MainMenuChoice::SaveAndQuit => {
-                                self.storage.store(SAVE_FILE, &self.state)
-                                    .expect("Failed to save");
+                                self.store();
                                 Some(ControlFlow::Quit)
                             }
                             MainMenuChoice::Continue => {
@@ -323,16 +411,15 @@ impl<S: Storage> App<S> {
                                 self.state = State::new(&mut self.rng);
                                 self.app_state = AppState::Game;
                                 self.in_progress = true;
-                                self.main_menu = make_main_menu(true);
+                                self.main_menu = make_main_menu(true, self.frontend);
+                                self.store();
                                 None
                             }
                             MainMenuChoice::ClearData => {
+                                self.state = State::new(&mut self.rng);
                                 self.in_progress = false;
-                                self.main_menu = make_main_menu(false);
-                                match self.storage.remove_raw(SAVE_FILE) {
-                                    Err(LoadError::IoError) => eprintln!("Failed to delete game data"),
-                                    _ => (),
-                                }
+                                self.main_menu = make_main_menu(false, self.frontend);
+                                self.store();
                                 None
                             }
                         }
