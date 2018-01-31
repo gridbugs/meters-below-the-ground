@@ -13,6 +13,6 @@
     },
     "dependencies": {
         "jquery": "^3.2.1",
-        "prototty-terminal-js": "file:/home/steve/src/prototty/terminal-js"
+        "prototty-terminal-js": "^0.7.1"
     }
 }
