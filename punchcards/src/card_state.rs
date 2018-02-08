@@ -20,14 +20,15 @@ impl Hand {
     }
 
     pub fn add_card(&mut self, card: Card) {
-        let first_free_index = self.cards.iter().position(Option::is_none)
+        let first_free_index = self.cards
+            .iter()
+            .position(Option::is_none)
             .expect("Hand is full");
         self.cards[first_free_index] = Some(card);
     }
 
     pub fn remove_card(&mut self, index: HandIndex) -> Card {
-        mem::replace(&mut self.cards[index], None)
-            .expect("No card in position")
+        mem::replace(&mut self.cards[index], None).expect("No card in position")
     }
 
     pub fn get(&self, index: HandIndex) -> Option<&Card> {
@@ -53,16 +54,14 @@ pub struct Deck {
 }
 
 impl Deck {
-    fn from_cards<I: IntoIterator<Item=Card>>(cards: I) -> Self {
+    fn from_cards<I: IntoIterator<Item = Card>>(cards: I) -> Self {
         Self {
             deck: cards.into_iter().collect(),
         }
     }
 
     fn new() -> Self {
-        Self {
-            deck: Vec::new(),
-        }
+        Self { deck: Vec::new() }
     }
 
     pub fn add_random<R: Rng>(&mut self, card: Card, rng: &mut R) {
@@ -96,7 +95,11 @@ pub struct CardState {
 }
 
 impl CardState {
-    pub fn new<I: IntoIterator<Item=Card>, R: Rng>(cards: I, hand_size: usize, rng: &mut R) -> Self {
+    pub fn new<I: IntoIterator<Item = Card>, R: Rng>(
+        cards: I,
+        hand_size: usize,
+        rng: &mut R,
+    ) -> Self {
         let discard_deck = Deck::new();
         let mut deck = Deck::from_cards(cards);
         deck.shuffle(rng);
@@ -114,8 +117,7 @@ impl CardState {
     }
 
     pub fn fill_hand(&mut self) {
-        let empty_hand_spaces = self.hand.cards.iter_mut()
-            .filter(|s| s.is_none());
+        let empty_hand_spaces = self.hand.cards.iter_mut().filter(|s| s.is_none());
 
         for space in empty_hand_spaces {
             if let Some(card) = self.deck.draw() {

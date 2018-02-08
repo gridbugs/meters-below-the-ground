@@ -15,7 +15,10 @@ impl Animation {
                 if period > remaining {
                     reactions.append(Reaction::RemoveEntity(id));
                 } else {
-                    reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(id, remaining - period)));
+                    reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
+                        id,
+                        remaining - period,
+                    )));
                 }
             }
         }

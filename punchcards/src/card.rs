@@ -15,13 +15,18 @@ pub enum Card {
 }
 
 impl Card {
-    pub fn play<Changes, Reactions>(self, entity_id: EntityId, entity_store: &EntityStore,
-                                    direction: CardinalDirection, id_allocator: &mut EntityIdAllocator,
-                                    changes: &mut Changes, reactions: &mut Reactions)
-        where Changes: Append<EntityChange>,
-              Reactions: Append<Reaction>,
+    pub fn play<Changes, Reactions>(
+        self,
+        entity_id: EntityId,
+        entity_store: &EntityStore,
+        direction: CardinalDirection,
+        id_allocator: &mut EntityIdAllocator,
+        changes: &mut Changes,
+        reactions: &mut Reactions,
+    ) where
+        Changes: Append<EntityChange>,
+        Reactions: Append<Reaction>,
     {
-
         match self {
             Card::Move => {
                 let current = entity_store.coord.get(&entity_id).unwrap();
@@ -35,7 +40,10 @@ impl Card {
                 let coord = source_coord + delta;
                 let punch_id = id_allocator.allocate();
                 prototypes::punch(punch_id, coord, direction, changes);
-                reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(punch_id, Duration::from_millis(PUNCH_MILLIS))));
+                reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
+                    punch_id,
+                    Duration::from_millis(PUNCH_MILLIS),
+                )));
             }
         }
     }

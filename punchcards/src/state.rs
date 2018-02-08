@@ -54,10 +54,8 @@ pub struct State {
     search_context: SearchContext<u32>,
 }
 
-
 impl State {
     pub fn new<R: Rng>(rng: &mut R) -> Self {
-
         let strings = vec![
             "##########",
             "#..m.....#",
@@ -90,7 +88,13 @@ impl State {
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
                     'm' => {
-                        prototypes::card(id_allocator.allocate(), coord, Card::Move, Tile::CardMove, &mut changes);
+                        prototypes::card(
+                            id_allocator.allocate(),
+                            coord,
+                            Card::Move,
+                            Tile::CardMove,
+                            &mut changes,
+                        );
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
                     '0' => {
@@ -118,18 +122,22 @@ impl State {
             entity_store.commit(change);
         }
 
-        let card_state = CardState::new(vec![
-            Card::Punch,
-            Card::Punch,
-            Card::Punch,
-            Card::Punch,
-            Card::Punch,
-            Card::Move,
-            Card::Move,
-            Card::Move,
-            Card::Move,
-            Card::Move,
-        ], INITIAL_HAND_SIZE, rng);
+        let card_state = CardState::new(
+            vec![
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+            ],
+            INITIAL_HAND_SIZE,
+            rng,
+        );
 
         Self {
             search_context: SearchContext::new(spatial_hash.width(), spatial_hash.height()),
@@ -149,16 +157,24 @@ impl State {
         }
     }
 
-    pub fn entity_store(&self) -> &EntityStore { &self.game_state.entity_store }
-    pub fn spatial_hash(&self) -> &SpatialHashTable { &self.game_state.spatial_hash }
-    pub fn card_state(&self) -> &CardState { &self.card_state }
-    pub fn input_state(&self) -> &InputState { &self.input_state }
+    pub fn entity_store(&self) -> &EntityStore {
+        &self.game_state.entity_store
+    }
+    pub fn spatial_hash(&self) -> &SpatialHashTable {
+        &self.game_state.spatial_hash
+    }
+    pub fn card_state(&self) -> &CardState {
+        &self.card_state
+    }
+    pub fn input_state(&self) -> &InputState {
+        &self.input_state
+    }
 
     pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<Meta>
-        where I: IntoIterator<Item=Input>,
-              R: Rng,
+    where
+        I: IntoIterator<Item = Input>,
+        R: Rng,
     {
-
         let mut played_card = None;
         let mut input_state_change = None;
 
@@ -167,7 +183,8 @@ impl State {
                 match input {
                     Input::SelectCard(index) => {
                         if let Some(card) = self.card_state.hand.get(index) {
-                            input_state_change = Some(InputState::WaitingForDirection(index, *card));
+                            input_state_change =
+                                Some(InputState::WaitingForDirection(index, *card));
                         }
                     }
                     Input::Direction(direction) => {
@@ -188,16 +205,24 @@ impl State {
         }
 
         if let Some((_, card, direction)) = played_card {
-            card.play(self.player_id, &self.game_state.entity_store,
-                      direction, &mut self.game_state.id_allocator,
-                      &mut self.changes, &mut self.reactions);
+            card.play(
+                self.player_id,
+                &self.game_state.entity_store,
+                direction,
+                &mut self.game_state.id_allocator,
+                &mut self.changes,
+                &mut self.reactions,
+            );
         }
 
         loop {
             for change in self.changes.drain(..) {
-
-                if !policy::check(&change, &self.game_state.entity_store, &self.game_state.spatial_hash,
-                                  &mut self.reactions) {
+                if !policy::check(
+                    &change,
+                    &self.game_state.entity_store,
+                    &self.game_state.spatial_hash,
+                    &mut self.reactions,
+                ) {
                     continue;
                 }
 
@@ -208,7 +233,11 @@ impl State {
                     self.input_state = InputState::WaitingForCardSelection;
                 }
 
-                self.game_state.spatial_hash.update(&self.game_state.entity_store, &change, self.game_state.count);
+                self.game_state.spatial_hash.update(
+                    &self.game_state.entity_store,
+                    &change,
+                    self.game_state.count,
+                );
                 self.game_state.entity_components.update(&change);
                 self.game_state.entity_store.commit(change);
                 self.game_state.count += 1;

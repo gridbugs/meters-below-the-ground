@@ -1,8 +1,8 @@
-extern crate rand;
 extern crate prototty;
-extern crate prototty_glutin;
 extern crate prototty_file_storage;
+extern crate prototty_glutin;
 extern crate punchcards_prototty;
+extern crate rand;
 
 use std::time::Instant;
 use rand::Rng;
@@ -14,7 +14,6 @@ use punchcards_prototty::*;
 const USER_DIR: &'static str = "user";
 
 fn main() {
-
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(960, 720)
@@ -23,10 +22,10 @@ fn main() {
         .with_underline_position(28)
         .with_underline_width(2)
         .with_max_grid_size(30, 20)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
-    let storage = FileStorage::next_to_exe(USER_DIR, true)
-        .expect("Failed to find user dir");
+    let storage = FileStorage::next_to_exe(USER_DIR, true).expect("Failed to find user dir");
 
     let mut app = App::new(Frontend::Glutin, storage, rand::thread_rng().gen());
 

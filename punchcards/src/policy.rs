@@ -3,11 +3,12 @@ use reaction::Reaction;
 use entity_store::*;
 use tile_info;
 
-pub fn check<A: Append<Reaction>>(change:  &EntityChange,
-             entity_store: &EntityStore,
-             spatial_hash: &SpatialHashTable,
-             reactions: &mut A) -> bool {
-
+pub fn check<A: Append<Reaction>>(
+    change: &EntityChange,
+    entity_store: &EntityStore,
+    spatial_hash: &SpatialHashTable,
+    reactions: &mut A,
+) -> bool {
     use self::EntityChange::*;
     use self::ComponentValue::*;
     match change {
@@ -16,7 +17,10 @@ pub fn check<A: Append<Reaction>>(change:  &EntityChange,
                 if let Some(npc_id) = sh_cell.npc_set.iter().next() {
                     if entity_store.punch.contains(&id) {
                         if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
-                            reactions.append(Reaction::EntityChange(insert::hit_points(*npc_id, hit_points - 1)));
+                            reactions.append(Reaction::EntityChange(insert::hit_points(
+                                *npc_id,
+                                hit_points - 1,
+                            )));
                         }
                     }
                 }
@@ -34,13 +38,16 @@ pub fn check<A: Append<Reaction>>(change:  &EntityChange,
                     }
                 }
             }
-        },
+        }
         &Insert(id, HitPoints(hit_points)) => {
             if hit_points == 0 {
                 reactions.append(Reaction::RemoveEntity(id));
             } else if hit_points == 1 {
                 if let Some(tile_info) = entity_store.tile_info.get(&id) {
-                    let tile_info = tile_info::TileInfo { damaged: true, ..*tile_info };
+                    let tile_info = tile_info::TileInfo {
+                        damaged: true,
+                        ..*tile_info
+                    };
                     reactions.append(Reaction::EntityChange(insert::tile_info(id, tile_info)));
                 }
             }

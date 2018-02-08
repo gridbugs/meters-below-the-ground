@@ -1,12 +1,12 @@
-extern crate punchcards;
+extern crate direction;
 extern crate prototty;
 extern crate prototty_common;
-extern crate direction;
+extern crate punchcards;
 extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
-use rand::{StdRng, SeedableRng};
+use rand::{SeedableRng, StdRng};
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
@@ -141,7 +141,7 @@ fn write_card(card: Card, string: &mut String) {
 }
 
 fn maybe_write_card(card: Option<Card>, string: &mut String) {
-    if let Some(card)  = card {
+    if let Some(card) = card {
         write_card(card, string);
     } else {
         write!(string, "-").unwrap();
@@ -149,7 +149,13 @@ fn maybe_write_card(card: Option<Card>, string: &mut String) {
 }
 
 impl View<CardState> for DeckView {
-    fn view<G: ViewGrid>(&mut self, card_state: &CardState, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        card_state: &CardState,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         write!(&mut self.scratch, "Size: {}", card_state.deck.num_cards()).unwrap();
         StringView.view(&self.scratch, offset, depth, grid);
         self.scratch.clear();
@@ -164,8 +170,8 @@ impl ViewSize<CardState> for DeckView {
 
 impl View<State> for HandView {
     fn view<G: ViewGrid>(&mut self, state: &State, offset: Coord, depth: i32, grid: &mut G) {
-
-        let selected_index = if let &InputState::WaitingForDirection(index, _) = state.input_state() {
+        let selected_index = if let &InputState::WaitingForDirection(index, _) = state.input_state()
+        {
             Some(index)
         } else {
             None
@@ -176,7 +182,12 @@ impl View<State> for HandView {
             maybe_write_card(*maybe_card, &mut self.scratch);
 
             if Some(i) == selected_index {
-                self.selected_view.view(&self.scratch, offset + Coord::new(0, i as i32), depth, grid);
+                self.selected_view.view(
+                    &self.scratch,
+                    offset + Coord::new(0, i as i32),
+                    depth,
+                    grid,
+                );
             } else {
                 StringView.view(&self.scratch, offset + Coord::new(0, i as i32), depth, grid);
             };
@@ -233,9 +244,16 @@ pub struct AppView {
 }
 
 impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
-    fn view<G: ViewGrid>(&mut self, menu: &MenuInstance<MainMenuChoice>, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        menu: &MenuInstance<MainMenuChoice>,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         self.title_view.view("Punchcards", offset, depth, grid);
-        self.main_menu_view.view(menu, offset + Coord::new(0, 2), depth, grid);
+        self.main_menu_view
+            .view(menu, offset + Coord::new(0, 2), depth, grid);
     }
 }
 impl ViewSize<MenuInstance<MainMenuChoice>> for TitleScreenView {
@@ -275,24 +293,36 @@ impl<S: Storage> View<App<S>> for AppView {
     fn view<G: ViewGrid>(&mut self, app: &App<S>, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
             AppState::MainMenu => {
-                self.title_screen_view.view(&app.main_menu, offset, depth, grid);
+                self.title_screen_view
+                    .view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
                 let entity_store = app.state.entity_store();
 
                 for (id, tile_info) in entity_store.tile_info.iter() {
                     if let Some(coord) = entity_store.coord.get(&id) {
-                        if let Some(cell) = grid.get_mut(offset + Coord::new(coord.x, coord.y), tile_info.depth + depth) {
+                        if let Some(cell) = grid.get_mut(
+                            offset + Coord::new(coord.x, coord.y),
+                            tile_info.depth + depth,
+                        ) {
                             view_tile(*tile_info, cell);
                         }
                     }
                 }
 
-                self.deck_view.view(app.state.card_state(),
-                    offset + Coord::new(0, GAME_HEIGHT as i32 + GAME_PADDING_BOTTOM as i32), depth, grid);
+                self.deck_view.view(
+                    app.state.card_state(),
+                    offset + Coord::new(0, GAME_HEIGHT as i32 + GAME_PADDING_BOTTOM as i32),
+                    depth,
+                    grid,
+                );
 
-                self.hand_view.view(&app.state,
-                    offset + Coord::new(GAME_WIDTH as i32 + GAME_PADDING_RIGHT as i32, 0), depth, grid);
+                self.hand_view.view(
+                    &app.state,
+                    offset + Coord::new(GAME_WIDTH as i32 + GAME_PADDING_RIGHT as i32, 0),
+                    depth,
+                    grid,
+                );
             }
             AppState::GameOver => {
                 StringView.view(&"Game Over", offset, depth, grid);
@@ -312,7 +342,9 @@ fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMen
             },
             Some(("New Game", MainMenuChoice::NewGame)),
             Some(("Clear Data", MainMenuChoice::ClearData)),
-        ].into_iter().filter_map(|x| x).collect()
+        ].into_iter()
+            .filter_map(|x| x)
+            .collect()
     } else {
         vec![
             ("New Game", MainMenuChoice::NewGame),
@@ -324,9 +356,7 @@ fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMen
 }
 
 impl<S: Storage> App<S> {
-
     pub fn new(frontend: Frontend, storage: S, seed: usize) -> Self {
-
         let mut rng = StdRng::from_seed(&[seed]);
 
         let existing_state: Option<State> = storage.load(SAVE_FILE).ok();
@@ -361,7 +391,8 @@ impl<S: Storage> App<S> {
 
     pub fn store(&mut self) {
         if self.in_progress {
-            self.storage.store(SAVE_FILE, &self.state)
+            self.storage
+                .store(SAVE_FILE, &self.state)
                 .expect("Failed to save");
         } else {
             match self.storage.remove_raw(SAVE_FILE) {
@@ -372,7 +403,8 @@ impl<S: Storage> App<S> {
     }
 
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
-        where I: IntoIterator<Item=ProtottyInput>,
+    where
+        I: IntoIterator<Item = ProtottyInput>,
     {
         if period < self.save_remaining {
             self.save_remaining -= period;
@@ -422,7 +454,7 @@ impl<S: Storage> App<S> {
                                 self.store();
                                 None
                             }
-                        }
+                        },
                     }
                 } else {
                     None
@@ -456,7 +488,10 @@ impl<S: Storage> App<S> {
                     }
                 }
 
-                if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period, &mut self.rng) {
+                if let Some(meta) =
+                    self.state
+                        .tick(self.input_buffer.drain(..), period, &mut self.rng)
+                {
                     match meta {
                         Meta::GameOver => {
                             self.app_state = AppState::GameOver;
