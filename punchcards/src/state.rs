@@ -1,4 +1,5 @@
 use std::time::Duration;
+use grid_search::SearchContext;
 use entity_store::*;
 use input::Input;
 use policy;
@@ -50,6 +51,7 @@ pub struct State {
     animations: Vec<Animation>,
     card_state: CardState,
     input_state: InputState,
+    search_context: SearchContext<u32>,
 }
 
 
@@ -130,6 +132,7 @@ impl State {
         ], INITIAL_HAND_SIZE, rng);
 
         Self {
+            search_context: SearchContext::new(spatial_hash.width(), spatial_hash.height()),
             game_state: GameState {
                 entity_store,
                 spatial_hash,

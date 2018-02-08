@@ -4,6 +4,7 @@ extern crate cgmath;
 extern crate direction;
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate entity_store_helper;
+extern crate grid_search;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 
