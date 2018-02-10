@@ -8,4 +8,4 @@ rand = "0.4"
 punchcards = { path = "../punchcards" }
 prototty = "0.16"
 prototty_common = "0.16"
-direction = "0.9"
+direction = "0.10"
