@@ -31,13 +31,13 @@ impl Card {
             Card::Move => {
                 let current = entity_store.coord.get(&entity_id).unwrap();
                 let delta = direction.vector();
-                let new = current + delta;
+                let new = *current + delta;
                 changes.append(insert::coord(entity_id, new));
             }
             Card::Punch => {
                 let source_coord = entity_store.coord.get(&entity_id).unwrap();
                 let delta = direction.vector();
-                let coord = source_coord + delta;
+                let coord = *source_coord + delta;
                 let punch_id = id_allocator.allocate();
                 prototypes::punch(punch_id, coord, direction, changes);
                 reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(

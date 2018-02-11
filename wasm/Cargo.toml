@@ -9,5 +9,5 @@ crate-type = ["cdylib"]
 [dependencies]
 rand = "0.4"
 punchcards_prototty = { path = "../prototty" }
-prototty = "0.16"
-prototty_wasm = "0.16"
+prototty = "0.17"
+prototty_wasm = "0.17"

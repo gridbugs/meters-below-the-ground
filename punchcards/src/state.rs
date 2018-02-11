@@ -1,16 +1,16 @@
 use std::time::Duration;
+use grid_2d::{Size, Coord};
 use grid_search::SearchContext;
 use entity_store::*;
 use input::Input;
 use policy;
-use cgmath::*;
 use prototypes;
 use card::*;
 use card_state::*;
 use tile::*;
 use reaction::*;
 use animation::*;
-use rand::Rng;
+use rand::{StdRng, SeedableRng};
 use append::Append;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -19,7 +19,7 @@ pub enum Meta {
     GameOver,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct GameState {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
@@ -42,7 +42,7 @@ pub enum InputState {
     WaitingForDirection(HandIndex, Card),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct State {
     game_state: GameState,
     player_id: EntityId,
@@ -52,10 +52,27 @@ pub struct State {
     card_state: CardState,
     input_state: InputState,
     search_context: SearchContext<u32>,
+    rng: StdRng,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SaveState {
+    changes: Vec<EntityChange>,
+    id_allocator: EntityIdAllocator,
+    count: u64,
+    player_id: EntityId,
+    card_state: CardState,
+    animations: Vec<Animation>,
+    input_state: InputState,
+    next_rng_seed: usize,
+    size: Size,
 }
 
 impl State {
-    pub fn new<R: Rng>(rng: &mut R) -> Self {
+    pub fn new(rng_seed: usize) -> Self {
+
+        let mut rng = StdRng::from_seed(&[rng_seed]);
+
         let strings = vec![
             "##########",
             "#..m.....#",
@@ -69,8 +86,10 @@ impl State {
             "##########",
         ];
 
+        let size = Size::new(strings[0].len() as u32, strings.len() as u32);
+
         let mut entity_store = EntityStore::new();
-        let mut spatial_hash = SpatialHashTable::new(strings[0].len() as u32, strings.len() as u32);
+        let mut spatial_hash = SpatialHashTable::new(size);
         let mut id_allocator = EntityIdAllocator::new();
         let mut changes = Vec::new();
         let animations = Vec::new();
@@ -78,7 +97,7 @@ impl State {
 
         for (y, line) in strings.iter().enumerate() {
             for (x, ch) in line.chars().enumerate() {
-                let coord = vec2(x as i32, y as i32);
+                let coord = Coord::new(x as i32, y as i32);
                 match ch {
                     '#' => {
                         prototypes::wall(id_allocator.allocate(), coord, &mut changes);
@@ -136,11 +155,10 @@ impl State {
                 Card::Move,
             ],
             INITIAL_HAND_SIZE,
-            rng,
+            &mut rng,
         );
 
         Self {
-            search_context: SearchContext::new(spatial_hash.width(), spatial_hash.height()),
             game_state: GameState {
                 entity_store,
                 spatial_hash,
@@ -154,6 +172,66 @@ impl State {
             animations,
             reactions: Vec::new(),
             card_state,
+            search_context: SearchContext::new(size),
+            rng,
+        }
+    }
+
+    pub fn from_save_state(
+        SaveState {
+            mut changes,
+            id_allocator,
+            count,
+            player_id,
+            card_state,
+            animations,
+            input_state,
+            next_rng_seed,
+            size,
+        }: SaveState,
+    ) -> Self {
+        let mut entity_store = EntityStore::new();
+        let mut spatial_hash = SpatialHashTable::new(size);
+        let mut entity_components = EntityComponentTable::new();
+
+        for change in changes.drain(..) {
+            spatial_hash.update(&entity_store, &change, 0);
+            entity_components.update(&change);
+            entity_store.commit(change);
+        }
+
+        Self {
+            game_state: GameState {
+                entity_store,
+                spatial_hash,
+                entity_components,
+                id_allocator,
+                count,
+            },
+            input_state,
+            player_id,
+            changes: Vec::new(),
+            animations,
+            reactions: Vec::new(),
+            card_state,
+            search_context: SearchContext::new(size),
+            rng: StdRng::from_seed(&[next_rng_seed]),
+        }
+    }
+
+    pub fn create_save_state(&self, next_rng_seed: usize) -> SaveState {
+        let mut changes = Vec::with_capacity(1024);
+        self.game_state.entity_store.clone_changes(&mut changes);
+        SaveState {
+            changes,
+            id_allocator: self.game_state.id_allocator.clone(),
+            count: self.game_state.count,
+            player_id: self.player_id,
+            card_state: self.card_state.clone(),
+            animations: self.animations.clone(),
+            input_state: self.input_state.clone(),
+            next_rng_seed,
+            size: Size::new(self.game_state.spatial_hash.width(), self.game_state.spatial_hash.height()),
         }
     }
 
@@ -170,10 +248,9 @@ impl State {
         &self.input_state
     }
 
-    pub fn tick<I, R>(&mut self, inputs: I, period: Duration, rng: &mut R) -> Option<Meta>
+    pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<Meta>
     where
         I: IntoIterator<Item = Input>,
-        R: Rng,
     {
         let mut played_card = None;
         let mut input_state_change = None;
@@ -253,7 +330,7 @@ impl State {
                 for reaction in self.reactions.drain(..) {
                     match reaction {
                         Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.deck.add_random(card, rng);
+                            self.card_state.deck.add_random(card, &mut self.rng);
                             self.game_state.delete_entity(entity_id, &mut self.changes);
                         }
                         Reaction::RemoveEntity(entity_id) => {

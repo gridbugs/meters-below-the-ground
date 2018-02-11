@@ -6,7 +6,7 @@ extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
-use rand::{SeedableRng, StdRng};
+use rand::{SeedableRng, StdRng, Rng};
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
@@ -359,12 +359,12 @@ impl<S: Storage> App<S> {
     pub fn new(frontend: Frontend, storage: S, seed: usize) -> Self {
         let mut rng = StdRng::from_seed(&[seed]);
 
-        let existing_state: Option<State> = storage.load(SAVE_FILE).ok();
+        let existing_state: Option<SaveState> = storage.load(SAVE_FILE).ok();
 
         let (in_progress, state) = if let Some(state) = existing_state {
-            (true, state)
+            (true, State::from_save_state(state))
         } else {
-            (false, State::new(&mut rng))
+            (false, State::new(rng.gen()))
         };
 
         let main_menu = make_main_menu(in_progress, frontend);
@@ -392,7 +392,7 @@ impl<S: Storage> App<S> {
     pub fn store(&mut self) {
         if self.in_progress {
             self.storage
-                .store(SAVE_FILE, &self.state)
+                .store(SAVE_FILE, &self.state.create_save_state(self.rng.gen()))
                 .expect("Failed to save");
         } else {
             match self.storage.remove_raw(SAVE_FILE) {
@@ -440,7 +440,7 @@ impl<S: Storage> App<S> {
                                 None
                             }
                             MainMenuChoice::NewGame => {
-                                self.state = State::new(&mut self.rng);
+                                self.state = State::new(self.rng.gen());
                                 self.app_state = AppState::Game;
                                 self.in_progress = true;
                                 self.main_menu = make_main_menu(true, self.frontend);
@@ -448,7 +448,7 @@ impl<S: Storage> App<S> {
                                 None
                             }
                             MainMenuChoice::ClearData => {
-                                self.state = State::new(&mut self.rng);
+                                self.state = State::new(self.rng.gen());
                                 self.in_progress = false;
                                 self.main_menu = make_main_menu(false, self.frontend);
                                 self.store();
@@ -490,7 +490,7 @@ impl<S: Storage> App<S> {
 
                 if let Some(meta) =
                     self.state
-                        .tick(self.input_buffer.drain(..), period, &mut self.rng)
+                        .tick(self.input_buffer.drain(..), period)
                 {
                     match meta {
                         Meta::GameOver => {
@@ -507,7 +507,7 @@ impl<S: Storage> App<S> {
                     self.game_over_duration = remaining;
                 } else {
                     self.app_state = AppState::MainMenu;
-                    self.state = State::new(&mut self.rng);
+                    self.state = State::new(self.rng.gen());
                 }
                 None
             }

@@ -6,6 +6,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.4"
 punchcards_prototty = { path = "../prototty" }
-prototty = "0.16"
-prototty_glutin = "0.16"
-prototty_file_storage = "0.16"
+prototty = "0.17"
+prototty_glutin = "0.17"
+prototty_file_storage = "0.17"

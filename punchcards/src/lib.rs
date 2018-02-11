@@ -1,10 +1,10 @@
 extern crate append;
-extern crate cgmath;
 extern crate direction;
 #[macro_use]
 extern crate entity_store_helper;
 #[macro_use]
 extern crate enum_primitive;
+extern crate grid_2d;
 extern crate grid_search;
 extern crate rand;
 extern crate serde;

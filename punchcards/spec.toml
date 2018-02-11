@@ -2,7 +2,7 @@ id_width = 16
 spatial_hash_key = 'coord'
 
 [components]
-coord = { type = '::cgmath::Vector2<i32>', storage = 'vector' }
+coord = { type = '::grid_2d::Coord', storage = 'vector' }
 solid = { storage = 'vector' }
 collider = { storage = 'vector' }
 player = { storage = 'btree' }
@@ -17,3 +17,4 @@ solid_count = { component = 'solid', aggregate = 'count' }
 player_count = { component = 'player', aggregate = 'count' }
 card_set = { component = 'card', aggregate = 'set' }
 npc_set = { component = 'npc', aggregate = 'set' }
+wall_neighbours = { component = 'solid', aggregate = 'neighbour_count' }

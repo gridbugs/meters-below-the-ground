@@ -1,6 +1,6 @@
 use direction::CardinalDirection;
 use entity_store::*;
-use cgmath::Vector2;
+use grid_2d::Coord;
 use append::Append;
 use tile::Tile;
 use tile_info::TileInfo;
@@ -15,7 +15,7 @@ const WALL_DEPTH: i32 = 2;
 
 pub fn card<A: Append<EntityChange>>(
     id: EntityId,
-    coord: Vector2<i32>,
+    coord: Coord,
     card: Card,
     tile: Tile,
     changes: &mut A,
@@ -25,7 +25,7 @@ pub fn card<A: Append<EntityChange>>(
     changes.append(insert::card(id, card));
 }
 
-pub fn player<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes: &mut A) {
+pub fn player<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
     changes.append(insert::coord(id, coord));
     changes.append(insert::player(id));
     changes.append(insert::collider(id));
@@ -35,7 +35,7 @@ pub fn player<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, change
     ));
 }
 
-pub fn floor<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes: &mut A) {
+pub fn floor<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
     changes.append(insert::coord(id, coord));
     changes.append(insert::tile_info(
         id,
@@ -43,7 +43,7 @@ pub fn floor<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes
     ));
 }
 
-pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes: &mut A) {
+pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
     changes.append(insert::coord(id, coord));
     changes.append(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
     changes.append(insert::solid(id));
@@ -51,7 +51,7 @@ pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes:
 
 pub fn punch<A: Append<EntityChange>>(
     id: EntityId,
-    coord: Vector2<i32>,
+    coord: Coord,
     direction: CardinalDirection,
     changes: &mut A,
 ) {
@@ -63,7 +63,7 @@ pub fn punch<A: Append<EntityChange>>(
     ));
 }
 
-pub fn target_dummy<A: Append<EntityChange>>(id: EntityId, coord: Vector2<i32>, changes: &mut A) {
+pub fn target_dummy<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
     changes.append(insert::coord(id, coord));
     changes.append(insert::npc(id));
     changes.append(insert::hit_points(id, 2));
