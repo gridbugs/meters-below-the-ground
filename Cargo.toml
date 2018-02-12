@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "punchcards",
+    "prototty",
+    "glutin",
+    "unix",
+    "wasm",
+]
