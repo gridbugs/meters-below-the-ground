@@ -6,7 +6,7 @@ environment:
   - TARGET: x86_64-pc-windows-msvc
     IN_NAME: punchcards_glutin
     OUT_NAME: punchcards
-    BIN_PATH: glutin\target\release
+    BIN_PATH: target\release
     BIN_NAME: punchcards-opengl-windows-x86_64
 install:
 - cmd: >-

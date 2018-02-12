@@ -48,7 +48,7 @@ def build_common(args):
   output_dir_path = os.path.join(args.build_path, output_dir_name)
   os.makedirs(output_dir_path)
   shutil.copy(
-      os.path.join(args.crate_path, "target", "release", BINARY_NAMES[args.frontend]),
+      os.path.join("target", "release", BINARY_NAMES[args.frontend]),
       os.path.join(output_dir_path, APP_NAME))
   shutil.copy(
       os.path.join(args.root_path, README_NAME),

@@ -4,6 +4,7 @@ CRATE="punchcards_wasm"
 
 set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TOP_LEVEL_DIR="$DIR/.."
 
 pushd $DIR
 
@@ -15,7 +16,7 @@ cargo build \
     --target=wasm32-unknown-unknown --release
 
 wasm-gc \
-    target/wasm32-unknown-unknown/release/$CRATE.wasm \
+    $TOP_LEVEL_DIR/target/wasm32-unknown-unknown/release/$CRATE.wasm \
     dist/$CRATE.wasm
 
 npx webpack
