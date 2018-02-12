@@ -1,6 +1,6 @@
 use std::time::Duration;
 use grid_2d::{Coord, Size};
-use grid_search::SearchContext;
+use grid_search::*;
 use entity_store::*;
 use input::Input;
 use policy;
@@ -12,6 +12,7 @@ use reaction::*;
 use animation::*;
 use rand::{SeedableRng, StdRng};
 use append::Append;
+use pathfinding;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -42,6 +43,12 @@ pub enum InputState {
     WaitingForDirection(HandIndex, Card),
 }
 
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+enum TurnState {
+    Player,
+    Npcs,
+}
+
 #[derive(Clone, Debug)]
 pub struct State {
     game_state: GameState,
@@ -52,7 +59,11 @@ pub struct State {
     card_state: CardState,
     input_state: InputState,
     search_context: SearchContext<u32>,
+    bfs_context: BfsContext,
+    dijkstra_map: DijkstraMap<u32>,
     rng: StdRng,
+    turn: TurnState,
+    recompute_player_map: Option<Coord>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -66,6 +77,8 @@ pub struct SaveState {
     input_state: InputState,
     next_rng_seed: usize,
     size: Size,
+    turn: TurnState,
+    recompute_player_map: Option<Coord>,
 }
 
 impl State {
@@ -74,7 +87,7 @@ impl State {
 
         let strings = vec![
             "##########",
-            "#..m.....#",
+            "#..m1....#",
             "#....#...#",
             "#.0@.#...#",
             "#....#...#",
@@ -93,6 +106,7 @@ impl State {
         let mut changes = Vec::new();
         let animations = Vec::new();
         let mut player_id = None;
+        let mut player_coord = None;
 
         for (y, line) in strings.iter().enumerate() {
             for (x, ch) in line.chars().enumerate() {
@@ -119,9 +133,14 @@ impl State {
                         prototypes::target_dummy(id_allocator.allocate(), coord, &mut changes);
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
+                    '1' => {
+                        prototypes::small_robot(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                    }
                     '@' => {
                         let id = id_allocator.allocate();
                         player_id = Some(id);
+                        player_coord = Some(coord);
                         prototypes::player(id, coord, &mut changes);
                         prototypes::floor(id_allocator.allocate(), coord, &mut changes);
                     }
@@ -172,7 +191,11 @@ impl State {
             reactions: Vec::new(),
             card_state,
             search_context: SearchContext::new(size),
+            bfs_context: BfsContext::new(size),
+            dijkstra_map: DijkstraMap::new(size),
             rng,
+            turn: TurnState::Player,
+            recompute_player_map: player_coord,
         }
     }
 
@@ -187,6 +210,8 @@ impl State {
             input_state,
             next_rng_seed,
             size,
+            turn,
+            recompute_player_map,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -214,7 +239,11 @@ impl State {
             reactions: Vec::new(),
             card_state,
             search_context: SearchContext::new(size),
+            bfs_context: BfsContext::new(size),
+            dijkstra_map: DijkstraMap::new(size),
             rng: StdRng::from_seed(&[next_rng_seed]),
+            turn,
+            recompute_player_map,
         }
     }
 
@@ -234,6 +263,8 @@ impl State {
                 self.game_state.spatial_hash.width(),
                 self.game_state.spatial_hash.height(),
             ),
+            turn: self.turn,
+            recompute_player_map: self.recompute_player_map,
         }
     }
 
@@ -254,46 +285,74 @@ impl State {
     where
         I: IntoIterator<Item = Input>,
     {
-        let mut played_card = None;
-        let mut input_state_change = None;
-
         if self.animations.is_empty() {
-            for input in inputs {
-                match input {
-                    Input::SelectCard(index) => {
-                        if let Some(card) = self.card_state.hand.get(index) {
-                            input_state_change =
-                                Some(InputState::WaitingForDirection(index, *card));
+            match self.turn {
+                TurnState::Player => {
+                    if let Some(input) = inputs.into_iter().next() {
+                        self.turn = TurnState::Npcs;
+                        match input {
+                            Input::SelectCard(index) => {
+                                if let Some(card) = self.card_state.hand.get(index) {
+                                    self.input_state =
+                                        InputState::WaitingForDirection(index, *card);
+                                }
+                                None
+                            }
+                            Input::Direction(direction) => {
+                                if let InputState::WaitingForDirection(index, card) =
+                                    self.input_state
+                                {
+                                    card.play(
+                                        self.player_id,
+                                        &self.game_state.entity_store,
+                                        direction,
+                                        &mut self.game_state.id_allocator,
+                                        &mut self.changes,
+                                        &mut self.reactions,
+                                    );
+                                    self.process_changes(Some((index, card)))
+                                } else {
+                                    None
+                                }
+                            }
                         }
+                    } else {
+                        None
                     }
-                    Input::Direction(direction) => {
-                        if let InputState::WaitingForDirection(index, card) = self.input_state {
-                            played_card = Some((index, card, direction));
-                        }
+                }
+                TurnState::Npcs => {
+                    self.turn = TurnState::Player;
+
+                    if let Some(player_coord) = self.recompute_player_map.take() {
+                        pathfinding::compute_player_map(
+                            player_coord,
+                            &self.game_state.spatial_hash,
+                            &mut self.bfs_context,
+                            &mut self.dijkstra_map,
+                        );
                     }
+
+                    for &id in self.game_state.entity_store.npc.iter() {
+                        pathfinding::act(
+                            id,
+                            &self.game_state.entity_store,
+                            &self.dijkstra_map,
+                            &mut self.changes,
+                        );
+                    }
+
+                    None
                 }
             }
         } else {
             for animation in self.animations.drain(..) {
                 animation.step(period, &mut self.reactions);
             }
+            self.process_changes(None)
         }
+    }
 
-        if let Some(input_state) = input_state_change {
-            self.input_state = input_state;
-        }
-
-        if let Some((_, card, direction)) = played_card {
-            card.play(
-                self.player_id,
-                &self.game_state.entity_store,
-                direction,
-                &mut self.game_state.id_allocator,
-                &mut self.changes,
-                &mut self.reactions,
-            );
-        }
-
+    fn process_changes(&mut self, mut played_card: Option<(usize, Card)>) -> Option<Meta> {
         loop {
             for change in self.changes.drain(..) {
                 if !policy::check(
@@ -305,7 +364,7 @@ impl State {
                     continue;
                 }
 
-                if let Some((index, card, _)) = played_card.take() {
+                if let Some((index, card)) = played_card.take() {
                     let card_to_check = self.card_state.hand.remove_card(index);
                     assert_eq!(card, card_to_check);
                     self.card_state.fill_hand();
@@ -343,6 +402,9 @@ impl State {
                         }
                         Reaction::EntityChange(change) => {
                             self.changes.push(change);
+                        }
+                        Reaction::PlayerMovedTo(coord) => {
+                            self.recompute_player_map = Some(coord);
                         }
                     }
                 }

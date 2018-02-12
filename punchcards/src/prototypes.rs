@@ -72,3 +72,13 @@ pub fn target_dummy<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes
         TileInfo::new(Tile::TargetDummy, NPC_DEPTH),
     ));
 }
+
+pub fn small_robot<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
+    changes.append(insert::coord(id, coord));
+    changes.append(insert::npc(id));
+    changes.append(insert::hit_points(id, 1));
+    changes.append(insert::tile_info(
+        id,
+        TileInfo::new(Tile::SmallRobot, NPC_DEPTH),
+    ));
+}

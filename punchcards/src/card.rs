@@ -30,7 +30,7 @@ impl Card {
         match self {
             Card::Move => {
                 let current = entity_store.coord.get(&entity_id).unwrap();
-                let delta = direction.vector();
+                let delta = direction.coord();
                 let new = *current + delta;
                 changes.append(insert::coord(entity_id, new));
             }

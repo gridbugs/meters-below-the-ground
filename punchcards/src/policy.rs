@@ -31,11 +31,17 @@ pub fn check<A: Append<Reaction>>(
                     return false;
                 }
 
+                let is_player = entity_store.player.contains(&id);
+
                 if let Some(card_id) = sh_cell.card_set.iter().next() {
-                    if entity_store.player.contains(&id) {
+                    if is_player {
                         let card = entity_store.card.get(card_id).unwrap();
                         reactions.append(Reaction::TakeCard(*card_id, *card));
                     }
+                }
+
+                if is_player {
+                    reactions.append(Reaction::PlayerMovedTo(coord));
                 }
             }
         }

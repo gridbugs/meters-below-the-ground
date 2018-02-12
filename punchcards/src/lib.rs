@@ -19,6 +19,7 @@ mod policy;
 mod prototypes;
 mod reaction;
 mod animation;
+mod pathfinding;
 
 pub mod card_state;
 pub mod input;

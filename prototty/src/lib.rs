@@ -92,6 +92,11 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
             cell.set_bold(true);
             cell.set_character('0');
         }
+        Tile::SmallRobot => {
+            cell.set_foreground_colour(colours::BRIGHT_GREEN);
+            cell.set_bold(true);
+            cell.set_character('1');
+        }
     }
 }
 

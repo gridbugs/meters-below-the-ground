@@ -8,4 +8,5 @@ pub enum Tile {
     CardMove,
     Punch(CardinalDirection),
     TargetDummy,
+    SmallRobot,
 }
