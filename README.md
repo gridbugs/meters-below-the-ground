@@ -2,6 +2,7 @@
 
 [![Travis-CI Status](https://travis-ci.org/stevebob/punchcards.svg?branch=master)](https://travis-ci.org/stevebob/punchcards)
 [![Appveyor Status](https://ci.appveyor.com/api/projects/status/github/stevebob/punchcards?branch=master&svg=true)](https://ci.appveyor.com/project/stevebob/punchcards)
+[![dependency status](https://deps.rs/repo/github/stevebob/punchcards/status.svg)](https://deps.rs/repo/github/stevebob/punchcards)
 
 A roguelike about an old fighting robot trying to reclaim its title.
 
