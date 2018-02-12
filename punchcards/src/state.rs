@@ -1,4 +1,5 @@
 use std::time::Duration;
+use std::cmp::Ordering;
 use grid_2d::{Coord, Size};
 use grid_search::*;
 use entity_store::*;
@@ -10,8 +11,9 @@ use card_state::*;
 use tile::*;
 use reaction::*;
 use animation::*;
-use rand::{SeedableRng, StdRng};
+use rand::{Rng, SeedableRng, StdRng};
 use append::Append;
+use direction::Direction;
 use pathfinding;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -64,6 +66,8 @@ pub struct State {
     rng: StdRng,
     turn: TurnState,
     recompute_player_map: Option<Coord>,
+    path: Vec<Direction>,
+    npc_order: Vec<EntityId>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -87,12 +91,12 @@ impl State {
 
         let strings = vec![
             "##########",
-            "#..m1....#",
-            "#....#...#",
-            "#.0@.#...#",
-            "#....#...#",
-            "#.####...#",
-            "#........#",
+            "#@.......#",
+            "#.....#..#",
+            "#...11#..#",
+            "#.....#..#",
+            "###.###..#",
+            "#.1.11...#",
             "#........#",
             "#........#",
             "##########",
@@ -196,6 +200,8 @@ impl State {
             rng,
             turn: TurnState::Player,
             recompute_player_map: player_coord,
+            path: Vec::new(),
+            npc_order: Vec::new(),
         }
     }
 
@@ -244,6 +250,8 @@ impl State {
             rng: StdRng::from_seed(&[next_rng_seed]),
             turn,
             recompute_player_map,
+            path: Vec::new(),
+            npc_order: Vec::new(),
         }
     }
 
@@ -289,7 +297,6 @@ impl State {
             match self.turn {
                 TurnState::Player => {
                     if let Some(input) = inputs.into_iter().next() {
-                        self.turn = TurnState::Npcs;
                         match input {
                             Input::SelectCard(index) => {
                                 if let Some(card) = self.card_state.hand.get(index) {
@@ -302,6 +309,7 @@ impl State {
                                 if let InputState::WaitingForDirection(index, card) =
                                     self.input_state
                                 {
+                                    self.turn = TurnState::Npcs;
                                     card.play(
                                         self.player_id,
                                         &self.game_state.entity_store,
@@ -310,10 +318,24 @@ impl State {
                                         &mut self.changes,
                                         &mut self.reactions,
                                     );
-                                    self.process_changes(Some((index, card)))
+                                    process_changes(
+                                        &mut self.game_state,
+                                        &mut self.card_state,
+                                        &mut self.changes,
+                                        &mut self.reactions,
+                                        &mut self.animations,
+                                        &mut self.input_state,
+                                        &mut self.recompute_player_map,
+                                        &mut self.rng,
+                                        Some((index, card)),
+                                    )
                                 } else {
                                     None
                                 }
+                            }
+                            Input::Wait => {
+                                self.turn = TurnState::Npcs;
+                                None
                             }
                         }
                     } else {
@@ -332,13 +354,57 @@ impl State {
                         );
                     }
 
+                    self.npc_order.clear();
                     for &id in self.game_state.entity_store.npc.iter() {
+                        self.npc_order.push(id);
+                    }
+
+                    {
+                        let coord = &self.game_state.entity_store.coord;
+                        let dijkstra_map = &self.dijkstra_map;
+                        self.npc_order.sort_by(|a, b| {
+                            let coord_a = coord.get(a).expect("NPC missing coord");
+                            let coord_b = coord.get(b).expect("NPC missing coord");
+                            if let Some(cell_a) = dijkstra_map.get(*coord_a).cell() {
+                                if let Some(cell_b) = dijkstra_map.get(*coord_b).cell() {
+                                    cell_a.cost().cmp(&cell_b.cost())
+                                } else {
+                                    Ordering::Less
+                                }
+                            } else {
+                                if dijkstra_map.get(*coord_b).cell().is_some() {
+                                    Ordering::Greater
+                                } else {
+                                    Ordering::Equal
+                                }
+                            }
+                        });
+                    }
+
+                    for &id in self.npc_order.iter() {
                         pathfinding::act(
                             id,
+                            self.player_id,
                             &self.game_state.entity_store,
+                            &self.game_state.spatial_hash,
                             &self.dijkstra_map,
+                            &mut self.search_context,
+                            &mut self.path,
                             &mut self.changes,
                         );
+                        if let Some(meta) = process_changes(
+                            &mut self.game_state,
+                            &mut self.card_state,
+                            &mut self.changes,
+                            &mut self.reactions,
+                            &mut self.animations,
+                            &mut self.input_state,
+                            &mut self.recompute_player_map,
+                            &mut self.rng,
+                            None,
+                        ) {
+                            return Some(meta);
+                        }
                     }
 
                     None
@@ -348,64 +414,82 @@ impl State {
             for animation in self.animations.drain(..) {
                 animation.step(period, &mut self.reactions);
             }
-            self.process_changes(None)
+            process_changes(
+                &mut self.game_state,
+                &mut self.card_state,
+                &mut self.changes,
+                &mut self.reactions,
+                &mut self.animations,
+                &mut self.input_state,
+                &mut self.recompute_player_map,
+                &mut self.rng,
+                None,
+            )
         }
     }
+}
 
-    fn process_changes(&mut self, mut played_card: Option<(usize, Card)>) -> Option<Meta> {
-        loop {
-            for change in self.changes.drain(..) {
-                if !policy::check(
-                    &change,
-                    &self.game_state.entity_store,
-                    &self.game_state.spatial_hash,
-                    &mut self.reactions,
-                ) {
-                    continue;
-                }
-
-                if let Some((index, card)) = played_card.take() {
-                    let card_to_check = self.card_state.hand.remove_card(index);
-                    assert_eq!(card, card_to_check);
-                    self.card_state.fill_hand();
-                    self.input_state = InputState::WaitingForCardSelection;
-                }
-
-                self.game_state.spatial_hash.update(
-                    &self.game_state.entity_store,
-                    &change,
-                    self.game_state.count,
-                );
-                self.game_state.entity_components.update(&change);
-                self.game_state.entity_store.commit(change);
-                self.game_state.count += 1;
+fn process_changes<R: Rng>(
+    game_state: &mut GameState,
+    card_state: &mut CardState,
+    changes: &mut Vec<EntityChange>,
+    reactions: &mut Vec<Reaction>,
+    animations: &mut Vec<Animation>,
+    input_state: &mut InputState,
+    recompute_player_map: &mut Option<Coord>,
+    rng: &mut R,
+    mut played_card: Option<(usize, Card)>,
+) -> Option<Meta> {
+    loop {
+        for change in changes.drain(..) {
+            if !policy::check(
+                &change,
+                &game_state.entity_store,
+                &game_state.spatial_hash,
+                reactions,
+            ) {
+                continue;
             }
 
-            if self.reactions.is_empty() {
-                if self.card_state.hand.is_empty() {
-                    break Some(Meta::GameOver);
-                } else {
-                    break None;
-                }
+            if let Some((index, card)) = played_card.take() {
+                let card_to_check = card_state.hand.remove_card(index);
+                assert_eq!(card, card_to_check);
+                card_state.fill_hand();
+                *input_state = InputState::WaitingForCardSelection;
+            }
+
+            game_state
+                .spatial_hash
+                .update(&game_state.entity_store, &change, game_state.count);
+            game_state.entity_components.update(&change);
+            game_state.entity_store.commit(change);
+            game_state.count += 1;
+        }
+
+        if reactions.is_empty() {
+            if card_state.hand.is_empty() {
+                break Some(Meta::GameOver);
             } else {
-                for reaction in self.reactions.drain(..) {
-                    match reaction {
-                        Reaction::TakeCard(entity_id, card) => {
-                            self.card_state.deck.add_random(card, &mut self.rng);
-                            self.game_state.delete_entity(entity_id, &mut self.changes);
-                        }
-                        Reaction::RemoveEntity(entity_id) => {
-                            self.game_state.delete_entity(entity_id, &mut self.changes);
-                        }
-                        Reaction::StartAnimation(animation) => {
-                            self.animations.push(animation);
-                        }
-                        Reaction::EntityChange(change) => {
-                            self.changes.push(change);
-                        }
-                        Reaction::PlayerMovedTo(coord) => {
-                            self.recompute_player_map = Some(coord);
-                        }
+                break None;
+            }
+        } else {
+            for reaction in reactions.drain(..) {
+                match reaction {
+                    Reaction::TakeCard(entity_id, card) => {
+                        card_state.deck.add_random(card, rng);
+                        game_state.delete_entity(entity_id, changes);
+                    }
+                    Reaction::RemoveEntity(entity_id) => {
+                        game_state.delete_entity(entity_id, changes);
+                    }
+                    Reaction::StartAnimation(animation) => {
+                        animations.push(animation);
+                    }
+                    Reaction::EntityChange(change) => {
+                        changes.push(change);
+                    }
+                    Reaction::PlayerMovedTo(coord) => {
+                        *recompute_player_map = Some(coord);
                     }
                 }
             }

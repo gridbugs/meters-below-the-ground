@@ -14,7 +14,10 @@ pub fn check<A: Append<Reaction>>(
     match change {
         &Insert(id, Coord(coord)) => {
             if let Some(sh_cell) = spatial_hash.get(coord) {
-                if let Some(npc_id) = sh_cell.npc_set.iter().next() {
+
+                let dest_npc = sh_cell.npc_set.iter().next();
+
+                if let Some(npc_id) = dest_npc {
                     if entity_store.punch.contains(&id) {
                         if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
                             reactions.append(Reaction::EntityChange(insert::hit_points(
@@ -31,6 +34,18 @@ pub fn check<A: Append<Reaction>>(
                     return false;
                 }
 
+                let is_npc = entity_store.npc.contains(&id);
+
+                if is_npc && dest_npc.is_some() {
+                    // npcs can't move through one another
+                    return false;
+                }
+
+                if sh_cell.player_count > 0 {
+                    // TODO damage player
+                    return false;
+                };
+
                 let is_player = entity_store.player.contains(&id);
 
                 if let Some(card_id) = sh_cell.card_set.iter().next() {
@@ -43,6 +58,7 @@ pub fn check<A: Append<Reaction>>(
                 if is_player {
                     reactions.append(Reaction::PlayerMovedTo(coord));
                 }
+
             }
         }
         &Insert(id, HitPoints(hit_points)) => {

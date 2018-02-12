@@ -478,6 +478,7 @@ impl<S: Storage> App<S> {
                         ProtottyInput::Char('4') => InputType::Game(PunchcardsInput::SelectCard(3)),
                         ProtottyInput::Char('5') => InputType::Game(PunchcardsInput::SelectCard(4)),
                         ProtottyInput::Char('6') => InputType::Game(PunchcardsInput::SelectCard(5)),
+                        ProtottyInput::Char(' ') => InputType::Game(PunchcardsInput::Wait),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         prototty_inputs::ESCAPE => {
                             self.app_state = AppState::MainMenu;
