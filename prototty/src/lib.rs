@@ -6,7 +6,7 @@ extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
-use rand::{SeedableRng, StdRng, Rng};
+use rand::{Rng, SeedableRng, StdRng};
 use direction::CardinalDirection;
 use punchcards::state::*;
 use punchcards::tile::Tile;
@@ -488,10 +488,7 @@ impl<S: Storage> App<S> {
                     }
                 }
 
-                if let Some(meta) =
-                    self.state
-                        .tick(self.input_buffer.drain(..), period)
-                {
+                if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period) {
                     match meta {
                         Meta::GameOver => {
                             self.app_state = AppState::GameOver;

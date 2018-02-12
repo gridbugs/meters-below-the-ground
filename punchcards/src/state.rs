@@ -1,5 +1,5 @@
 use std::time::Duration;
-use grid_2d::{Size, Coord};
+use grid_2d::{Coord, Size};
 use grid_search::SearchContext;
 use entity_store::*;
 use input::Input;
@@ -10,7 +10,7 @@ use card_state::*;
 use tile::*;
 use reaction::*;
 use animation::*;
-use rand::{StdRng, SeedableRng};
+use rand::{SeedableRng, StdRng};
 use append::Append;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -70,7 +70,6 @@ pub struct SaveState {
 
 impl State {
     pub fn new(rng_seed: usize) -> Self {
-
         let mut rng = StdRng::from_seed(&[rng_seed]);
 
         let strings = vec![
@@ -231,7 +230,10 @@ impl State {
             animations: self.animations.clone(),
             input_state: self.input_state.clone(),
             next_rng_seed,
-            size: Size::new(self.game_state.spatial_hash.width(), self.game_state.spatial_hash.height()),
+            size: Size::new(
+                self.game_state.spatial_hash.width(),
+                self.game_state.spatial_hash.height(),
+            ),
         }
     }
 
