@@ -509,6 +509,8 @@ impl<S: Storage> App<S> {
                 if let Some(remaining) = self.game_over_duration.checked_sub(period) {
                     self.game_over_duration = remaining;
                 } else {
+                    self.in_progress = false;
+                    self.main_menu = make_main_menu(false, self.frontend);
                     self.app_state = AppState::MainMenu;
                     self.state = State::new(self.rng.gen());
                 }
