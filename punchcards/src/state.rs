@@ -1,7 +1,8 @@
 use std::time::Duration;
 use std::cmp::Ordering;
-use grid_2d::{Coord, Size};
+use grid_2d::{Coord, Size, Grid};
 use grid_search::*;
+use shadowcast;
 use entity_store::*;
 use input::Input;
 use policy;
@@ -13,13 +14,51 @@ use reaction::*;
 use animation::*;
 use rand::{Rng, SeedableRng, StdRng};
 use append::Append;
-use direction::Direction;
+use direction::{Direction, DirectionBitmap};
 use pathfinding;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
 pub enum Meta {
     GameOver,
+}
+
+#[derive(Clone, Debug)]
+struct VisibilityGrid {
+    grid: Grid<u64>,
+}
+
+impl VisibilityGrid {
+    fn new(size: Size) -> Self {
+        Self {
+            grid: Grid::new_clone(size, 0),
+        }
+    }
+    fn get(&self, coord: Coord) -> Option<u64> {
+        self.grid.get(coord).cloned()
+    }
+}
+
+impl shadowcast::OutputGrid for VisibilityGrid {
+    fn see(&mut self, coord: Coord, _bitmap: DirectionBitmap, time: u64) {
+        if let Some(cell) = self.grid.get_mut(coord) {
+            *cell = time;
+        }
+    }
+}
+
+impl shadowcast::InputGrid for SpatialHashTable {
+    type Visibility = u8;
+    type Opacity = u8;
+    fn size(&self) -> Size {
+        self.size()
+    }
+    fn get_opacity(&self, coord: Coord) -> Option<Self::Opacity> {
+        self.get(coord).map(|c| c.opacity_total)
+    }
+    fn initial_visibility() -> Self::Visibility {
+        255
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +90,13 @@ enum TurnState {
     Npcs,
 }
 
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Visibility {
+    Unseen,
+    Visible,
+    Remembered,
+}
+
 #[derive(Clone, Debug)]
 pub struct State {
     game_state: GameState,
@@ -68,6 +114,8 @@ pub struct State {
     recompute_player_map: Option<Coord>,
     path: Vec<Direction>,
     npc_order: Vec<EntityId>,
+    visibility_grid: VisibilityGrid,
+    shadowcast: shadowcast::ShadowcastContext<<SpatialHashTable as shadowcast::InputGrid>::Visibility>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -93,10 +141,10 @@ impl State {
             "##########",
             "#@.......#",
             "#.....#..#",
-            "#...11#..#",
+            "#.....#..#",
             "#.....#..#",
             "###.###..#",
-            "#.1.11...#",
+            "#........#",
             "#........#",
             "#........#",
             "##########",
@@ -165,11 +213,16 @@ impl State {
 
         let card_state = CardState::new(
             vec![
-                Card::Punch,
-                Card::Punch,
-                Card::Punch,
-                Card::Punch,
-                Card::Punch,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
+                Card::Move,
                 Card::Move,
                 Card::Move,
                 Card::Move,
@@ -180,7 +233,7 @@ impl State {
             &mut rng,
         );
 
-        Self {
+        let mut s = Self {
             game_state: GameState {
                 entity_store,
                 spatial_hash,
@@ -202,6 +255,26 @@ impl State {
             recompute_player_map: player_coord,
             path: Vec::new(),
             npc_order: Vec::new(),
+            visibility_grid: VisibilityGrid::new(size),
+            shadowcast: shadowcast::ShadowcastContext::new(),
+        };
+
+        s.initial_see();
+
+        s
+    }
+
+    pub fn get_visibility(&self, coord: Coord) -> Visibility {
+        if let Some(seen_time) = self.visibility_grid.get(coord) {
+            if seen_time == 0 {
+                Visibility::Unseen
+            } else if seen_time == self.game_state.count {
+                Visibility::Visible
+            } else {
+                Visibility::Remembered
+            }
+        } else {
+            Visibility::Unseen
         }
     }
 
@@ -230,7 +303,7 @@ impl State {
             entity_store.commit(change);
         }
 
-        Self {
+        let mut s = Self {
             game_state: GameState {
                 entity_store,
                 spatial_hash,
@@ -252,7 +325,13 @@ impl State {
             recompute_player_map,
             path: Vec::new(),
             npc_order: Vec::new(),
-        }
+            visibility_grid: VisibilityGrid::new(size),
+            shadowcast: shadowcast::ShadowcastContext::new(),
+        };
+
+        s.initial_see();
+
+        s
     }
 
     pub fn create_save_state(&self, next_rng_seed: usize) -> SaveState {
@@ -289,6 +368,19 @@ impl State {
         &self.input_state
     }
 
+    fn initial_see(&mut self) {
+        self.game_state.count += 1;
+
+        let player_coord = self.game_state.entity_store.coord.get(&self.player_id).unwrap();
+        self.shadowcast.observe(
+            *player_coord,
+            &self.game_state.spatial_hash,
+            20,
+            self.game_state.count,
+            &mut self.visibility_grid,
+        );
+    }
+
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<Meta>
     where
         I: IntoIterator<Item = Input>,
@@ -318,7 +410,7 @@ impl State {
                                         &mut self.changes,
                                         &mut self.reactions,
                                     );
-                                    process_changes(
+                                    let ret = process_changes(
                                         &mut self.game_state,
                                         &mut self.card_state,
                                         &mut self.changes,
@@ -328,7 +420,20 @@ impl State {
                                         &mut self.recompute_player_map,
                                         &mut self.rng,
                                         Some((index, card)),
-                                    )
+                                    );
+
+                                    self.game_state.count += 1;
+
+                                    let player_coord = self.game_state.entity_store.coord.get(&self.player_id).unwrap();
+                                    self.shadowcast.observe(
+                                        *player_coord,
+                                        &self.game_state.spatial_hash,
+                                        20,
+                                        self.game_state.count,
+                                        &mut self.visibility_grid,
+                                    );
+
+                                    ret
                                 } else {
                                     None
                                 }
@@ -463,7 +568,6 @@ fn process_changes<R: Rng>(
                 .update(&game_state.entity_store, &change, game_state.count);
             game_state.entity_components.update(&change);
             game_state.entity_store.commit(change);
-            game_state.count += 1;
         }
 
         if reactions.is_empty() {

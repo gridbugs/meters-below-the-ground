@@ -47,6 +47,7 @@ pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A
     changes.append(insert::coord(id, coord));
     changes.append(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
     changes.append(insert::solid(id));
+    changes.append(insert::opacity(id, 255));
 }
 
 pub fn punch<A: Append<EntityChange>>(
