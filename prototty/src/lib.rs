@@ -21,7 +21,7 @@ use punchcards::card_state::CardState;
 
 use self::CardinalDirection::*;
 
-const SAVE_PERIOD_MS: u64 = 2000;
+const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
 
 const GAME_OVER_MS: u64 = 1000;
