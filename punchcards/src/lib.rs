@@ -1,4 +1,6 @@
 extern crate append;
+extern crate best;
+extern crate invert;
 extern crate direction;
 #[macro_use]
 extern crate entity_store_helper;
@@ -28,5 +30,3 @@ pub mod tile;
 pub mod tile_info;
 pub mod state;
 pub mod card;
-pub mod best;
-pub mod invert_ord;

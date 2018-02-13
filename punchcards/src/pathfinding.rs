@@ -3,7 +3,7 @@ use append::Append;
 use entity_store::*;
 use direction::*;
 use best::*;
-use invert_ord::*;
+use invert::*;
 
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
 struct SpatialHashSolidOrOccupiedCellGrid<'a>(&'a SpatialHashTable);
@@ -67,14 +67,14 @@ pub fn act<Changes>(
 
             let optimal_cost = cell.cost();
 
-            let mut best = BestMapNonEmpty::new(InvertOrd::new(optimal_cost), coord);
+            let mut best = BestMapNonEmpty::new(Invert::new(optimal_cost), coord);
 
             for direction in DirectionsCardinal {
                 let neighbour_coord = coord + direction.coord();
                 if let DijkstraMapEntry::Cell(neighbour) = dijkstra_map.get(neighbour_coord) {
                     let sh_cell = spatial_hash.get(neighbour_coord).expect("Coord outside spatial hash");
                     if sh_cell.npc_set.is_empty() {
-                        best.insert_gt(InvertOrd::new(neighbour.cost()), neighbour_coord);
+                        best.insert_gt(Invert::new(neighbour.cost()), neighbour_coord);
                     }
                 }
             }

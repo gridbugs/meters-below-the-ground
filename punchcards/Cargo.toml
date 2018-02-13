@@ -6,6 +6,8 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.4"
 append = "0.1"
+best = "0.1"
+invert = "0.1"
 direction = "0.13"
 enum_primitive = "0.1"
 entity_store_helper = "0.9"
