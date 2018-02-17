@@ -8,8 +8,6 @@ use invert::*;
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
 struct SpatialHashSolidOrOccupiedCellGrid<'a>(&'a SpatialHashTable);
 
-const WAIT_SPREAD: u32 = 4;
-
 impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
         self.0.get(coord).map(|cell| cell.solid_count > 0)
@@ -42,11 +40,10 @@ pub fn compute_player_map(
 
 pub fn act<Changes>(
     id: EntityId,
-    player_id: EntityId,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
     dijkstra_map: &DijkstraMap<u32>,
-    search: &mut SearchContext<u32>,
+    bfs: &mut BfsContext,
     path: &mut Vec<Direction>,
     changes: &mut Changes,
 ) where
@@ -57,80 +54,77 @@ pub fn act<Changes>(
         .get(&id)
         .cloned()
         .expect("Entity missing coord");
-    if let DijkstraMapEntry::Cell(cell) = dijkstra_map.get(coord) {
-        let delta = cell.direction().coord();
-        let new = coord + delta;
-        let sh_cell = spatial_hash.get(new).expect("Coord outside spatial hash");
-        if sh_cell.npc_set.is_empty() {
-            changes.append(insert::coord(id, new));
-        } else {
 
-            let optimal_cost = cell.cost();
+    let cell = dijkstra_map.get(coord).cell()
+        .expect("No dijkstra cell for coord");
 
-            let mut best = BestMapNonEmpty::new(Invert::new(optimal_cost), coord);
+    let current_cost = cell.cost();
 
-            for direction in DirectionsCardinal {
-                let neighbour_coord = coord + direction.coord();
-                if let DijkstraMapEntry::Cell(neighbour) = dijkstra_map.get(neighbour_coord) {
-                    let sh_cell = spatial_hash.get(neighbour_coord).expect("Coord outside spatial hash");
-                    if sh_cell.npc_set.is_empty() {
-                        best.insert_gt(Invert::new(neighbour.cost()), neighbour_coord);
-                    }
-                }
-            }
+    assert!(current_cost > 0, "Unexpected 0 cost dijkstra cell");
 
-            let best_coord = best.into_value();
-            if best_coord != coord {
-                changes.append(insert::coord(id, best_coord));
-            } else {
+    if current_cost == 1 {
+        return;
+    }
 
-                let player_coord = entity_store
-                    .coord
-                    .get(&player_id)
-                    .cloned()
-                    .expect("Player missing coord");
-                let result = search.jump_point_search_cardinal_manhatten_distance_heuristic(
-                    &SpatialHashSolidOrOccupiedCellGrid(spatial_hash),
-                    coord,
-                    player_coord,
-                    Default::default(),
-                    path,
-                    );
+    let delta = cell.direction().coord();
+    let new = coord + delta;
+    let sh_cell = spatial_hash.get(new).expect("Coord outside spatial hash");
+    if sh_cell.npc_set.is_empty() {
+        changes.append(insert::coord(id, new));
+    } else {
 
-                match result {
-                    Ok(metadata) => {
+        let mut best = BestMapNonEmpty::new(partial_invert(cell.cost()), coord);
 
-                        let current_cost = metadata.cost;
-
-                        if current_cost < optimal_cost + WAIT_SPREAD {
-                            if let Some(direction) = path.iter().next() {
-                                let delta = direction.coord();
-                                let new = coord + delta;
-                                changes.append(insert::coord(id, new));
-                            }
-                        }
-                    }
-                    Err(Error::NoPath) => {
-
-                        let result = search.jump_point_search_cardinal_manhatten_distance_heuristic(
-                            &SpatialHashSolidCellGrid(spatial_hash),
-                            coord,
-                            player_coord,
-                            Default::default(),
-                            path,
-                            );
-
-                        if result.is_ok() {
-                            if let Some(direction) = path.iter().next() {
-                                let delta = direction.coord();
-                                let new = coord + delta;
-                                changes.append(insert::coord(id, new));
-                            }
-                        }
-                    }
-                    other => panic!("Pathfinding failed: {:?}", other),
+        for direction in DirectionsCardinal {
+            let neighbour_coord = coord + direction.coord();
+            if let DijkstraMapEntry::Cell(neighbour) = dijkstra_map.get(neighbour_coord) {
+                let sh_cell = spatial_hash.get(neighbour_coord).expect("Coord outside spatial hash");
+                if sh_cell.npc_set.is_empty() {
+                    best.insert_gt(partial_invert(neighbour.cost()), neighbour_coord);
                 }
             }
         }
+
+        let best_coord = best.into_value();
+        if best_coord != coord {
+            changes.append(insert::coord(id, best_coord));
+            return;
+        }
+    }
+
+    // We're in a local minima of the dijkstra map.
+    // Let's look for a path to a nearby cell whose dijkstra map value
+    // is less than ours.
+
+    const CONFIG: BfsConfig = BfsConfig {
+        allow_solid_start: true,
+        max_depth: 4,
+    };
+
+    let score = move |coord| {
+        dijkstra_map.get(coord).cell().map(|cell| {
+            partial_invert(cell.cost())
+        })
+    };
+
+    let result = bfs.bfs_best(
+        &SpatialHashSolidOrOccupiedCellGrid(spatial_hash),
+        coord,
+        score,
+        DirectionsCardinal,
+        CONFIG,
+        path,
+    );
+
+    match result {
+        Ok(_) => {
+            if let Some(direction) = path.iter().next() {
+                let delta = direction.coord();
+                let new = coord + delta;
+                changes.append(insert::coord(id, new));
+            }
+        }
+        Err(Error::NoPath) => (),
+        Err(e) => panic!("Unexpected pathfinding error: {:?}", e)
     }
 }

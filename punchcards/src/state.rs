@@ -139,12 +139,12 @@ impl State {
 
         let strings = vec![
             "##########",
-            "#@.....1.#",
-            "#.....#1.#",
+            "#@1111111#",
             "#.....#..#",
-            "#....1#..#",
+            "#.....#..#",
+            "#.....#..#",
             "###.###..#",
-            "#.1111...#",
+            "#........#",
             "#........#",
             "#........#",
             "##########",
@@ -489,11 +489,10 @@ impl State {
                     for &id in self.npc_order.iter() {
                         pathfinding::act(
                             id,
-                            self.player_id,
                             &self.game_state.entity_store,
                             &self.game_state.spatial_hash,
                             &self.dijkstra_map,
-                            &mut self.search_context,
+                            &mut self.bfs_context,
                             &mut self.path,
                             &mut self.changes,
                         );

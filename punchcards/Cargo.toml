@@ -6,13 +6,13 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.4"
 append = "0.1"
-best = "0.1"
-invert = "0.1"
+best = "0.2"
+invert = "0.2"
 direction = "0.13"
 enum_primitive = "0.1"
 entity_store_helper = "0.9"
 grid_2d = "0.7"
-grid_search = "0.9"
+grid_search = { path = "/home/steve/src/grid-search" }
 serde = "1.0"
 serde_derive = "1.0"
 shadowcast = "0.1"
