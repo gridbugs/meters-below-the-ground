@@ -2,7 +2,6 @@ use grid_search::*;
 use append::Append;
 use entity_store::*;
 use direction::*;
-use best::*;
 use invert::*;
 
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
