@@ -66,36 +66,6 @@ pub fn act<Changes>(
         return;
     }
 
-    let delta = cell.direction().coord();
-    let new = coord + delta;
-    let sh_cell = spatial_hash.get(new).expect("Coord outside spatial hash");
-    if sh_cell.npc_set.is_empty() {
-        changes.append(insert::coord(id, new));
-    } else {
-
-        let mut best = BestMapNonEmpty::new(partial_invert(cell.cost()), coord);
-
-        for direction in DirectionsCardinal {
-            let neighbour_coord = coord + direction.coord();
-            if let DijkstraMapEntry::Cell(neighbour) = dijkstra_map.get(neighbour_coord) {
-                let sh_cell = spatial_hash.get(neighbour_coord).expect("Coord outside spatial hash");
-                if sh_cell.npc_set.is_empty() {
-                    best.insert_gt(partial_invert(neighbour.cost()), neighbour_coord);
-                }
-            }
-        }
-
-        let best_coord = best.into_value();
-        if best_coord != coord {
-            changes.append(insert::coord(id, best_coord));
-            return;
-        }
-    }
-
-    // We're in a local minima of the dijkstra map.
-    // Let's look for a path to a nearby cell whose dijkstra map value
-    // is less than ours.
-
     const CONFIG: BfsConfig = BfsConfig {
         allow_solid_start: true,
         max_depth: 4,
