@@ -1,6 +1,5 @@
 extern crate append;
 extern crate best;
-extern crate invert;
 extern crate direction;
 #[macro_use]
 extern crate entity_store_helper;
@@ -8,6 +7,7 @@ extern crate entity_store_helper;
 extern crate enum_primitive;
 extern crate grid_2d;
 extern crate grid_search;
+extern crate invert;
 extern crate rand;
 extern crate serde;
 #[macro_use]

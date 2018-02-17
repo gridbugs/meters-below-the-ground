@@ -16,10 +16,9 @@ impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
 
 impl<'a> SolidGrid for SpatialHashSolidOrOccupiedCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
-        self.0.get(coord).map(|cell| {
-            cell.solid_count > 0 ||
-                !cell.npc_set.is_empty()
-        })
+        self.0
+            .get(coord)
+            .map(|cell| cell.solid_count > 0 || !cell.npc_set.is_empty())
     }
 }
 
@@ -55,7 +54,9 @@ pub fn act<Changes>(
         .cloned()
         .expect("Entity missing coord");
 
-    let cell = dijkstra_map.get(coord).cell()
+    let cell = dijkstra_map
+        .get(coord)
+        .cell()
         .expect("No dijkstra cell for coord");
 
     let current_cost = cell.cost();
@@ -72,9 +73,10 @@ pub fn act<Changes>(
     };
 
     let score = move |coord| {
-        dijkstra_map.get(coord).cell().map(|cell| {
-            partial_invert(cell.cost())
-        })
+        dijkstra_map
+            .get(coord)
+            .cell()
+            .map(|cell| partial_invert(cell.cost()))
     };
 
     let result = bfs.bfs_best(
@@ -95,6 +97,6 @@ pub fn act<Changes>(
             }
         }
         Err(Error::NoPath) => (),
-        Err(e) => panic!("Unexpected pathfinding error: {:?}", e)
+        Err(e) => panic!("Unexpected pathfinding error: {:?}", e),
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 use std::cmp::Ordering;
-use grid_2d::{Coord, Size, Grid};
+use grid_2d::{Coord, Grid, Size};
 use grid_search::*;
 use shadowcast;
 use entity_store::*;
@@ -115,7 +115,8 @@ pub struct State {
     path: Vec<Direction>,
     npc_order: Vec<EntityId>,
     visibility_grid: VisibilityGrid,
-    shadowcast: shadowcast::ShadowcastContext<<SpatialHashTable as shadowcast::InputGrid>::Visibility>,
+    shadowcast:
+        shadowcast::ShadowcastContext<<SpatialHashTable as shadowcast::InputGrid>::Visibility>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -371,7 +372,11 @@ impl State {
     fn initial_see(&mut self) {
         self.game_state.count += 1;
 
-        let player_coord = self.game_state.entity_store.coord.get(&self.player_id).unwrap();
+        let player_coord = self.game_state
+            .entity_store
+            .coord
+            .get(&self.player_id)
+            .unwrap();
         self.shadowcast.observe(
             *player_coord,
             &self.game_state.spatial_hash,
@@ -424,7 +429,11 @@ impl State {
 
                                     self.game_state.count += 1;
 
-                                    let player_coord = self.game_state.entity_store.coord.get(&self.player_id).unwrap();
+                                    let player_coord = self.game_state
+                                        .entity_store
+                                        .coord
+                                        .get(&self.player_id)
+                                        .unwrap();
                                     self.shadowcast.observe(
                                         *player_coord,
                                         &self.game_state.spatial_hash,

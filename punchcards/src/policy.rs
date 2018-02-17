@@ -14,7 +14,6 @@ pub fn check<A: Append<Reaction>>(
     match change {
         &Insert(id, Coord(coord)) => {
             if let Some(sh_cell) = spatial_hash.get(coord) {
-
                 let dest_npc = sh_cell.npc_set.iter().next();
 
                 if let Some(npc_id) = dest_npc {
@@ -58,7 +57,6 @@ pub fn check<A: Append<Reaction>>(
                 if is_player {
                     reactions.append(Reaction::PlayerMovedTo(coord));
                 }
-
             }
         }
         &Insert(id, HitPoints(hit_points)) => {
