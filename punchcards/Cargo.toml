@@ -12,7 +12,7 @@ direction = "0.13"
 enum_primitive = "0.1"
 entity_store_helper = "0.9"
 grid_2d = "0.7"
-grid_search = { path = "/home/steve/src/grid-search" }
+grid_search = "0.10"
 serde = "1.0"
 serde_derive = "1.0"
 shadowcast = "0.1"
