@@ -13,6 +13,18 @@ const CARD_DEPTH: i32 = 3;
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
 
+pub enum Prototype {
+    Punch(CardinalDirection),
+}
+
+impl Prototype {
+    pub fn instantiate<A: Append<EntityChange>>(self, id: EntityId, coord: Coord, changes: &mut A) {
+        match self {
+            Prototype::Punch(direction) => punch(id, coord, direction, changes),
+        }
+    }
+}
+
 pub fn card<A: Append<EntityChange>>(
     id: EntityId,
     coord: Coord,
@@ -47,7 +59,6 @@ pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A
     changes.append(insert::coord(id, coord));
     changes.append(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
     changes.append(insert::solid(id));
-    changes.append(insert::opacity(id, 255));
 }
 
 pub fn punch<A: Append<EntityChange>>(
@@ -77,7 +88,7 @@ pub fn target_dummy<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes
 pub fn small_robot<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
     changes.append(insert::coord(id, coord));
     changes.append(insert::npc(id));
-    changes.append(insert::hit_points(id, 1));
+    changes.append(insert::hit_points(id, 2));
     changes.append(insert::tile_info(
         id,
         TileInfo::new(Tile::SmallRobot, NPC_DEPTH),

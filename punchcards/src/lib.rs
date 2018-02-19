@@ -16,6 +16,7 @@ pub mod entity_store {
     include_entity_store!("entity_store.rs");
 }
 
+mod timing;
 mod policy;
 mod prototypes;
 mod reaction;

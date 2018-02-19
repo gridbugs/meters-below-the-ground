@@ -91,8 +91,8 @@ impl State {
 
         let strings = vec![
             "##########",
-            "#@.......#",
-            "#...1.#..#",
+            "#@...11..#",
+            "#.....#..#",
             "#.....#..#",
             "#.....#..#",
             "###.###..#",
@@ -165,19 +165,17 @@ impl State {
 
         let card_state = CardState::new(
             vec![
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
+                Card::Punch,
                 Card::Move,
                 Card::Move,
             ],
@@ -457,6 +455,7 @@ fn process_changes<R: Rng>(
                 &change,
                 &game_state.entity_store,
                 &game_state.spatial_hash,
+                &mut game_state.id_allocator,
                 reactions,
             ) {
                 continue;

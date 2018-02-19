@@ -11,11 +11,10 @@ card = { type = '::card::Card', storage = 'btree' }
 npc = { storage = 'btree' }
 hit_points = { type = 'i32', storage = 'hash' }
 punch = { storage = 'hash' }
-opacity = { type ='u8', storage = 'vector' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }
 player_count = { component = 'player', aggregate = 'count' }
 card_set = { component = 'card', aggregate = 'set' }
 npc_set = { component = 'npc', aggregate = 'set' }
-opacity_total = { component = 'opacity', aggregate = 'total' }
+punch_count = { component = 'punch', aggregate = 'count' }

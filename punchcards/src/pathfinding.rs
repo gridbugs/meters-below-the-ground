@@ -62,20 +62,18 @@ pub fn act<Changes>(
 
     assert!(current_cost > 0, "Unexpected 0 cost dijkstra cell");
 
-    if current_cost == 1 {
-        return;
-    }
-
     const CONFIG: BfsConfig = BfsConfig {
         allow_solid_start: true,
         max_depth: 4,
     };
 
     let score = move |coord| {
-        dijkstra_map
-            .get(coord)
-            .cell()
-            .map(|cell| partial_invert(cell.cost()))
+        let cell = dijkstra_map.get(coord);
+        match cell {
+            DijkstraMapEntry::Cell(cell) => Some(partial_invert(cell.cost())),
+            DijkstraMapEntry::Origin => Some(partial_invert(0)),
+            _ => None,
+        }
     };
 
     let result = bfs.bfs_best(

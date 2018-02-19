@@ -3,9 +3,10 @@ use entity_store::*;
 use append::Append;
 use reaction::Reaction;
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Animation {
     RemoveEntity(EntityId, Duration),
+    Delay(Box<Animation>, Duration),
 }
 
 impl Animation {
@@ -19,6 +20,13 @@ impl Animation {
                         id,
                         remaining - period,
                     )));
+                }
+            }
+            Animation::Delay(next, remaining) => {
+                if period > remaining {
+                    reactions.append(Reaction::StartAnimation(*next));
+                } else {
+                    reactions.append(Reaction::StartAnimation(Animation::Delay(next, remaining - period)));
                 }
             }
         }

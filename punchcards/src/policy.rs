@@ -1,12 +1,18 @@
+use std::time::Duration;
 use append::Append;
-use reaction::Reaction;
+use reaction::*;
 use entity_store::*;
 use tile_info;
+use direction::CardinalDirection;
+use prototypes;
+use timing;
+use animation::*;
 
 pub fn check<A: Append<Reaction>>(
     change: &EntityChange,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
+    id_allocator: &mut EntityIdAllocator,
     reactions: &mut A,
 ) -> bool {
     use self::EntityChange::*;
@@ -40,8 +46,35 @@ pub fn check<A: Append<Reaction>>(
                     return false;
                 }
 
-                if sh_cell.player_count > 0 {
-                    // TODO damage player
+                if sh_cell.player_count > 0 && is_npc {
+
+                    let npc_coord = entity_store.coord.get(&id).cloned().expect("NPC missing coord");
+                    let delta = coord - npc_coord;
+                    use grid_2d::Coord;
+
+                    let direction = match delta {
+                        Coord { x: 0, y: 1 } => CardinalDirection::South,
+                        Coord { x: 0, y: -1 } => CardinalDirection::North,
+                        Coord { x: 1, y: 0 } => CardinalDirection::East,
+                        Coord { x: -1, y: 0 } => CardinalDirection::West,
+                        _ => panic!("unexpected delta"),
+                    };
+
+                    let punch_id = id_allocator.allocate();
+
+                    {
+                        let mut reaction_as_entity_changes = ReactionEntityChangeAppend {
+                            reactions,
+                        };
+
+                        prototypes::punch(punch_id, coord, direction, &mut reaction_as_entity_changes);
+                    }
+
+                    reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
+                                punch_id,
+                                Duration::from_millis(timing::PUNCH_MILLIS),
+                    )));
+
                     return false;
                 };
 

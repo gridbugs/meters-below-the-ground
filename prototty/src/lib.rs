@@ -76,8 +76,10 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
         }
         Tile::Punch(direction) => {
             let ch = match direction {
-                North | South => '|',
-                East | West => '-',
+                North => '↑',
+                South => '↓',
+                East => '→',
+                West => '←',
             };
             cell.set_character(ch);
             cell.set_foreground_colour(colours::CYAN);

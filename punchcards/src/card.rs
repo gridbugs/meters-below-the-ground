@@ -5,8 +5,7 @@ use reaction::*;
 use animation::*;
 use direction::CardinalDirection;
 use prototypes;
-
-const PUNCH_MILLIS: u64 = 100;
+use timing;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Card {
@@ -42,7 +41,7 @@ impl Card {
                 prototypes::punch(punch_id, coord, direction, changes);
                 reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
                     punch_id,
-                    Duration::from_millis(PUNCH_MILLIS),
+                    Duration::from_millis(timing::PUNCH_MILLIS),
                 )));
             }
         }
