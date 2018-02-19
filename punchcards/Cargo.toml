@@ -14,7 +14,6 @@ grid_2d = "0.7"
 grid_search = "0.10"
 serde = "1.0"
 serde_derive = "1.0"
-shadowcast = "0.1"
 
 [build-dependencies]
 entity_store_code_gen = "0.9"

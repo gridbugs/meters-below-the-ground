@@ -53,13 +53,7 @@ impl Frontend {
     }
 }
 
-fn view_tile<C: ViewCell>(tile_info: TileInfo, visibility: Visibility, cell: &mut C) {
-    if visibility == Visibility::Unseen {
-        cell.set_character(' ');
-        cell.set_background_colour(colours::BLACK);
-        cell.set_background_colour(colours::BLACK);
-        return;
-    }
+fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
     match tile_info.tile {
         Tile::Player => {
             cell.set_bold(true);
@@ -103,10 +97,6 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, visibility: Visibility, cell: &mu
             cell.set_bold(true);
             cell.set_character('1');
         }
-    }
-    if visibility == Visibility::Remembered {
-        cell.set_foreground_colour(Rgb24::new(64, 64, 64));
-        cell.set_background_colour(colours::BLACK);
     }
 }
 
@@ -320,8 +310,7 @@ impl<S: Storage> View<App<S>> for AppView {
                             offset + Coord::new(coord.x, coord.y),
                             tile_info.depth + depth,
                         ) {
-                            let visibility = app.state.get_visibility(*coord);
-                            view_tile(*tile_info, visibility, cell);
+                            view_tile(*tile_info, cell);
                         }
                     }
                 }
