@@ -406,7 +406,6 @@ impl State {
                                 if let InputState::WaitingForDirection(index, card) =
                                     self.input_state
                                 {
-                                    self.turn = TurnState::Npcs;
                                     card.play(
                                         self.player_id,
                                         &self.game_state.entity_store,
@@ -423,6 +422,7 @@ impl State {
                                         &mut self.animations,
                                         &mut self.input_state,
                                         &mut self.recompute_player_map,
+                                        &mut self.turn,
                                         &mut self.rng,
                                         Some((index, card)),
                                     );
@@ -513,6 +513,7 @@ impl State {
                             &mut self.animations,
                             &mut self.input_state,
                             &mut self.recompute_player_map,
+                            &mut self.turn,
                             &mut self.rng,
                             None,
                         ) {
@@ -535,6 +536,7 @@ impl State {
                 &mut self.animations,
                 &mut self.input_state,
                 &mut self.recompute_player_map,
+                &mut self.turn,
                 &mut self.rng,
                 None,
             )
@@ -550,6 +552,7 @@ fn process_changes<R: Rng>(
     animations: &mut Vec<Animation>,
     input_state: &mut InputState,
     recompute_player_map: &mut Option<Coord>,
+    turn: &mut TurnState,
     rng: &mut R,
     mut played_card: Option<(usize, Card)>,
 ) -> Option<Meta> {
@@ -569,6 +572,7 @@ fn process_changes<R: Rng>(
                 assert_eq!(card, card_to_check);
                 card_state.fill_hand();
                 *input_state = InputState::WaitingForCardSelection;
+                *turn = TurnState::Npcs;
             }
 
             game_state
