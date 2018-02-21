@@ -13,7 +13,7 @@ use reaction::*;
 use animation::*;
 use rand::{Rng, SeedableRng, StdRng};
 use append::Append;
-use direction::Direction;
+use direction::{Direction, DirectionsCardinal};
 use pathfinding;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -62,7 +62,7 @@ pub struct State {
     input_state: InputState,
     search_context: SearchContext<u32>,
     bfs_context: BfsContext,
-    dijkstra_map: DijkstraMap<u32>,
+    distance_map: UniformDistanceMap<u32, DirectionsCardinal>,
     rng: StdRng,
     turn: TurnState,
     recompute_player_map: Option<Coord>,
@@ -91,12 +91,12 @@ impl State {
 
         let strings = vec![
             "##########",
-            "#@...11..#",
-            "#.....#..#",
-            "#.....#..#",
+            "#@...1111#",
+            "#.....#11#",
+            "#.....#11#",
             "#.....#..#",
             "###.###..#",
-            "#........#",
+            "#.1111...#",
             "#........#",
             "#........#",
             "##########",
@@ -199,7 +199,7 @@ impl State {
             card_state,
             search_context: SearchContext::new(size),
             bfs_context: BfsContext::new(size),
-            dijkstra_map: DijkstraMap::new(size),
+            distance_map: UniformDistanceMap::new(size, DirectionsCardinal),
             rng,
             turn: TurnState::Player,
             recompute_player_map: player_coord,
@@ -249,7 +249,7 @@ impl State {
             card_state,
             search_context: SearchContext::new(size),
             bfs_context: BfsContext::new(size),
-            dijkstra_map: DijkstraMap::new(size),
+            distance_map: UniformDistanceMap::new(size, DirectionsCardinal),
             rng: StdRng::from_seed(&[next_rng_seed]),
             turn,
             recompute_player_map,
@@ -357,7 +357,7 @@ impl State {
                             player_coord,
                             &self.game_state.spatial_hash,
                             &mut self.bfs_context,
-                            &mut self.dijkstra_map,
+                            &mut self.distance_map,
                         );
                     }
 
@@ -368,18 +368,18 @@ impl State {
 
                     {
                         let coord = &self.game_state.entity_store.coord;
-                        let dijkstra_map = &self.dijkstra_map;
+                        let distance_map = &self.distance_map;
                         self.npc_order.sort_by(|a, b| {
                             let coord_a = coord.get(a).expect("NPC missing coord");
                             let coord_b = coord.get(b).expect("NPC missing coord");
-                            if let Some(cell_a) = dijkstra_map.get(*coord_a).cell() {
-                                if let Some(cell_b) = dijkstra_map.get(*coord_b).cell() {
+                            if let Some(cell_a) = distance_map.get(*coord_a).cell() {
+                                if let Some(cell_b) = distance_map.get(*coord_b).cell() {
                                     cell_a.cost().cmp(&cell_b.cost())
                                 } else {
                                     Ordering::Less
                                 }
                             } else {
-                                if dijkstra_map.get(*coord_b).cell().is_some() {
+                                if distance_map.get(*coord_b).cell().is_some() {
                                     Ordering::Greater
                                 } else {
                                     Ordering::Equal
@@ -393,8 +393,8 @@ impl State {
                             id,
                             &self.game_state.entity_store,
                             &self.game_state.spatial_hash,
-                            &self.dijkstra_map,
-                            &mut self.bfs_context,
+                            &self.distance_map,
+                            &mut self.search_context,
                             &mut self.path,
                             &mut self.changes,
                         );

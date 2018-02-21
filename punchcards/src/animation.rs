@@ -26,7 +26,10 @@ impl Animation {
                 if period > remaining {
                     reactions.append(Reaction::StartAnimation(*next));
                 } else {
-                    reactions.append(Reaction::StartAnimation(Animation::Delay(next, remaining - period)));
+                    reactions.append(Reaction::StartAnimation(Animation::Delay(
+                        next,
+                        remaining - period,
+                    )));
                 }
             }
         }

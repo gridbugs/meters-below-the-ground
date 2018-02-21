@@ -47,8 +47,11 @@ pub fn check<A: Append<Reaction>>(
                 }
 
                 if sh_cell.player_count > 0 && is_npc {
-
-                    let npc_coord = entity_store.coord.get(&id).cloned().expect("NPC missing coord");
+                    let npc_coord = entity_store
+                        .coord
+                        .get(&id)
+                        .cloned()
+                        .expect("NPC missing coord");
                     let delta = coord - npc_coord;
                     use grid_2d::Coord;
 
@@ -63,16 +66,20 @@ pub fn check<A: Append<Reaction>>(
                     let punch_id = id_allocator.allocate();
 
                     {
-                        let mut reaction_as_entity_changes = ReactionEntityChangeAppend {
-                            reactions,
-                        };
+                        let mut reaction_as_entity_changes =
+                            ReactionEntityChangeAppend { reactions };
 
-                        prototypes::punch(punch_id, coord, direction, &mut reaction_as_entity_changes);
+                        prototypes::punch(
+                            punch_id,
+                            coord,
+                            direction,
+                            &mut reaction_as_entity_changes,
+                        );
                     }
 
                     reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
-                                punch_id,
-                                Duration::from_millis(timing::PUNCH_MILLIS),
+                        punch_id,
+                        Duration::from_millis(timing::PUNCH_MILLIS),
                     )));
 
                     return false;

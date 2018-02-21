@@ -2,7 +2,6 @@ use grid_search::*;
 use append::Append;
 use entity_store::*;
 use direction::*;
-use invert::*;
 
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
 struct SpatialHashSolidOrOccupiedCellGrid<'a>(&'a SpatialHashTable);
@@ -25,14 +24,13 @@ pub fn compute_player_map(
     player_coord: Coord,
     spatial_hash: &SpatialHashTable,
     bfs: &mut BfsContext,
-    dijkstra_map: &mut DijkstraMap<u32>,
+    distance_map: &mut UniformDistanceMap<u32, DirectionsCardinal>,
 ) {
-    bfs.populate_dijkstra_map(
+    bfs.populate_uniform_distance_map(
         &SpatialHashSolidCellGrid(spatial_hash),
         player_coord,
-        DirectionsCardinal,
         Default::default(),
-        dijkstra_map,
+        distance_map,
     ).expect("Failed to compute player map");
 }
 
@@ -40,8 +38,8 @@ pub fn act<Changes>(
     id: EntityId,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
-    dijkstra_map: &DijkstraMap<u32>,
-    bfs: &mut BfsContext,
+    distance_map: &UniformDistanceMap<u32, DirectionsCardinal>,
+    search: &mut SearchContext<u32>,
     path: &mut Vec<Direction>,
     changes: &mut Changes,
 ) where
@@ -53,35 +51,25 @@ pub fn act<Changes>(
         .cloned()
         .expect("Entity missing coord");
 
-    let cell = dijkstra_map
+    let cell = distance_map
         .get(coord)
         .cell()
-        .expect("No dijkstra cell for coord");
+        .expect("No distance cell for coord");
 
     let current_cost = cell.cost();
 
-    assert!(current_cost > 0, "Unexpected 0 cost dijkstra cell");
+    assert!(current_cost > 0, "Unexpected 0 cost distance cell");
 
-    const CONFIG: BfsConfig = BfsConfig {
+    const CONFIG: SearchConfig = SearchConfig {
         allow_solid_start: true,
-        max_depth: 4,
     };
 
-    let score = move |coord| {
-        let cell = dijkstra_map.get(coord);
-        match cell {
-            DijkstraMapEntry::Cell(cell) => Some(partial_invert(cell.cost())),
-            DijkstraMapEntry::Origin => Some(partial_invert(0)),
-            _ => None,
-        }
-    };
-
-    let result = bfs.bfs_best(
+    let result = search.best_search_uniform_distance_map(
         &SpatialHashSolidOrOccupiedCellGrid(spatial_hash),
         coord,
-        score,
-        DirectionsCardinal,
         CONFIG,
+        4, // max depth
+        distance_map,
         path,
     );
 
