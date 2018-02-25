@@ -6,7 +6,6 @@ use reaction::Reaction;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Animation {
     RemoveEntity(EntityId, Duration),
-    Delay(Box<Animation>, Duration),
 }
 
 impl Animation {
@@ -18,16 +17,6 @@ impl Animation {
                 } else {
                     reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
                         id,
-                        remaining - period,
-                    )));
-                }
-            }
-            Animation::Delay(next, remaining) => {
-                if period > remaining {
-                    reactions.append(Reaction::StartAnimation(*next));
-                } else {
-                    reactions.append(Reaction::StartAnimation(Animation::Delay(
-                        next,
                         remaining - period,
                     )));
                 }
