@@ -8,7 +8,7 @@ use prototypes;
 use timing;
 use animation::*;
 
-pub fn check<A: Append<Reaction>>(
+pub fn check<A: Append<Reaction> + Append<EntityChange>>(
     change: &EntityChange,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
@@ -65,17 +65,12 @@ pub fn check<A: Append<Reaction>>(
 
                     let punch_id = id_allocator.allocate();
 
-                    {
-                        let mut reaction_as_entity_changes =
-                            ReactionEntityChangeAppend { reactions };
-
-                        prototypes::punch(
-                            punch_id,
-                            coord,
-                            direction,
-                            &mut reaction_as_entity_changes,
-                        );
-                    }
+                    prototypes::punch(
+                        punch_id,
+                        coord,
+                        direction,
+                        reactions,
+                    );
 
                     reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
                         punch_id,
