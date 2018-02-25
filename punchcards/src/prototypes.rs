@@ -13,6 +13,22 @@ const CARD_DEPTH: i32 = 3;
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Prototype {
+    Punch(EntityId, Coord, CardinalDirection),
+}
+
+impl Prototype {
+    pub fn instantiate<A: Append<EntityChange>>(self, changes: &mut A) -> EntityId {
+        match self {
+            Prototype::Punch(id, coord, direction) => {
+                punch(id, coord, direction, changes);
+                id
+            }
+        }
+    }
+}
+
 pub fn card<A: Append<EntityChange>>(
     id: EntityId,
     coord: Coord,

@@ -1,1 +1,1 @@
-pub const PUNCH_MILLIS: u64 = 100;
+pub const PUNCH_MILLIS: u64 = 200;

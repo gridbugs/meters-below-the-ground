@@ -38,10 +38,15 @@ impl Card {
                 let delta = direction.vector();
                 let coord = *source_coord + delta;
                 let punch_id = id_allocator.allocate();
-                prototypes::punch(punch_id, coord, direction, changes);
-                reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
-                    punch_id,
-                    Duration::from_millis(timing::PUNCH_MILLIS),
+
+                let punch = prototypes::Prototype::Punch(punch_id, coord, direction);
+
+                reactions.append(Reaction::StartAnimation(Animation::new(
+                    AnimationChannel::Coord(coord),
+                    AnimationState::TemporaryEntity(
+                        punch,
+                        Duration::from_millis(timing::PUNCH_MILLIS),
+                    ),
                 )));
             }
         }

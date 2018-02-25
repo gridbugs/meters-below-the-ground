@@ -8,6 +8,31 @@ use prototypes;
 use timing;
 use animation::*;
 
+pub fn precheck<'a, I: IntoIterator<Item=&'a EntityChange>>(
+    changes: I,
+    entity_store: &EntityStore,
+    spatial_hash: &SpatialHashTable,
+) -> bool {
+    use self::ComponentValue::*;
+    use self::EntityChange::*;
+    for change in changes {
+        match change {
+            &Insert(id, Coord(coord)) => {
+                if let Some(sh_cell) = spatial_hash.get(coord) {
+                    let solid_cell = sh_cell.solid_count > 0 || sh_cell.npc_set.len() > 0;
+                    if solid_cell && entity_store.collider.contains(&id) {
+                        return false;
+                    }
+                }
+            }
+            &Insert(..) => {}
+            &Remove(..) => {}
+        }
+    }
+
+    true
+}
+
 pub fn check<A: Append<Reaction> + Append<EntityChange>>(
     change: &EntityChange,
     entity_store: &EntityStore,
@@ -65,16 +90,14 @@ pub fn check<A: Append<Reaction> + Append<EntityChange>>(
 
                     let punch_id = id_allocator.allocate();
 
-                    prototypes::punch(
-                        punch_id,
-                        coord,
-                        direction,
-                        reactions,
-                    );
+                    let punch = prototypes::Prototype::Punch(punch_id, coord, direction);
 
-                    reactions.append(Reaction::StartAnimation(Animation::RemoveEntity(
-                        punch_id,
-                        Duration::from_millis(timing::PUNCH_MILLIS),
+                    reactions.append(Reaction::StartAnimation(Animation::new(
+                        AnimationChannel::Coord(coord),
+                        AnimationState::TemporaryEntity(
+                            punch,
+                            Duration::from_millis(timing::PUNCH_MILLIS),
+                        ),
                     )));
 
                     return false;
