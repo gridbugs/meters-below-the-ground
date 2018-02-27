@@ -1,4 +1,3 @@
-extern crate append;
 extern crate direction;
 #[macro_use]
 extern crate entity_store_helper;
@@ -20,7 +19,6 @@ mod policy;
 mod message_queues;
 mod prototypes;
 mod common_animations;
-mod reaction;
 mod animation;
 mod pathfinding;
 

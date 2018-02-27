@@ -1,3 +1,4 @@
+use std::mem;
 use std::time::Duration;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -10,13 +11,11 @@ use prototypes;
 use card::*;
 use card_state::*;
 use tile::*;
-use reaction::*;
 use animation::*;
 use rand::{Rng, SeedableRng, StdRng};
-use append::Append;
 use direction::{Direction, DirectionsCardinal};
 use pathfinding;
-use message_queues::MessageQueues;
+use message_queues::*;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -34,9 +33,14 @@ pub struct GameState {
 }
 
 impl GameState {
-    fn delete_entity<A: Append<EntityChange>>(&mut self, entity_id: EntityId, changes: &mut A) {
+    fn delete_entity(&self, entity_id: EntityId, changes: &mut Vec<EntityChange>) {
         for component in self.entity_components.components(entity_id) {
-            changes.append(EntityChange::Remove(entity_id, component));
+            changes.push(EntityChange::Remove(entity_id, component));
+        }
+    }
+    fn add_changes_for_removed_entities(&self, messages: &mut MessageQueues) {
+        for id in messages.removed_entities.drain(..) {
+            self.delete_entity(id, &mut messages.changes);
         }
     }
 }
@@ -57,9 +61,6 @@ enum TurnState {
 pub struct State {
     game_state: GameState,
     player_id: EntityId,
-    changes: Vec<EntityChange>,
-    reactions: Vec<Reaction>,
-    animations: Vec<Animation>,
     card_state: CardState,
     input_state: InputState,
     search_context: SearchContext<u32>,
@@ -72,6 +73,7 @@ pub struct State {
     npc_order: Vec<EntityId>,
     seen_animation_channels: HashSet<AnimationChannel>,
     messages: MessageQueues,
+    swap_messages: MessageQueuesSwap,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -81,7 +83,6 @@ pub struct SaveState {
     count: u64,
     player_id: EntityId,
     card_state: CardState,
-    animations: Vec<Animation>,
     input_state: InputState,
     next_rng_seed: usize,
     size: Size,
@@ -98,7 +99,7 @@ impl State {
         let strings = vec![
             "##########",
             "#@...1111#",
-            "#.....#11#",
+            "#m....#11#",
             "#.....#11#",
             "#.....#..#",
             "###.###..#",
@@ -113,21 +114,20 @@ impl State {
         let mut entity_store = EntityStore::new();
         let mut spatial_hash = SpatialHashTable::new(size);
         let mut id_allocator = EntityIdAllocator::new();
-        let mut changes = Vec::new();
-        let animations = Vec::new();
         let mut player_id = None;
         let mut player_coord = None;
+        let mut messages = MessageQueues::new();
 
         for (y, line) in strings.iter().enumerate() {
             for (x, ch) in line.chars().enumerate() {
                 let coord = Coord::new(x as i32, y as i32);
                 match ch {
                     '#' => {
-                        prototypes::wall(id_allocator.allocate(), coord, &mut changes);
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::wall(id_allocator.allocate(), coord, &mut messages);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     '.' => {
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     'm' => {
                         prototypes::card(
@@ -135,24 +135,24 @@ impl State {
                             coord,
                             Card::Move,
                             Tile::CardMove,
-                            &mut changes,
+                            &mut messages,
                         );
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     '0' => {
-                        prototypes::target_dummy(id_allocator.allocate(), coord, &mut changes);
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::target_dummy(id_allocator.allocate(), coord, &mut messages);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     '1' => {
-                        prototypes::small_robot(id_allocator.allocate(), coord, &mut changes);
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::small_robot(id_allocator.allocate(), coord, &mut messages);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     '@' => {
                         let id = id_allocator.allocate();
                         player_id = Some(id);
                         player_coord = Some(coord);
-                        prototypes::player(id, coord, &mut changes);
-                        prototypes::floor(id_allocator.allocate(), coord, &mut changes);
+                        prototypes::player(id, coord, &mut messages);
+                        prototypes::floor(id_allocator.allocate(), coord, &mut messages);
                     }
                     _ => panic!("unexpected character"),
                 }
@@ -163,7 +163,7 @@ impl State {
 
         let mut entity_components = EntityComponentTable::new();
 
-        for change in changes.drain(..) {
+        for change in messages.changes.drain(..) {
             spatial_hash.update(&entity_store, &change, 0);
             entity_components.update(&change);
             entity_store.commit(change);
@@ -201,9 +201,6 @@ impl State {
             },
             input_state: InputState::WaitingForCardSelection,
             player_id,
-            changes,
-            animations,
-            reactions: Vec::new(),
             card_state,
             search_context: SearchContext::new(size),
             bfs_context: BfsContext::new(size),
@@ -214,7 +211,8 @@ impl State {
             path: Vec::new(),
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
-            messages: MessageQueues::new(),
+            messages,
+            swap_messages: MessageQueuesSwap::new(),
         }
     }
 
@@ -225,7 +223,6 @@ impl State {
             count,
             player_id,
             card_state,
-            animations,
             input_state,
             next_rng_seed,
             size,
@@ -255,9 +252,6 @@ impl State {
             },
             input_state,
             player_id,
-            changes: Vec::new(),
-            animations,
-            reactions: Vec::new(),
             card_state,
             search_context: SearchContext::new(size),
             bfs_context: BfsContext::new(size),
@@ -269,6 +263,7 @@ impl State {
             npc_order: Vec::new(),
             seen_animation_channels,
             messages,
+            swap_messages: MessageQueuesSwap::new(),
         }
     }
 
@@ -281,7 +276,6 @@ impl State {
             count: self.game_state.count,
             player_id: self.player_id,
             card_state: self.card_state.clone(),
-            animations: self.animations.clone(),
             input_state: self.input_state.clone(),
             next_rng_seed,
             size: Size::new(
@@ -312,7 +306,7 @@ impl State {
     where
         I: IntoIterator<Item = Input>,
     {
-        if self.animations.is_empty() {
+        if self.messages.animations.is_empty() {
             match self.turn {
                 TurnState::Player => {
                     if let Some(input) = inputs.into_iter().next() {
@@ -333,10 +327,9 @@ impl State {
                                         &self.game_state.entity_store,
                                         direction,
                                         &mut self.game_state.id_allocator,
-                                        &mut self.changes,
-                                        &mut self.reactions,
+                                        &mut self.messages,
                                     );
-                                    if policy::precheck(&self.changes, &self.game_state.entity_store, 
+                                    if policy::precheck(&self.messages.changes, &self.game_state.entity_store,
                                                         &self.game_state.spatial_hash) {
 
                                         let card_to_check = self.card_state.hand.remove_card(index);
@@ -348,9 +341,8 @@ impl State {
                                         let ret = process_changes(
                                             &mut self.game_state,
                                             &mut self.card_state,
-                                            &mut self.changes,
-                                            &mut self.reactions,
-                                            &mut self.animations,
+                                            &mut self.messages,
+                                            &mut self.swap_messages,
                                             &mut self.recompute_player_map,
                                             &mut self.rng,
                                         );
@@ -359,7 +351,7 @@ impl State {
 
                                         ret
                                     } else {
-                                        self.changes.clear();
+                                        self.messages.changes.clear();
                                         None
                                     }
                                 } else {
@@ -422,14 +414,13 @@ impl State {
                             &self.distance_map,
                             &mut self.search_context,
                             &mut self.path,
-                            &mut self.changes,
+                            &mut self.messages,
                         );
                         if let Some(meta) = process_changes(
                             &mut self.game_state,
                             &mut self.card_state,
-                            &mut self.changes,
-                            &mut self.reactions,
-                            &mut self.animations,
+                            &mut self.messages,
+                            &mut self.swap_messages,
                             &mut self.recompute_player_map,
                             &mut self.rng,
                         ) {
@@ -443,12 +434,14 @@ impl State {
         } else {
 
             self.seen_animation_channels.clear();
-            for animation in self.animations.drain(..) {
+
+            mem::swap(&mut self.messages.animations, &mut self.swap_messages.animations);
+            for animation in self.swap_messages.animations.drain(..) {
                 let channel = animation.channel;
                 if self.seen_animation_channels.contains(&channel) {
-                    self.reactions.push(Reaction::StartAnimation(animation));
+                    self.messages.animations.push(animation);
                 } else {
-                    match animation.step(period, &mut self.reactions) {
+                    match animation.step(period, &mut self.messages) {
                         AnimationStatus::Continuing => { self.seen_animation_channels.insert(channel); }
                         AnimationStatus::Finished => (),
                     }
@@ -457,9 +450,8 @@ impl State {
             process_changes(
                 &mut self.game_state,
                 &mut self.card_state,
-                &mut self.changes,
-                &mut self.reactions,
-                &mut self.animations,
+                &mut self.messages,
+                &mut self.swap_messages,
                 &mut self.recompute_player_map,
                 &mut self.rng,
             )
@@ -470,20 +462,27 @@ impl State {
 fn process_changes<R: Rng>(
     game_state: &mut GameState,
     card_state: &mut CardState,
-    changes: &mut Vec<EntityChange>,
-    reactions: &mut Vec<Reaction>,
-    animations: &mut Vec<Animation>,
+    messages: &mut MessageQueues,
+    swap_messages: &mut MessageQueuesSwap,
     recompute_player_map: &mut Option<Coord>,
     rng: &mut R,
 ) -> Option<Meta> {
     loop {
-        for change in changes.drain(..) {
+
+        game_state.add_changes_for_removed_entities(messages);
+
+        if messages.changes.is_empty() {
+            break None;
+        }
+
+        mem::swap(&mut messages.changes, &mut swap_messages.changes);
+        for change in swap_messages.changes.drain(..) {
             if !policy::check(
                 &change,
                 &game_state.entity_store,
                 &game_state.spatial_hash,
                 &mut game_state.id_allocator,
-                reactions,
+                messages,
             ) {
                 continue;
             }
@@ -495,34 +494,13 @@ fn process_changes<R: Rng>(
             game_state.entity_store.commit(change);
         }
 
-        if reactions.is_empty() {
-            if card_state.hand.is_empty() {
-                break Some(Meta::GameOver);
-            } else {
-                break None;
-            }
-        } else {
-            for reaction in reactions.drain(..) {
-                match reaction {
-                    Reaction::TakeCard(entity_id, card) => {
-                        card_state.deck.add_random(card, rng);
-                        game_state.delete_entity(entity_id, changes);
-                    }
-                    Reaction::RemoveEntity(entity_id) => {
-                        game_state.delete_entity(entity_id, changes);
-                        game_state.id_allocator.free(entity_id);
-                    }
-                    Reaction::StartAnimation(animation) => {
-                        animations.push(animation);
-                    }
-                    Reaction::EntityChange(change) => {
-                        changes.push(change);
-                    }
-                    Reaction::PlayerMovedTo(coord) => {
-                        *recompute_player_map = Some(coord);
-                    }
-                }
-            }
+        if let Some(coord) = messages.player_moved_to.take() {
+            *recompute_player_map = Some(coord);
+        }
+
+        for (id, card) in messages.take_cards.drain(..) {
+            card_state.deck.add_random(card, rng);
+            game_state.delete_entity(id, &mut messages.changes);
         }
     }
 }

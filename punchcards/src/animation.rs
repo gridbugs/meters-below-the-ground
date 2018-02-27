@@ -1,28 +1,27 @@
 use std::time::Duration;
 use grid_2d::Coord;
 use entity_store::*;
-use append::Append;
-use reaction::Reaction;
 use prototypes::Prototype;
+use message_queues::PushMessages;
 
-pub fn start_animation<A: Append<Animation>>(
+pub fn start_animation<M: PushMessages>(
     channel: AnimationChannel,
     initial: AnimationState,
-    animations: &mut A,
+    messages: &mut M,
 ) {
-    animations.append(Animation::new(channel, initial));
+    messages.animate(Animation::new(channel, initial));
 }
 
-pub fn temporary_at_coord<A: Append<Animation>>(
+pub fn temporary_at_coord<M: PushMessages>(
     coord: Coord,
     prototype: Prototype,
     duration: Duration,
-    animations: &mut A,
+    messages: &mut M,
 ) {
     start_animation(
         AnimationChannel::Coord(coord),
         AnimationState::TemporaryEntity(prototype, duration),
-        animations,
+        messages,
     );
 }
 
@@ -59,31 +58,31 @@ pub enum AnimationStatus {
 }
 
 impl Animation {
-    pub fn step<A: Append<Reaction> + Append<EntityChange>>(
+    pub fn step<M: PushMessages>(
         self,
         period: Duration,
-        reactions: &mut A,
+        messages: &mut M,
     ) -> AnimationStatus {
         match self.state {
             AnimationState::RemoveEntity(id, remaining) => {
                 if period > remaining {
-                    reactions.append(Reaction::RemoveEntity(id));
+                    messages.remove(id);
                     AnimationStatus::Finished
                 } else {
-                    reactions.append(Reaction::StartAnimation(Animation::new(
+                    messages.animate(Animation::new(
                         self.channel,
                         AnimationState::RemoveEntity(id, remaining - period),
-                    )));
+                    ));
                     AnimationStatus::Continuing
                 }
             }
             AnimationState::TemporaryEntity(prototype, remaining) => {
-                let id = prototype.instantiate(reactions);
+                let id = prototype.instantiate(messages);
 
-                reactions.append(Reaction::StartAnimation(Animation::new(
+                messages.animate(Animation::new(
                     self.channel,
                     AnimationState::RemoveEntity(id, remaining - period),
-                )));
+                ));
 
                 AnimationStatus::Continuing
             }

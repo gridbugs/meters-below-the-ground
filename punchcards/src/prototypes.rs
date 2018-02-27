@@ -1,10 +1,10 @@
 use direction::CardinalDirection;
 use entity_store::*;
 use grid_2d::Coord;
-use append::Append;
 use tile::Tile;
 use tile_info::TileInfo;
 use card::Card;
+use message_queues::PushMessages;
 
 const ANIMATION_DEPTH: i32 = 6;
 const PLAYER_DEPTH: i32 = 5;
@@ -19,81 +19,81 @@ pub enum Prototype {
 }
 
 impl Prototype {
-    pub fn instantiate<A: Append<EntityChange>>(self, changes: &mut A) -> EntityId {
+    pub fn instantiate<M: PushMessages>(self, messages: &mut M) -> EntityId {
         match self {
             Prototype::Punch(id, coord, direction) => {
-                punch(id, coord, direction, changes);
+                punch(id, coord, direction, messages);
                 id
             }
         }
     }
 }
 
-pub fn card<A: Append<EntityChange>>(
+pub fn card<M: PushMessages>(
     id: EntityId,
     coord: Coord,
     card: Card,
     tile: Tile,
-    changes: &mut A,
+    messages: &mut M,
 ) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::tile_info(id, TileInfo::new(tile, CARD_DEPTH)));
-    changes.append(insert::card(id, card));
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(id, TileInfo::new(tile, CARD_DEPTH)));
+    messages.change(insert::card(id, card));
 }
 
-pub fn player<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::player(id));
-    changes.append(insert::collider(id));
-    changes.append(insert::tile_info(
+pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::player(id));
+    messages.change(insert::collider(id));
+    messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
 }
 
-pub fn floor<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::tile_info(
+pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Floor, FLOOR_DEPTH),
     ));
 }
 
-pub fn wall<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
-    changes.append(insert::solid(id));
+pub fn wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
+    messages.change(insert::solid(id));
 }
 
-pub fn punch<A: Append<EntityChange>>(
+pub fn punch<M: PushMessages>(
     id: EntityId,
     coord: Coord,
     direction: CardinalDirection,
-    changes: &mut A,
+    messages: &mut M,
 ) {
-    changes.append(insert::punch(id));
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::tile_info(
+    messages.change(insert::punch(id));
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Punch(direction), ANIMATION_DEPTH),
     ));
 }
 
-pub fn target_dummy<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::npc(id));
-    changes.append(insert::hit_points(id, 2));
-    changes.append(insert::tile_info(
+pub fn target_dummy<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id));
+    messages.change(insert::hit_points(id, 2));
+    messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::TargetDummy, NPC_DEPTH),
     ));
 }
 
-pub fn small_robot<A: Append<EntityChange>>(id: EntityId, coord: Coord, changes: &mut A) {
-    changes.append(insert::coord(id, coord));
-    changes.append(insert::npc(id));
-    changes.append(insert::hit_points(id, 2));
-    changes.append(insert::tile_info(
+pub fn small_robot<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id));
+    messages.change(insert::hit_points(id, 2));
+    messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::SmallRobot, NPC_DEPTH),
     ));

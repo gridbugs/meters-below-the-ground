@@ -1,7 +1,7 @@
 use grid_search::*;
-use append::Append;
 use entity_store::*;
 use direction::*;
+use message_queues::PushMessages;
 
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
 struct SpatialHashSolidOrOccupiedCellGrid<'a>(&'a SpatialHashTable);
@@ -34,16 +34,16 @@ pub fn compute_player_map(
     ).expect("Failed to compute player map");
 }
 
-pub fn act<Changes>(
+pub fn act<M>(
     id: EntityId,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
     distance_map: &UniformDistanceMap<u32, DirectionsCardinal>,
     search: &mut SearchContext<u32>,
     path: &mut Vec<Direction>,
-    changes: &mut Changes,
+    messages: &mut M,
 ) where
-    Changes: Append<EntityChange>,
+    M: PushMessages,
 {
     let coord = entity_store
         .coord
@@ -78,7 +78,7 @@ pub fn act<Changes>(
             if let Some(direction) = path.iter().next() {
                 let delta = direction.coord();
                 let new = coord + delta;
-                changes.append(insert::coord(id, new));
+                messages.change(insert::coord(id, new));
             }
         }
         Err(Error::NoPath) => (),

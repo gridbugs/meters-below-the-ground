@@ -1,10 +1,8 @@
-use append::Append;
-use reaction::*;
 use entity_store::*;
 use tile_info;
 use direction::CardinalDirection;
-use animation::*;
 use common_animations;
+use message_queues::PushMessages;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -31,15 +29,15 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     true
 }
 
-pub fn check<A>(
+pub fn check<M>(
     change: &EntityChange,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
     id_allocator: &mut EntityIdAllocator,
-    reactions: &mut A,
+    messages: &mut M,
 ) -> bool
 where
-    A: Append<Reaction> + Append<Animation> + Append<EntityChange>,
+    M: PushMessages,
 {
     use self::EntityChange::*;
     use self::ComponentValue::*;
@@ -51,7 +49,7 @@ where
                 if let Some(npc_id) = dest_npc {
                     if entity_store.punch.contains(&id) {
                         if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
-                            reactions.append(insert::hit_points(*npc_id, hit_points - 1));
+                            messages.change(insert::hit_points(*npc_id, hit_points - 1));
                         }
                     }
                 }
@@ -81,7 +79,7 @@ where
 
                     let punch_id = id_allocator.allocate();
 
-                    common_animations::punch(punch_id, coord, direction, reactions);
+                    common_animations::punch(punch_id, coord, direction, messages);
 
                     return false;
                 };
@@ -91,25 +89,25 @@ where
                 if let Some(card_id) = sh_cell.card_set.iter().next() {
                     if is_player {
                         let card = entity_store.card.get(card_id).unwrap();
-                        reactions.append(Reaction::TakeCard(*card_id, *card));
+                        messages.take_card(*card_id, *card);
                     }
                 }
 
                 if is_player {
-                    reactions.append(Reaction::PlayerMovedTo(coord));
+                    messages.move_player(coord);
                 }
             }
         }
         &Insert(id, HitPoints(hit_points)) => {
             if hit_points == 0 {
-                reactions.append(Reaction::RemoveEntity(id));
+                messages.remove(id);
             } else if hit_points == 1 {
                 if let Some(tile_info) = entity_store.tile_info.get(&id) {
                     let tile_info = tile_info::TileInfo {
                         damaged: true,
                         ..*tile_info
                     };
-                    reactions.append(insert::tile_info(id, tile_info));
+                    messages.change(insert::tile_info(id, tile_info));
                 }
             }
         }
