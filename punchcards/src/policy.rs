@@ -1,14 +1,12 @@
-use std::time::Duration;
 use append::Append;
 use reaction::*;
 use entity_store::*;
 use tile_info;
 use direction::CardinalDirection;
-use prototypes;
-use timing;
 use animation::*;
+use common_animations;
 
-pub fn precheck<'a, I: IntoIterator<Item=&'a EntityChange>>(
+pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
@@ -33,13 +31,16 @@ pub fn precheck<'a, I: IntoIterator<Item=&'a EntityChange>>(
     true
 }
 
-pub fn check<A: Append<Reaction> + Append<EntityChange>>(
+pub fn check<A>(
     change: &EntityChange,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
     id_allocator: &mut EntityIdAllocator,
     reactions: &mut A,
-) -> bool {
+) -> bool
+where
+    A: Append<Reaction> + Append<Animation> + Append<EntityChange>,
+{
     use self::EntityChange::*;
     use self::ComponentValue::*;
     match change {
@@ -50,10 +51,7 @@ pub fn check<A: Append<Reaction> + Append<EntityChange>>(
                 if let Some(npc_id) = dest_npc {
                     if entity_store.punch.contains(&id) {
                         if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
-                            reactions.append(Reaction::EntityChange(insert::hit_points(
-                                *npc_id,
-                                hit_points - 1,
-                            )));
+                            reactions.append(insert::hit_points(*npc_id, hit_points - 1));
                         }
                     }
                 }
@@ -83,15 +81,7 @@ pub fn check<A: Append<Reaction> + Append<EntityChange>>(
 
                     let punch_id = id_allocator.allocate();
 
-                    let punch = prototypes::Prototype::Punch(punch_id, coord, direction);
-
-                    reactions.append(Reaction::StartAnimation(Animation::new(
-                        AnimationChannel::Coord(coord),
-                        AnimationState::TemporaryEntity(
-                            punch,
-                            Duration::from_millis(timing::PUNCH_MILLIS),
-                        ),
-                    )));
+                    common_animations::punch(punch_id, coord, direction, reactions);
 
                     return false;
                 };
@@ -119,7 +109,7 @@ pub fn check<A: Append<Reaction> + Append<EntityChange>>(
                         damaged: true,
                         ..*tile_info
                     };
-                    reactions.append(Reaction::EntityChange(insert::tile_info(id, tile_info)));
+                    reactions.append(insert::tile_info(id, tile_info));
                 }
             }
         }

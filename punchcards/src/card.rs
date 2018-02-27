@@ -1,11 +1,8 @@
-use std::time::Duration;
 use append::Append;
 use entity_store::*;
-use reaction::*;
 use animation::*;
 use direction::CardinalDirection;
-use prototypes;
-use timing;
+use common_animations;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Card {
@@ -24,7 +21,7 @@ impl Card {
         reactions: &mut Reactions,
     ) where
         Changes: Append<EntityChange>,
-        Reactions: Append<Reaction>,
+        Reactions: Append<Animation>,
     {
         match self {
             Card::Move => {
@@ -39,15 +36,7 @@ impl Card {
                 let coord = *source_coord + delta;
                 let punch_id = id_allocator.allocate();
 
-                let punch = prototypes::Prototype::Punch(punch_id, coord, direction);
-
-                reactions.append(Reaction::StartAnimation(Animation::new(
-                    AnimationChannel::Coord(coord),
-                    AnimationState::TemporaryEntity(
-                        punch,
-                        Duration::from_millis(timing::PUNCH_MILLIS),
-                    ),
-                )));
+                common_animations::punch(punch_id, coord, direction, reactions);
             }
         }
     }

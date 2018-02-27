@@ -16,6 +16,7 @@ use rand::{Rng, SeedableRng, StdRng};
 use append::Append;
 use direction::{Direction, DirectionsCardinal};
 use pathfinding;
+use message_queues::MessageQueues;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -70,6 +71,7 @@ pub struct State {
     path: Vec<Direction>,
     npc_order: Vec<EntityId>,
     seen_animation_channels: HashSet<AnimationChannel>,
+    messages: MessageQueues,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -85,6 +87,8 @@ pub struct SaveState {
     size: Size,
     turn: TurnState,
     recompute_player_map: Option<Coord>,
+    seen_animation_channels: HashSet<AnimationChannel>,
+    messages: MessageQueues,
 }
 
 impl State {
@@ -210,6 +214,7 @@ impl State {
             path: Vec::new(),
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
+            messages: MessageQueues::new(),
         }
     }
 
@@ -226,6 +231,8 @@ impl State {
             size,
             turn,
             recompute_player_map,
+            seen_animation_channels,
+            messages,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -260,7 +267,8 @@ impl State {
             recompute_player_map,
             path: Vec::new(),
             npc_order: Vec::new(),
-            seen_animation_channels: HashSet::new(),
+            seen_animation_channels,
+            messages,
         }
     }
 
@@ -282,6 +290,8 @@ impl State {
             ),
             turn: self.turn,
             recompute_player_map: self.recompute_player_map,
+            seen_animation_channels: self.seen_animation_channels.clone(),
+            messages: self.messages.clone(),
         }
     }
 

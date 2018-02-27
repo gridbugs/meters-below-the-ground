@@ -5,6 +5,27 @@ use append::Append;
 use reaction::Reaction;
 use prototypes::Prototype;
 
+pub fn start_animation<A: Append<Animation>>(
+    channel: AnimationChannel,
+    initial: AnimationState,
+    animations: &mut A,
+) {
+    animations.append(Animation::new(channel, initial));
+}
+
+pub fn temporary_at_coord<A: Append<Animation>>(
+    coord: Coord,
+    prototype: Prototype,
+    duration: Duration,
+    animations: &mut A,
+) {
+    start_animation(
+        AnimationChannel::Coord(coord),
+        AnimationState::TemporaryEntity(prototype, duration),
+        animations,
+    );
+}
+
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AnimationChannel {
     Coord(Coord),

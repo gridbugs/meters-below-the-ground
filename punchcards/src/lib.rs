@@ -17,7 +17,9 @@ pub mod entity_store {
 
 mod timing;
 mod policy;
+mod message_queues;
 mod prototypes;
+mod common_animations;
 mod reaction;
 mod animation;
 mod pathfinding;

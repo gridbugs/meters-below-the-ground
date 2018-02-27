@@ -17,3 +17,9 @@ impl From<EntityChange> for Reaction {
         Reaction::EntityChange(entity_change)
     }
 }
+
+impl From<Animation> for Reaction {
+    fn from(animation: Animation) -> Self {
+        Reaction::StartAnimation(animation)
+    }
+}
