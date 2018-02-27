@@ -78,15 +78,8 @@ pub fn check<A: Append<Reaction> + Append<EntityChange>>(
                         .cloned()
                         .expect("NPC missing coord");
                     let delta = coord - npc_coord;
-                    use grid_2d::Coord;
 
-                    let direction = match delta {
-                        Coord { x: 0, y: 1 } => CardinalDirection::South,
-                        Coord { x: 0, y: -1 } => CardinalDirection::North,
-                        Coord { x: 1, y: 0 } => CardinalDirection::East,
-                        Coord { x: -1, y: 0 } => CardinalDirection::West,
-                        _ => panic!("unexpected delta"),
-                    };
+                    let direction = CardinalDirection::from_unit_coord(delta);
 
                     let punch_id = id_allocator.allocate();
 
