@@ -4,9 +4,14 @@ matrix:
     - os: linux
       rust: stable
     - os: linux
+      rust: beta
+    - os: linux
       rust: nightly
     - os: osx
       rust: stable
+  allow_failures:
+    - rust: nightly
+
 dist: trusty
 script:
 - scripts/build.sh
@@ -33,7 +38,7 @@ deploy:
     on:
       all_branches: true
       repo: stevebob/punchcards
-      condition: "$TRAVIS_RUST_VERSION = nightly"
+      condition: "$TRAVIS_RUST_VERSION = beta"
     access_key_id: AKIAJTZWT26OECTU2UVQ
     secret_access_key:
       secure: RxrlrE/Me3fAEkVq7YZwfkXrs65r5SHIdjwLS3ABNcIF5WxdqAucB8iZNh9PRlEIl1353iZzlh+HzFKPultwakYILl68uLsqB+ypclEJ+THRu6JuY/qsptZ2MlItWlbv+vdsgU87OESDDO9GY1bkhabuNogW9pHCjm9PWCUfh6BQXKINiMET8III/cN4hh4CmAf/xJzr1SgHWxYRUi+xx6zjNzDwAoppx7JKKlpssfL9dzjga5tI1YejoNVXBv3BqD0kElah305SWHbOEatCFKlx2DOOcPx21eubUR/q7CfIGJVqf2o3j5SF3d8kbcVfyWLhJOV43GIuL1Ulewoj7g134SR+jmHicz8Hvk6bt9uwZCIh1UB9RBCDM5K6hG8rndKFveaFAh1T3nLOUzQroC6Up9qoySCHVq7vA7iTbDxg0DNvFc5cxsXCloWcEZiS8M/Ub1AVIWW2VJtcTH9mP19+LhtFZ1IYWOp5wCqxCxk/wDwjVongGPGndglg2PJTRkqxPzK3HGUrUmz9Ei9B3pZ0BuzGkYygUSOSqwcYdzMoVq61jR7yIi3ZbTTYbyfMTs5Pyr1Ry+JU241FDjvypJDWw+Fz3ZfGMGLkW5oYE/uRjsAQx1WgFS2BQkF2mpJUZeAYbcuNn8MBjb7yumgDhk5wOdiDP3deElPa9+HdpmA=
