@@ -18,7 +18,7 @@ case $TRAVIS_OS_NAME in
         PIP=pip
         PYTHON=python
 
-        if [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
+        if [[ "$TRAVIS_RUST_VERSION" == "beta" ]] || [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
             rustup target add wasm32-unknown-unknown
             cargo install --git https://github.com/alexcrichton/wasm-gc
         fi
