@@ -16,6 +16,7 @@ pub mod entity_store {
 
 mod timing;
 mod policy;
+#[macro_use]
 mod message_queues;
 mod prototypes;
 mod common_animations;

@@ -58,11 +58,7 @@ pub enum AnimationStatus {
 }
 
 impl Animation {
-    pub fn step<M: PushMessages>(
-        self,
-        period: Duration,
-        messages: &mut M,
-    ) -> AnimationStatus {
+    pub fn step<M: PushMessages>(self, period: Duration, messages: &mut M) -> AnimationStatus {
         match self.state {
             AnimationState::RemoveEntity(id, remaining) => {
                 if period > remaining {

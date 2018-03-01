@@ -29,13 +29,7 @@ impl Prototype {
     }
 }
 
-pub fn card<M: PushMessages>(
-    id: EntityId,
-    coord: Coord,
-    card: Card,
-    tile: Tile,
-    messages: &mut M,
-) {
+pub fn card<M: PushMessages>(id: EntityId, coord: Coord, card: Card, tile: Tile, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::tile_info(id, TileInfo::new(tile, CARD_DEPTH)));
     messages.change(insert::card(id, card));

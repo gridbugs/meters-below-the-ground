@@ -1,9 +1,6 @@
-use std::mem;
 use std::time::Duration;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use grid_2d::{Coord, Size};
-use grid_search::*;
 use entity_store::*;
 use input::Input;
 use policy;
@@ -13,8 +10,7 @@ use card_state::*;
 use tile::*;
 use animation::*;
 use rand::{Rng, SeedableRng, StdRng};
-use direction::{Direction, DirectionsCardinal};
-use pathfinding;
+use pathfinding::PathfindingContext;
 use message_queues::*;
 
 const INITIAL_HAND_SIZE: usize = 4;
@@ -24,7 +20,7 @@ pub enum Meta {
 }
 
 #[derive(Clone, Debug)]
-pub struct GameState {
+struct World {
     entity_store: EntityStore,
     spatial_hash: SpatialHashTable,
     entity_components: EntityComponentTable,
@@ -32,7 +28,7 @@ pub struct GameState {
     count: u64,
 }
 
-impl GameState {
+impl World {
     fn delete_entity(&self, entity_id: EntityId, changes: &mut Vec<EntityChange>) {
         for component in self.entity_components.components(entity_id) {
             changes.push(EntityChange::Remove(entity_id, component));
@@ -59,21 +55,18 @@ enum TurnState {
 
 #[derive(Clone, Debug)]
 pub struct State {
-    game_state: GameState,
+    game_state: World,
     player_id: EntityId,
     card_state: CardState,
     input_state: InputState,
-    search_context: SearchContext<u32>,
-    bfs_context: BfsContext,
-    distance_map: UniformDistanceMap<u32, DirectionsCardinal>,
     rng: StdRng,
     turn: TurnState,
     recompute_player_map: Option<Coord>,
-    path: Vec<Direction>,
     npc_order: Vec<EntityId>,
     seen_animation_channels: HashSet<AnimationChannel>,
     messages: MessageQueues,
     swap_messages: MessageQueuesSwap,
+    pathfinding: PathfindingContext,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -192,7 +185,7 @@ impl State {
         );
 
         Self {
-            game_state: GameState {
+            game_state: World {
                 entity_store,
                 spatial_hash,
                 entity_components,
@@ -202,17 +195,14 @@ impl State {
             input_state: InputState::WaitingForCardSelection,
             player_id,
             card_state,
-            search_context: SearchContext::new(size),
-            bfs_context: BfsContext::new(size),
-            distance_map: UniformDistanceMap::new(size, DirectionsCardinal),
             rng,
             turn: TurnState::Player,
             recompute_player_map: player_coord,
-            path: Vec::new(),
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
             messages,
             swap_messages: MessageQueuesSwap::new(),
+            pathfinding: PathfindingContext::new(size),
         }
     }
 
@@ -243,7 +233,7 @@ impl State {
         }
 
         Self {
-            game_state: GameState {
+            game_state: World {
                 entity_store,
                 spatial_hash,
                 entity_components,
@@ -253,17 +243,14 @@ impl State {
             input_state,
             player_id,
             card_state,
-            search_context: SearchContext::new(size),
-            bfs_context: BfsContext::new(size),
-            distance_map: UniformDistanceMap::new(size, DirectionsCardinal),
             rng: StdRng::from_seed(&[next_rng_seed]),
             turn,
             recompute_player_map,
-            path: Vec::new(),
             npc_order: Vec::new(),
             seen_animation_channels,
             messages,
             swap_messages: MessageQueuesSwap::new(),
+            pathfinding: PathfindingContext::new(size),
         }
     }
 
@@ -329,9 +316,11 @@ impl State {
                                         &mut self.game_state.id_allocator,
                                         &mut self.messages,
                                     );
-                                    if policy::precheck(&self.messages.changes, &self.game_state.entity_store,
-                                                        &self.game_state.spatial_hash) {
-
+                                    if policy::precheck(
+                                        &self.messages.changes,
+                                        &self.game_state.entity_store,
+                                        &self.game_state.spatial_hash,
+                                    ) {
                                         let card_to_check = self.card_state.hand.remove_card(index);
                                         assert_eq!(card, card_to_check);
                                         self.card_state.fill_hand();
@@ -371,12 +360,8 @@ impl State {
                     self.turn = TurnState::Player;
 
                     if let Some(player_coord) = self.recompute_player_map.take() {
-                        pathfinding::compute_player_map(
-                            player_coord,
-                            &self.game_state.spatial_hash,
-                            &mut self.bfs_context,
-                            &mut self.distance_map,
-                        );
+                        self.pathfinding
+                            .update_player_map(player_coord, &self.game_state.spatial_hash);
                     }
 
                     self.npc_order.clear();
@@ -384,36 +369,16 @@ impl State {
                         self.npc_order.push(id);
                     }
 
-                    {
-                        let coord = &self.game_state.entity_store.coord;
-                        let distance_map = &self.distance_map;
-                        self.npc_order.sort_by(|a, b| {
-                            let coord_a = coord.get(a).expect("NPC missing coord");
-                            let coord_b = coord.get(b).expect("NPC missing coord");
-                            if let Some(cell_a) = distance_map.get(*coord_a).cell() {
-                                if let Some(cell_b) = distance_map.get(*coord_b).cell() {
-                                    cell_a.cost().cmp(&cell_b.cost())
-                                } else {
-                                    Ordering::Less
-                                }
-                            } else {
-                                if distance_map.get(*coord_b).cell().is_some() {
-                                    Ordering::Greater
-                                } else {
-                                    Ordering::Equal
-                                }
-                            }
-                        });
-                    }
+                    self.pathfinding.sort_entities_by_distance_to_player(
+                        &self.game_state.entity_store,
+                        &mut self.npc_order,
+                    );
 
                     for &id in self.npc_order.iter() {
-                        pathfinding::act(
+                        self.pathfinding.act(
                             id,
                             &self.game_state.entity_store,
                             &self.game_state.spatial_hash,
-                            &self.distance_map,
-                            &mut self.search_context,
-                            &mut self.path,
                             &mut self.messages,
                         );
                         if let Some(meta) = process_changes(
@@ -432,17 +397,17 @@ impl State {
                 }
             }
         } else {
-
             self.seen_animation_channels.clear();
 
-            mem::swap(&mut self.messages.animations, &mut self.swap_messages.animations);
-            for animation in self.swap_messages.animations.drain(..) {
+            for animation in swap_drain!(animations, self.messages, self.swap_messages) {
                 let channel = animation.channel;
                 if self.seen_animation_channels.contains(&channel) {
                     self.messages.animations.push(animation);
                 } else {
                     match animation.step(period, &mut self.messages) {
-                        AnimationStatus::Continuing => { self.seen_animation_channels.insert(channel); }
+                        AnimationStatus::Continuing => {
+                            self.seen_animation_channels.insert(channel);
+                        }
                         AnimationStatus::Finished => (),
                     }
                 }
@@ -460,7 +425,7 @@ impl State {
 }
 
 fn process_changes<R: Rng>(
-    game_state: &mut GameState,
+    game_state: &mut World,
     card_state: &mut CardState,
     messages: &mut MessageQueues,
     swap_messages: &mut MessageQueuesSwap,
@@ -468,15 +433,13 @@ fn process_changes<R: Rng>(
     rng: &mut R,
 ) -> Option<Meta> {
     loop {
-
         game_state.add_changes_for_removed_entities(messages);
 
         if messages.changes.is_empty() {
             break None;
         }
 
-        mem::swap(&mut messages.changes, &mut swap_messages.changes);
-        for change in swap_messages.changes.drain(..) {
+        for change in swap_drain!(changes, messages, swap_messages) {
             if !policy::check(
                 &change,
                 &game_state.entity_store,

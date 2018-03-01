@@ -2,6 +2,15 @@ use entity_store::*;
 use animation::*;
 use card::*;
 
+macro_rules! swap_drain {
+    ($field:ident, $current:expr, $swap:expr) => {
+        {
+            ::std::mem::swap(&mut $current.$field, &mut $swap.$field);
+            $swap.$field.drain(..)
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct MessageQueuesSwap {
     pub animations: Vec<Animation>,
@@ -36,8 +45,6 @@ impl MessageQueues {
             player_moved_to: None,
         }
     }
-
-
 }
 
 pub trait PushMessages {
