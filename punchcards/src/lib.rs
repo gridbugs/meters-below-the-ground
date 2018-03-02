@@ -14,10 +14,12 @@ pub mod entity_store {
     include_entity_store!("entity_store.rs");
 }
 
+mod terrain;
 mod timing;
 mod policy;
 #[macro_use]
 mod message_queues;
+mod world;
 mod prototypes;
 mod common_animations;
 mod animation;
