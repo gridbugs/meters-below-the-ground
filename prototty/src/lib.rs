@@ -18,6 +18,7 @@ use prototty_common::*;
 use punchcards::input::Input as PunchcardsInput;
 use punchcards::card::Card;
 use punchcards::card_state::CardState;
+use punchcards::external_event::ExternalEvent;
 
 use self::CardinalDirection::*;
 
@@ -369,7 +370,7 @@ impl<S: Storage> App<S> {
         let existing_state: Option<SaveState> = storage.load(SAVE_FILE).ok();
 
         let (in_progress, state) = if let Some(state) = existing_state {
-            (true, State::from_save_state(state))
+            (true, State::from(state))
         } else {
             (false, State::new(rng.gen()))
         };
@@ -399,7 +400,7 @@ impl<S: Storage> App<S> {
     pub fn store(&mut self) {
         if self.in_progress {
             self.storage
-                .store(SAVE_FILE, &self.state.create_save_state(self.rng.gen()))
+                .store(SAVE_FILE, &self.state.save(self.rng.gen()))
                 .expect("Failed to save");
         } else {
             match self.storage.remove_raw(SAVE_FILE) {
@@ -498,7 +499,7 @@ impl<S: Storage> App<S> {
 
                 if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period) {
                     match meta {
-                        Meta::GameOver => {
+                        ExternalEvent::GameOver => {
                             self.app_state = AppState::GameOver;
                             self.game_over_duration = Duration::from_millis(GAME_OVER_MS);
                         }
