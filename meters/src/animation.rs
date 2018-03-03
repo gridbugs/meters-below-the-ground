@@ -25,11 +25,7 @@ pub fn temporary_at_coord<M: PushMessages>(
     );
 }
 
-pub fn slide<M: PushMessages>(
-    id: EntityId,
-    period: Duration,
-    messages: &mut M,
-) {
+pub fn slide<M: PushMessages>(id: EntityId, period: Duration, messages: &mut M) {
     start_animation(
         AnimationState::Slide {
             id,
@@ -137,7 +133,6 @@ impl Animation {
                                 .cloned()
                                 .map(|coord| (coord, direction))
                         }) {
-
                         let next_coord = coord + direction.coord();
                         messages.change(insert::coord(id, next_coord));
 

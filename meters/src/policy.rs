@@ -103,13 +103,6 @@ where
 
                 let is_player = entity_store.player.contains(&id);
 
-                if let Some(card_id) = sh_cell.card_set.iter().next() {
-                    if is_player {
-                        let card = entity_store.card.get(card_id).unwrap();
-                        messages.take_card(*card_id, *card);
-                    }
-                }
-
                 if is_player {
                     if sh_cell.stairs_count > 0 {
                         messages.next_level();
@@ -133,7 +126,7 @@ where
             }
         }
         &Insert(id, HealthMeter(health)) => {
-            if health.value == 0 {
+            if entity_store.player.contains(&id) && health.value == 0 {
                 messages.game_over();
             }
         }

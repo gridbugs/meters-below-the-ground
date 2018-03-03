@@ -5,10 +5,8 @@ pub enum Tile {
     Player,
     Wall,
     Floor,
-    CardMove,
     Punch(CardinalDirection),
-    TargetDummy,
-    SmallRobot,
     Stairs,
     Bullet,
+    Larvae,
 }

@@ -1,6 +1,6 @@
+extern crate meters_prototty;
 extern crate prototty;
 extern crate prototty_wasm;
-extern crate meters_prototty;
 extern crate rand;
 
 use std::time::Duration;

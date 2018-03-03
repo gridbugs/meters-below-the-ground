@@ -1,7 +1,7 @@
+extern crate meters_prototty;
 extern crate prototty;
 extern crate prototty_file_storage;
 extern crate prototty_glutin;
-extern crate meters_prototty;
 extern crate rand;
 
 use std::time::Instant;

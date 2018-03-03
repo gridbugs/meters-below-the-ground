@@ -5,8 +5,6 @@ use grid_2d::Size;
 use entity_store::*;
 use input::Input;
 use policy;
-use card::*;
-use card_state::*;
 use animation::*;
 use rand::{SeedableRng, StdRng};
 use pathfinding::PathfindingContext;
@@ -18,14 +16,6 @@ use event::*;
 use meter::*;
 use common_animations;
 use prototypes;
-
-const INITIAL_HAND_SIZE: usize = 4;
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum InputState {
-    WaitingForCardSelection,
-    WaitingForDirection(HandIndex, Card),
-}
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 enum TurnState {
@@ -59,14 +49,12 @@ impl<'a> Iterator for MeterInfoIter<'a> {
 #[derive(Clone, Debug)]
 pub struct State {
     world: World,
-    card_state: CardState,
     messages: MessageQueues,
     swap_messages: MessageQueuesSwap,
     npc_order: Vec<EntityId>,
     seen_animation_channels: HashSet<AnimationChannel>,
     rng: StdRng,
     player_id: EntityId,
-    input_state: InputState,
     turn: TurnState,
     pathfinding: PathfindingContext,
     change_context: ChangeContext,
@@ -80,8 +68,6 @@ pub struct SaveState {
     id_allocator: EntityIdAllocator,
     count: u64,
     player_id: EntityId,
-    card_state: CardState,
-    input_state: InputState,
     next_rng_seed: usize,
     size: Size,
     turn: TurnState,
@@ -93,7 +79,6 @@ pub struct SaveState {
 const METER_IDS: &'static str = "abcdefghijklmnopqrstuvwxyz";
 
 impl State {
-
     pub fn selected_meter_type(&self) -> Option<SelectableMeterType> {
         self.selected_meter
     }
@@ -145,13 +130,13 @@ impl State {
     }
 
     pub fn new(rng_seed: usize) -> Self {
-        let mut rng = StdRng::from_seed(&[rng_seed]);
+        let rng = StdRng::from_seed(&[rng_seed]);
 
         let terrain = TerrainType::StaticStrings(vec![
             "##############################",
             "#............................#",
             "#.@..........................#",
-            "#......1.....................#",
+            "#......l.....................#",
             "#............................#",
             "#............................#",
             "#............................#",
@@ -201,28 +186,8 @@ impl State {
                 .filter_map(MeterType::from_component_type)
         ).collect();
 
-        let card_state = CardState::new(
-            vec![
-                Card::Punch,
-                Card::Punch,
-                Card::Move,
-                Card::Move,
-                Card::Shoot,
-                Card::Shoot,
-                Card::Shoot,
-                Card::Shoot,
-                Card::Shoot,
-                Card::Shoot,
-                Card::Shoot,
-            ],
-            INITIAL_HAND_SIZE,
-            &mut rng,
-        );
-
         Self {
-            input_state: InputState::WaitingForCardSelection,
             player_id,
-            card_state,
             rng,
             turn: TurnState::Player,
             messages,
@@ -245,8 +210,6 @@ impl State {
             id_allocator: self.world.id_allocator.clone(),
             count: self.world.count,
             player_id: self.player_id,
-            card_state: self.card_state.clone(),
-            input_state: self.input_state.clone(),
             next_rng_seed,
             size: self.world.size(),
             turn: self.turn,
@@ -271,39 +234,42 @@ impl State {
     pub fn spatial_hash(&self) -> &SpatialHashTable {
         &self.world.spatial_hash
     }
-    pub fn card_state(&self) -> &CardState {
-        &self.card_state
-    }
-    pub fn input_state(&self) -> &InputState {
-        &self.input_state
-    }
 
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
-            Input::Direction(direction) => {
-                match self.selected_meter {
-                    None => {
-                        let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
-                        let next = current + direction.coord();
-                        self.messages
-                            .changes
-                            .push(insert::coord(self.player_id, next));
-                    }
-                    Some(SelectableMeterType::GunAmmo) => {
-                        let mut ammo = self.world.entity_store.gun_ammo_meter.get(&self.player_id).cloned().unwrap();
+            Input::Direction(direction) => match self.selected_meter {
+                None => {
+                    let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+                    let next = current + direction.coord();
+                    self.messages
+                        .changes
+                        .push(insert::coord(self.player_id, next));
+                }
+                Some(SelectableMeterType::GunAmmo) => {
+                    let mut ammo = self.world
+                        .entity_store
+                        .gun_ammo_meter
+                        .get(&self.player_id)
+                        .cloned()
+                        .unwrap();
 
-                        if ammo.value > 0 {
-                            let entity_coord = self.world.entity_store.coord.get(&self.player_id).cloned().unwrap();
-                            let start_coord = entity_coord + direction.coord();
-                            let bullet_id = self.world.id_allocator.allocate();
-                            prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
-                            common_animations::bullet(bullet_id, &mut self.messages);
-                            ammo.value -= 1;
-                            self.messages.change(insert::gun_ammo_meter(self.player_id, ammo));
-                        }
+                    if ammo.value > 0 {
+                        let entity_coord = self.world
+                            .entity_store
+                            .coord
+                            .get(&self.player_id)
+                            .cloned()
+                            .unwrap();
+                        let start_coord = entity_coord + direction.coord();
+                        let bullet_id = self.world.id_allocator.allocate();
+                        prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
+                        common_animations::bullet(bullet_id, &mut self.messages);
+                        ammo.value -= 1;
+                        self.messages
+                            .change(insert::gun_ammo_meter(self.player_id, ammo));
                     }
                 }
-            }
+            },
             Input::MeterSelect(identifier) => {
                 if let Some(meter_type) = self.meter_identifiers.get(&identifier).cloned() {
                     self.selected_meter = meter_type.selectable();
@@ -317,7 +283,12 @@ impl State {
             Input::Wait => (),
         }
 
-        if !policy::precheck(&self.messages.changes, &self.world.entity_store, &self.world.spatial_hash) {
+        if !policy::precheck(
+            &self.messages.changes,
+            &self.world.entity_store,
+            &self.world.spatial_hash,
+        ) {
+            self.messages.changes.clear();
             return None;
         }
 
@@ -325,11 +296,9 @@ impl State {
 
         let ret = self.change_context.process(
             &mut self.world,
-            &mut self.card_state,
             &mut self.messages,
             &mut self.swap_messages,
-            &mut self.rng,
-            );
+        );
 
         self.world.count += 1;
 
@@ -361,10 +330,8 @@ impl State {
             );
             if let Some(meta) = self.change_context.process(
                 &mut self.world,
-                &mut self.card_state,
                 &mut self.messages,
                 &mut self.swap_messages,
-                &mut self.rng,
             ) {
                 return Some(meta);
             }
@@ -391,13 +358,8 @@ impl State {
                 AnimationStatus::Finished | AnimationStatus::Continuing => (),
             }
         }
-        self.change_context.process(
-            &mut self.world,
-            &mut self.card_state,
-            &mut self.messages,
-            &mut self.swap_messages,
-            &mut self.rng,
-        )
+        self.change_context
+            .process(&mut self.world, &mut self.messages, &mut self.swap_messages)
     }
 
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ExternalEvent>
@@ -437,8 +399,6 @@ impl From<SaveState> for State {
             id_allocator,
             count,
             player_id,
-            card_state,
-            input_state,
             next_rng_seed,
             size,
             turn,
@@ -465,9 +425,7 @@ impl From<SaveState> for State {
                 id_allocator,
                 count,
             },
-            input_state,
             player_id,
-            card_state,
             rng: StdRng::from_seed(&[next_rng_seed]),
             turn,
             messages,

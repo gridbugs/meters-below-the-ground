@@ -17,11 +17,7 @@ impl TerrainType {
         }
     }
 
-    pub fn populate(
-        &self,
-        id_allocator: &mut EntityIdAllocator,
-        messages: &mut MessageQueues,
-    ) {
+    pub fn populate(&self, id_allocator: &mut EntityIdAllocator, messages: &mut MessageQueues) {
         match self {
             &TerrainType::StaticStrings(ref strings) => {
                 static_strings::populate(strings, id_allocator, messages);

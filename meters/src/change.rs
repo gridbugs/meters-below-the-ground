@@ -1,9 +1,7 @@
 use std::collections::HashSet;
-use rand::Rng;
 use entity_store::*;
 use message_queues::*;
 use event::*;
-use card_state::CardState;
 use world::World;
 use policy;
 
@@ -19,13 +17,11 @@ impl ChangeContext {
         }
     }
 
-    pub fn process<R: Rng>(
+    pub fn process(
         &mut self,
         world: &mut World,
-        card_state: &mut CardState,
         messages: &mut MessageQueues,
         swap_messages: &mut MessageQueuesSwap,
-        rng: &mut R,
     ) -> Option<Event> {
         loop {
             for id in messages.removed_entities.drain(..) {
@@ -62,18 +58,13 @@ impl ChangeContext {
                 world.entity_components.update(&change);
                 world.entity_store.commit(change);
             }
-
-            for (id, card) in messages.take_cards.drain(..) {
-                card_state.deck.add_random(card, rng);
-                messages.removed_entities.push(id);
-            }
-        };
+        }
 
         for id in self.ids_to_free.drain() {
             world.id_allocator.free(id);
         }
 
-        if card_state.hand.is_empty() || messages.game_over {
+        if messages.game_over {
             Some(Event::External(ExternalEvent::GameOver))
         } else if messages.next_level {
             messages.next_level = false;

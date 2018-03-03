@@ -22,9 +22,10 @@ pub fn punch<M: PushMessages>(
     );
 }
 
-pub fn bullet<M: PushMessages>(
-    id: EntityId,
-    messages: &mut M,
-) {
-    slide(id, Duration::from_millis(timing::BULLET_SLIDE_MILLIS), messages);
+pub fn bullet<M: PushMessages>(id: EntityId, messages: &mut M) {
+    slide(
+        id,
+        Duration::from_millis(timing::BULLET_SLIDE_MILLIS),
+        messages,
+    );
 }

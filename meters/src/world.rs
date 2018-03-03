@@ -24,10 +24,7 @@ impl World {
             count: 0,
         };
 
-        terrain.populate(
-            &mut world.id_allocator,
-            messages,
-        );
+        terrain.populate(&mut world.id_allocator, messages);
 
         for change in messages.changes.drain(..) {
             world.commit(change);
@@ -46,7 +43,12 @@ impl World {
         self.spatial_hash.size()
     }
 
-    pub fn component_drain_insert(&mut self, source_id: EntityId, dest_id: EntityId) -> ComponentDrainInsert {
-        self.entity_components.component_drain_insert(source_id, dest_id, &mut self.entity_store)
+    pub fn component_drain_insert(
+        &mut self,
+        source_id: EntityId,
+        dest_id: EntityId,
+    ) -> ComponentDrainInsert {
+        self.entity_components
+            .component_drain_insert(source_id, dest_id, &mut self.entity_store)
     }
 }

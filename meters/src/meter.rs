@@ -58,10 +58,7 @@ pub struct Meter {
 
 impl Meter {
     pub fn full(max: u32) -> Self {
-        Meter {
-            max,
-            value: max,
-        }
+        Meter { max, value: max }
     }
     pub fn from_component_ref(component: ComponentRef) -> Option<Self> {
         match component {
@@ -70,9 +67,15 @@ impl Meter {
             _ => None,
         }
     }
-    pub fn from_entity_store(id: EntityId, entity_store: &EntityStore, typ: MeterType) -> Option<Self> {
+    pub fn from_entity_store(
+        id: EntityId,
+        entity_store: &EntityStore,
+        typ: MeterType,
+    ) -> Option<Self> {
         let component_type = typ.into();
-        entity_store.get(id, component_type).and_then(Self::from_component_ref)
+        entity_store
+            .get(id, component_type)
+            .and_then(Self::from_component_ref)
     }
 }
 

@@ -3,18 +3,16 @@ use entity_store::*;
 use grid_2d::Coord;
 use tile::Tile;
 use tile_info::TileInfo;
-use card::Card;
 use message_queues::PushMessages;
 use meter::Meter;
 
-const FLOOR_DEPTH: i32      = 1;
-const WALL_DEPTH: i32       = 2;
-const STAIRS_DEPTH: i32     = 3;
-const BULLET_DEPTH: i32     = 4;
-const CARD_DEPTH: i32       = 5;
-const NPC_DEPTH: i32        = 6;
-const PLAYER_DEPTH: i32     = 7;
-const ANIMATION_DEPTH: i32  = 8;
+const FLOOR_DEPTH: i32 = 1;
+const WALL_DEPTH: i32 = 2;
+const STAIRS_DEPTH: i32 = 3;
+const BULLET_DEPTH: i32 = 4;
+const NPC_DEPTH: i32 = 5;
+const PLAYER_DEPTH: i32 = 6;
+const ANIMATION_DEPTH: i32 = 7;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
@@ -30,12 +28,6 @@ impl Prototype {
             }
         }
     }
-}
-
-pub fn card<M: PushMessages>(id: EntityId, coord: Coord, card: Card, tile: Tile, messages: &mut M) {
-    messages.change(insert::coord(id, coord));
-    messages.change(insert::tile_info(id, TileInfo::new(tile, CARD_DEPTH)));
-    messages.change(insert::card(id, card));
 }
 
 pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -78,23 +70,13 @@ pub fn punch<M: PushMessages>(
     ));
 }
 
-pub fn target_dummy<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id));
     messages.change(insert::hit_points(id, 2));
     messages.change(insert::tile_info(
         id,
-        TileInfo::new(Tile::TargetDummy, NPC_DEPTH),
-    ));
-}
-
-pub fn small_robot<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
-    messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id));
-    messages.change(insert::hit_points(id, 2));
-    messages.change(insert::tile_info(
-        id,
-        TileInfo::new(Tile::SmallRobot, NPC_DEPTH),
+        TileInfo::new(Tile::Larvae, NPC_DEPTH),
     ));
 }
 
@@ -107,12 +89,17 @@ pub fn stairs<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
 }
 
-pub fn bullet<M: PushMessages>(id: EntityId, coord: Coord, direction: CardinalDirection, messages: &mut M) {
+pub fn bullet<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    direction: CardinalDirection,
+    messages: &mut M,
+) {
     messages.change(insert::slide_direction(id, direction));
     messages.change(insert::bullet(id));
     messages.change(insert::coord(id, coord));
     messages.change(insert::tile_info(
-            id,
-            TileInfo::new(Tile::Bullet, BULLET_DEPTH),
+        id,
+        TileInfo::new(Tile::Bullet, BULLET_DEPTH),
     ));
 }

@@ -2,8 +2,6 @@ use grid_2d::*;
 use entity_store::EntityIdAllocator;
 use message_queues::*;
 use prototypes;
-use card::Card;
-use tile::Tile;
 
 pub fn populate(
     strings: &Vec<&'static str>,
@@ -21,22 +19,8 @@ pub fn populate(
                 '.' => {
                     prototypes::floor(id_allocator.allocate(), coord, messages);
                 }
-                'm' => {
-                    prototypes::card(
-                        id_allocator.allocate(),
-                        coord,
-                        Card::Move,
-                        Tile::CardMove,
-                        messages,
-                    );
-                    prototypes::floor(id_allocator.allocate(), coord, messages);
-                }
-                '0' => {
-                    prototypes::target_dummy(id_allocator.allocate(), coord, messages);
-                    prototypes::floor(id_allocator.allocate(), coord, messages);
-                }
-                '1' => {
-                    prototypes::small_robot(id_allocator.allocate(), coord, messages);
+                'l' => {
+                    prototypes::larvae(id_allocator.allocate(), coord, messages);
                     prototypes::floor(id_allocator.allocate(), coord, messages);
                 }
                 '>' => {
