@@ -12,20 +12,11 @@ matrix:
   allow_failures:
   - rust: nightly
 dist: trusty
-script:
-- scripts/build.sh
 deploy:
   provider: s3
   access_key_id: AKIAJTZWT26OECTU2UVQ
   secret_access_key:
-    secure: hAWIWKWlYL7xoTPfrtPiOIP2PVxmzNTQJVwEIkfS+xCBqgt/FwsekNXFaK+wgRIJhZ1CkdI/nspEU8dmut8rigPoe1DzW5690s+kW9BCbKF8ID6JjMqP5i3gaF4WCw/kV5YPYvnINbWRXQuOKMqrCG3H7G5uagJBFpmVor51IK1NAWwTpdbIS2c/6259FLzMNEh9MZZzTNT+Rgp3g1FaIiN4M24ooFcWaYXAqB9aPZ1zNhXU34AAHkLhMDXhPFzUOdmBxro3zxR0cqWGLtvmJeGpFTzS1HgsKhKxbAyBriX+vFxfIhQhUNzomO4GNXrg1M0KdksrOXPmbX9XzsoVdS4P1haUQ/X9oHoWNs6aZHB+tH3/WEvOVSlrQ+bhLLO5Iz2sXXA4KoW4otU80IiNOFxhJ4aKwBy5fabNorTvq1VIJJ/owaXAUjYQnGjsdvi1L99DKlAwJrCEAsBbPifEATZyIR7TL6f+CGuLvNhDCxpS51VK9whyJwNBtJ7HhlkEDqjLg4o/Omy9R4ugrn9udDSNj95zPbPbv4+GzOLrWU/lBrZTYOpT/Ux55kiDpdQ3oJPyxR8TECdBpRt28YHo5jwWPxdJivJp2CUlpTFfdlerWnnmmDp8PW8gNhGOB1SmZcC9HlvqJoLy/fpEVavmY7bJoPytcpCQg9yEipyyQhQ=
+    secure: aOPERPkfN0RN6MzTIW7AYT9VRiHNM5RBXAkHOlOvpEP4XJ/x30b4nmabeF8cL+z5FiOXGICx5K0yHS90vHhXIAgo4nQUjxMwq2lxM195U/ofhdxBbSxPDsT8eV9L8DJ06a3suuRUANHYCYwz0sPh+cDkhf5bUIBISwy1tsd/g5XvmaOhTMdraGaBsta4iabatlyZ+c+d2tWgHTOUamnZS+8D6xhxCdudET15f5l22C4wbyFqDh8geDrGGa19jLJ3IEYYPCZBWLqvhnspx3FDhdMdMDgH7RNgqkEnK2HBUW5xIlHyNbE+tKIdlr0qtv4ZhR1pw1SeuOGiRuhY+V6cGhOXTY/P1LoCI8PQiv3jxq98eCVmp9BfWyzTtDxpo5ACJYcyrF6ObTN54KAJ9hQxhb5EIdYB6f/Jbwu5pYw7yX0NXlYim0aDXamEP9xLh1Hju2Zh9b3jBFfdBKEvpjUy+7vdZEj2PHYH3+zWmtXs8mLM/Qg4YL/fP3PFS5DTEYQxl6osOfCMo/tA1OcJtWzkiTAOCkVKfJi+rWjsde3Nx8D/5ENdV8a+QtFEARHdZBgu5H+VHrv27HVNuotX7UafySi3cIUnt9SjXUD7W4230SY1KVPyOhSEfZDLwJKM6jKBUBr7MjZ5FIRMLY9RO5ig/Apk2UQHz73lgMr0u28vfMk=
   bucket: files.gridbugs.org
-  region: ap-southeast-2
-  local-dir: uploads
+  local-dir: scripts
   acl: public_read
-  skip_cleanup: true
-  on:
-      all_branches: true
-      repo: stevebob/meters-below-the-ground
-      condition: "$TRAVIS_RUST_VERSION = stable"
-
