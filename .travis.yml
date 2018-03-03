@@ -12,6 +12,8 @@ matrix:
   allow_failures:
   - rust: nightly
 dist: trusty
+script:
+- scripts/build.sh
 deploy:
   provider: s3
   access_key_id: AKIAJTZWT26OECTU2UVQ
