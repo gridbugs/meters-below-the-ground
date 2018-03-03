@@ -264,8 +264,8 @@ impl State {
 
     pub fn overall_progress_meter(&self) -> Meter {
         Meter {
-            value: 12,
-            max: 100,
+            value: (self.levels.len() - self.level_index) as i32 * 10,
+            max: self.levels.len() as i32 * 10,
         }
     }
 

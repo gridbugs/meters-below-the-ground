@@ -5,12 +5,12 @@ use meters::meter::*;
 
 pub struct MeterView {
     name_padding: usize,
-    meter_width: u32,
+    meter_width: usize,
     scratch: String,
 }
 
 impl MeterView {
-    pub fn new(name_padding: usize, meter_width: u32) -> Self {
+    pub fn new(name_padding: usize, meter_width: usize) -> Self {
         Self {
             name_padding,
             meter_width,
@@ -34,7 +34,9 @@ impl MeterView {
         }
     }
     fn write_meter(&mut self, meter: Meter) {
-        let filled_meter_width = (self.meter_width * meter.value) / meter.max;
+        let value = ::std::cmp::max(meter.value, 0) as usize;
+        let max = ::std::cmp::max(meter.max, 0) as usize;
+        let filled_meter_width = (self.meter_width * value) / max;
         let remaining_meter_width = self.meter_width - filled_meter_width;
         for _ in 0..filled_meter_width {
             self.scratch.push('█');

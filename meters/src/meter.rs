@@ -52,12 +52,12 @@ impl From<MeterType> for ComponentType {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Meter {
-    pub max: u32,
-    pub value: u32,
+    pub max: i32,
+    pub value: i32,
 }
 
 impl Meter {
-    pub fn full(max: u32) -> Self {
+    pub fn full(max: i32) -> Self {
         Meter { max, value: max }
     }
     pub fn from_component_ref(component: ComponentRef) -> Option<Self> {

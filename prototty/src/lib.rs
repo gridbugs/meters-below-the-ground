@@ -39,11 +39,11 @@ const TITLE_HEIGHT: u32 = 6;
 const GAME_TOP_PADDING: i32 = 2;
 
 const METER_NAME_PADDING: usize = 9;
-const METER_WIDTH: u32 = 11;
+const METER_WIDTH: usize = 11;
 
 const OVERALL_PROGRESS_Y: i32 = 33;
 const OVERALL_PROGRESS_METER_NAME_PADDING: usize = 21;
-const OVERALL_PROGRESS_METER_WIDTH: u32 = 26;
+const OVERALL_PROGRESS_METER_WIDTH: usize = 26;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
