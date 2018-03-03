@@ -15,7 +15,7 @@ exit = { storage = 'btree' }
 slide_direction = { type = '::direction::CardinalDirection', storage = 'hash' }
 bullet = { storage = 'hash' }
 health_meter = { type = '::meter::Meter', storage = 'hash' }
-gun_ammo_meter = { type = '::meter::Meter', storage = 'hash' }
+gun_meter = { type = '::meter::Meter', storage = 'hash' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }

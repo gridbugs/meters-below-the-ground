@@ -3,13 +3,13 @@ use input::ActiveMeterIdentifier;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ActiveMeterType {
-    GunAmmo,
+    Gun,
 }
 
 impl ActiveMeterType {
     pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
         match component_type {
-            ComponentType::GunAmmoMeter => Some(ActiveMeterType::GunAmmo),
+            ComponentType::GunMeter => Some(ActiveMeterType::Gun),
             _ => None,
         }
     }
@@ -18,7 +18,7 @@ impl ActiveMeterType {
 impl From<ActiveMeterType> for ComponentType {
     fn from(typ: ActiveMeterType) -> Self {
         match typ {
-            ActiveMeterType::GunAmmo => ComponentType::GunAmmoMeter,
+            ActiveMeterType::Gun => ComponentType::GunMeter,
         }
     }
 }
@@ -58,7 +58,7 @@ impl Meter {
     pub fn from_component_ref(component: ComponentRef) -> Option<Self> {
         match component {
             ComponentRef::HealthMeter(meter) => Some(*meter),
-            ComponentRef::GunAmmoMeter(meter) => Some(*meter),
+            ComponentRef::GunMeter(meter) => Some(*meter),
             _ => None,
         }
     }

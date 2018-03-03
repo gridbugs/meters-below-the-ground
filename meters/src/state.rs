@@ -315,10 +315,10 @@ impl State {
                         .changes
                         .push(insert::coord(self.player_id, next));
                 }
-                Some(ActiveMeterType::GunAmmo) => {
+                Some(ActiveMeterType::Gun) => {
                     let mut ammo = self.world
                         .entity_store
-                        .gun_ammo_meter
+                        .gun_meter
                         .get(&self.player_id)
                         .cloned()
                         .unwrap();
@@ -336,7 +336,7 @@ impl State {
                         common_animations::bullet(bullet_id, &mut self.messages);
                         ammo.value -= 1;
                         self.messages
-                            .change(insert::gun_ammo_meter(self.player_id, ammo));
+                            .change(insert::gun_meter(self.player_id, ammo));
                     }
                 }
             },
