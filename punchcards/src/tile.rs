@@ -9,4 +9,5 @@ pub enum Tile {
     Punch(CardinalDirection),
     TargetDummy,
     SmallRobot,
+    Stairs,
 }

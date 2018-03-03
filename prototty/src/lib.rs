@@ -18,7 +18,7 @@ use prototty_common::*;
 use punchcards::input::Input as PunchcardsInput;
 use punchcards::card::Card;
 use punchcards::card_state::CardState;
-use punchcards::external_event::ExternalEvent;
+use punchcards::ExternalEvent;
 
 use self::CardinalDirection::*;
 
@@ -99,6 +99,11 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
             cell.set_foreground_colour(colours::BRIGHT_GREEN);
             cell.set_bold(true);
             cell.set_character('1');
+        }
+        Tile::Stairs => {
+            cell.set_foreground_colour(colours::WHITE);
+            cell.set_bold(true);
+            cell.set_character('>');
         }
     }
 }

@@ -94,7 +94,11 @@ where
                 }
 
                 if is_player {
-                    messages.move_player(coord);
+                    if sh_cell.stairs_count > 0 {
+                        messages.next_level();
+                    } else {
+                        messages.move_player(coord);
+                    }
                 }
             }
         }

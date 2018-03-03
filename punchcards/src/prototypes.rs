@@ -6,12 +6,13 @@ use tile_info::TileInfo;
 use card::Card;
 use message_queues::PushMessages;
 
-const ANIMATION_DEPTH: i32 = 6;
-const PLAYER_DEPTH: i32 = 5;
-const NPC_DEPTH: i32 = 4;
-const CARD_DEPTH: i32 = 3;
-const FLOOR_DEPTH: i32 = 1;
-const WALL_DEPTH: i32 = 2;
+const FLOOR_DEPTH: i32      = 1;
+const WALL_DEPTH: i32       = 2;
+const STAIRS_DEPTH: i32      = 3;
+const CARD_DEPTH: i32       = 4;
+const NPC_DEPTH: i32        = 5;
+const PLAYER_DEPTH: i32     = 6;
+const ANIMATION_DEPTH: i32  = 7;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
@@ -90,5 +91,14 @@ pub fn small_robot<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::SmallRobot, NPC_DEPTH),
+    ));
+}
+
+pub fn stairs<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::stairs(id));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::Stairs, STAIRS_DEPTH),
     ));
 }

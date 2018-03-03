@@ -13,7 +13,7 @@ use message_queues::*;
 use terrain::TerrainType;
 use world::World;
 use change::ChangeContext;
-use external_event::ExternalEvent;
+use event::*;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -60,17 +60,53 @@ pub struct SaveState {
 }
 
 impl State {
+
+    pub fn switch_levels(&mut self) {
+        let terrain = TerrainType::StaticStrings(vec![
+            "##########",
+            "#.....1..#",
+            "#..m.....#",
+            "#m..1....#",
+            "#1.......#",
+            "#..#####.#",
+            "#........#",
+            "#.....@>.#",
+            "#........#",
+            "##########",
+        ]);
+
+        let mut next_world = World::new(&terrain, &mut self.messages);
+
+        let next_player_id = *next_world.entity_store.player.iter().next().expect("No player");
+
+        for change in self.world.component_drain_insert(self.player_id, next_player_id) {
+            if change.typ() == ComponentType::Coord {
+                // otherwise the player would be moved to their old position in the new level
+                continue;
+            }
+
+            next_world.commit(change);
+        }
+
+        let player_coord = *next_world.entity_store.coord.get(&next_player_id).expect("No player coord");
+        self.messages.player_moved_to = Some(player_coord);
+
+        self.player_id = next_player_id;
+        self.world = next_world;
+        self.turn = TurnState::Player;
+    }
+
     pub fn new(rng_seed: usize) -> Self {
         let mut rng = StdRng::from_seed(&[rng_seed]);
 
-        let terrain = TerrainType::FromStrings(vec![
+        let terrain = TerrainType::StaticStrings(vec![
             "##########",
-            "#@...1111#",
-            "#m....#11#",
-            "#.....#11#",
+            "#@.>.....#",
+            "#...1.#..#",
+            "#.....#..#",
             "#.....#..#",
             "###.###..#",
-            "#.1111...#",
+            "#........#",
             "#........#",
             "#........#",
             "##########",
@@ -81,6 +117,9 @@ impl State {
         let world = World::new(&terrain, &mut messages);
 
         let player_id = *world.entity_store.player.iter().next().expect("No player");
+
+        let player_coord = *world.entity_store.coord.get(&player_id).expect("No player coord");
+        messages.player_moved_to = Some(player_coord);
 
         let card_state = CardState::new(
             vec![
@@ -147,7 +186,7 @@ impl State {
         &self.input_state
     }
 
-    fn player_turn(&mut self, input: Input) -> Option<ExternalEvent> {
+    fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
             Input::SelectCard(index) => {
                 if let Some(card) = self.card_state.hand.get(index) {
@@ -201,7 +240,7 @@ impl State {
         }
     }
 
-    fn all_npc_turns(&mut self) -> Option<ExternalEvent> {
+    fn all_npc_turns(&mut self) -> Option<Event> {
         self.turn = TurnState::Player;
 
         if let Some(player_coord) = self.messages.player_moved_to.take() {
@@ -238,7 +277,7 @@ impl State {
         None
     }
 
-    fn animation_tick(&mut self, period: Duration) -> Option<ExternalEvent> {
+    fn animation_tick(&mut self, period: Duration) -> Option<Event> {
         self.seen_animation_channels.clear();
 
         for animation in swap_drain!(animations, self.messages, self.swap_messages) {
@@ -267,7 +306,7 @@ impl State {
     where
         I: IntoIterator<Item = Input>,
     {
-        if self.messages.animations.is_empty() {
+        let event = if self.messages.animations.is_empty() {
             match self.turn {
                 TurnState::Player => {
                     if let Some(input) = inputs.into_iter().next() {
@@ -280,6 +319,15 @@ impl State {
             }
         } else {
             self.animation_tick(period)
+        };
+
+        match event {
+            Some(Event::External(external_event)) => Some(external_event),
+            Some(Event::NextLevel) => {
+                self.switch_levels();
+                None
+            }
+            None => None,
         }
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use rand::Rng;
 use entity_store::*;
 use message_queues::*;
-use external_event::ExternalEvent;
+use event::*;
 use card_state::CardState;
 use world::World;
 use policy;
@@ -26,11 +26,11 @@ impl ChangeContext {
         messages: &mut MessageQueues,
         swap_messages: &mut MessageQueuesSwap,
         rng: &mut R,
-    ) -> Option<ExternalEvent> {
+    ) -> Option<Event> {
         loop {
             for id in messages.removed_entities.drain(..) {
-                for component in world.entity_components.components(id) {
-                    messages.changes.push(EntityChange::Remove(id, component));
+                for change in world.entity_components.remove_entity(id) {
+                    messages.changes.push(change);
                 }
                 self.ids_to_free.insert(id);
             }
@@ -74,7 +74,10 @@ impl ChangeContext {
         }
 
         if card_state.hand.is_empty() {
-            Some(ExternalEvent::GameOver)
+            Some(Event::External(ExternalEvent::GameOver))
+        } else if messages.next_level {
+            messages.next_level = false;
+            Some(Event::NextLevel)
         } else {
             None
         }

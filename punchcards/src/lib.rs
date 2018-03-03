@@ -27,10 +27,12 @@ mod common_animations;
 mod animation;
 mod pathfinding;
 
-pub mod external_event;
+mod event;
 pub mod card_state;
 pub mod input;
 pub mod tile;
 pub mod tile_info;
 pub mod state;
 pub mod card;
+
+pub use event::ExternalEvent;

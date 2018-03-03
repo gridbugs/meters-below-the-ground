@@ -33,6 +33,7 @@ pub struct MessageQueues {
     pub removed_entities: Vec<EntityId>,
     pub take_cards: Vec<(EntityId, Card)>,
     pub player_moved_to: Option<Coord>,
+    pub next_level: bool,
 }
 
 impl MessageQueues {
@@ -43,6 +44,7 @@ impl MessageQueues {
             removed_entities: Vec::new(),
             take_cards: Vec::new(),
             player_moved_to: None,
+            next_level: false,
         }
     }
 }
@@ -53,6 +55,7 @@ pub trait PushMessages {
     fn remove(&mut self, entity_id: EntityId);
     fn take_card(&mut self, entity_id: EntityId, card: Card);
     fn move_player(&mut self, coord: Coord);
+    fn next_level(&mut self);
 }
 
 impl PushMessages for MessageQueues {
@@ -70,5 +73,8 @@ impl PushMessages for MessageQueues {
     }
     fn move_player(&mut self, coord: Coord) {
         self.player_moved_to = Some(coord);
+    }
+    fn next_level(&mut self) {
+        self.next_level = true;
     }
 }

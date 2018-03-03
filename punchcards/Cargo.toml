@@ -7,11 +7,11 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 rand = "0.4"
 direction = "0.14"
 enum_primitive = "0.1"
-entity_store_helper = "0.10"
+entity_store_helper = "0.11"
 grid_2d = "0.7"
 grid_search = "0.12"
 serde = "1.0"
 serde_derive = "1.0"
 
 [build-dependencies]
-entity_store_code_gen = "0.10"
+entity_store_code_gen = "0.11"

@@ -1,7 +1,7 @@
 use entity_store::*;
 use grid_2d::*;
 use message_queues::*;
-use terrain::TerrainType;
+use terrain::*;
 
 #[derive(Clone, Debug)]
 pub struct World {
@@ -14,7 +14,6 @@ pub struct World {
 
 impl World {
     pub fn new(terrain: &TerrainType, messages: &mut MessageQueues) -> Self {
-
         let size = terrain.size();
 
         let mut world = Self {
@@ -25,7 +24,10 @@ impl World {
             count: 0,
         };
 
-        terrain.populate(&mut world.id_allocator, messages);
+        terrain.populate(
+            &mut world.id_allocator,
+            messages,
+        );
 
         for change in messages.changes.drain(..) {
             world.commit(change);
@@ -42,5 +44,9 @@ impl World {
 
     pub fn size(&self) -> Size {
         self.spatial_hash.size()
+    }
+
+    pub fn component_drain_insert(&mut self, source_id: EntityId, dest_id: EntityId) -> ComponentDrainInsert {
+        self.entity_components.component_drain_insert(source_id, dest_id, &mut self.entity_store)
     }
 }
