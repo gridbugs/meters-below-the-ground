@@ -17,11 +17,11 @@ fn main() {
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_window_dimensions(960, 720)
-        .with_font_scale(32.0, 32.0)
-        .with_cell_dimensions(32, 32)
-        .with_underline_position(28)
-        .with_underline_width(2)
-        .with_max_grid_size(30, 20)
+        .with_font_scale(16.0, 16.0)
+        .with_cell_dimensions(16, 16)
+        .with_underline_position(14)
+        .with_underline_width(1)
+        .with_max_grid_size(60, 30)
         .build()
         .unwrap();
 

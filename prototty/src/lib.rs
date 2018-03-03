@@ -18,6 +18,7 @@ use prototty_common::*;
 use meters::input::Input as MetersInput;
 use meters::card::Card;
 use meters::card_state::CardState;
+use meters::meter::*;
 use meters::ExternalEvent;
 
 use self::CardinalDirection::*;
@@ -37,6 +38,9 @@ const GAME_PADDING_RIGHT: u32 = 1;
 
 const TITLE_WIDTH: u32 = 24;
 const TITLE_HEIGHT: u32 = 6;
+
+const METER_NAME_PADDING: usize = 9;
+const METER_WIDTH: u32 = 11;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
@@ -125,6 +129,45 @@ impl DeckView {
             scratch: String::new(),
         }
     }
+}
+
+struct MeterView {
+    scratch: String,
+}
+
+impl MeterView {
+    fn new() -> Self {
+        Self {
+            scratch: String::new(),
+        }
+    }
+}
+
+impl View<Meter> for MeterView {
+    fn view<G: ViewGrid>(&mut self, meter: &Meter, offset: Coord, depth: i32, grid: &mut G) {
+        self.scratch.clear();
+        write_meter(meter, &mut self.scratch);
+        StringView.view(&self.scratch, offset, depth, grid);
+    }
+}
+
+fn write_meter(meter: &Meter, buf: &mut String) {
+    write!(buf, "{}) ", meter.identifier).unwrap();
+    match meter.typ {
+        MeterType::Health => write!(buf, "{:1$}", "Health", METER_NAME_PADDING).unwrap(),
+        MeterType::GunAmmo => write!(buf, "{:1$}", "Gun Ammo", METER_NAME_PADDING).unwrap(),
+    }
+
+    let filled_meter_width = (METER_WIDTH * meter.value) / meter.max;
+    let remaining_meter_width = METER_WIDTH - filled_meter_width;
+    for _ in 0..filled_meter_width {
+        buf.push('█');
+    }
+    for _ in 0..remaining_meter_width {
+        buf.push('░')
+    }
+
+    write!(buf, " {}/{}", meter.value, meter.max);
 }
 
 struct HandView {
@@ -260,6 +303,7 @@ pub struct AppView {
     deck_view: Decorated<DeckView, Border>,
     hand_view: Decorated<HandView, Border>,
     title_screen_view: Decorated<TitleScreenView, Align>,
+    meter_view: MeterView,
 }
 
 impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
@@ -288,6 +332,7 @@ impl AppView {
             deck_view: Decorated::new(DeckView::new(), Border::with_title("Deck")),
             hand_view: Decorated::new(HandView::new(), Border::with_title("Hand")),
             title_screen_view: Decorated::new(TitleScreenView::new(), align),
+            meter_view: MeterView::new(),
         }
     }
     pub fn set_size(&mut self, size: Size) {
@@ -329,19 +374,22 @@ impl<S: Storage> View<App<S>> for AppView {
                     }
                 }
 
-                self.deck_view.view(
-                    app.state.card_state(),
-                    offset + Coord::new(0, GAME_HEIGHT as i32 + GAME_PADDING_BOTTOM as i32),
-                    depth,
-                    grid,
-                );
+                let hud_offset = offset + Coord::new(0, GAME_HEIGHT as i32 + GAME_PADDING_BOTTOM as i32);
 
-                self.hand_view.view(
-                    &app.state,
-                    offset + Coord::new(GAME_WIDTH as i32 + GAME_PADDING_RIGHT as i32, 0),
-                    depth,
-                    grid,
-                );
+                let health_meter = Meter {
+                    identifier: 'a',
+                    typ: MeterType::Health,
+                    max: 8,
+                    value: 5,
+                };
+                let ammo_meter = Meter {
+                    identifier: 'b',
+                    typ: MeterType::GunAmmo,
+                    max: 12,
+                    value: 11,
+                };
+                self.meter_view.view(&health_meter, hud_offset, depth, grid);
+                self.meter_view.view(&ammo_meter, hud_offset + Coord::new(30, 0), depth, grid);
             }
             AppState::GameOver => {
                 StringView.view(&"Game Over", offset, depth, grid);
