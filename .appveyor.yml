@@ -4,10 +4,10 @@ os: Visual Studio 2017
 environment:
   matrix:
   - TARGET: x86_64-pc-windows-msvc
-    IN_NAME: punchcards_glutin
-    OUT_NAME: punchcards
+    IN_NAME: meters_glutin
+    OUT_NAME: meters
     BIN_PATH: target\release
-    BIN_NAME: punchcards-opengl-windows-x86_64
+    BIN_NAME: meters-opengl-windows-x86_64
 install:
 - cmd: >-
 

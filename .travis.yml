@@ -24,11 +24,11 @@ deploy:
     acl: public_read
     on:
       all_branches: true
-      repo: stevebob/punchcards
+      repo: stevebob/meters-below-the-ground
       condition: "$TRAVIS_RUST_VERSION = stable"
     access_key_id: AKIAJTZWT26OECTU2UVQ
     secret_access_key:
-      secure: RxrlrE/Me3fAEkVq7YZwfkXrs65r5SHIdjwLS3ABNcIF5WxdqAucB8iZNh9PRlEIl1353iZzlh+HzFKPultwakYILl68uLsqB+ypclEJ+THRu6JuY/qsptZ2MlItWlbv+vdsgU87OESDDO9GY1bkhabuNogW9pHCjm9PWCUfh6BQXKINiMET8III/cN4hh4CmAf/xJzr1SgHWxYRUi+xx6zjNzDwAoppx7JKKlpssfL9dzjga5tI1YejoNVXBv3BqD0kElah305SWHbOEatCFKlx2DOOcPx21eubUR/q7CfIGJVqf2o3j5SF3d8kbcVfyWLhJOV43GIuL1Ulewoj7g134SR+jmHicz8Hvk6bt9uwZCIh1UB9RBCDM5K6hG8rndKFveaFAh1T3nLOUzQroC6Up9qoySCHVq7vA7iTbDxg0DNvFc5cxsXCloWcEZiS8M/Ub1AVIWW2VJtcTH9mP19+LhtFZ1IYWOp5wCqxCxk/wDwjVongGPGndglg2PJTRkqxPzK3HGUrUmz9Ei9B3pZ0BuzGkYygUSOSqwcYdzMoVq61jR7yIi3ZbTTYbyfMTs5Pyr1Ry+JU241FDjvypJDWw+Fz3ZfGMGLkW5oYE/uRjsAQx1WgFS2BQkF2mpJUZeAYbcuNn8MBjb7yumgDhk5wOdiDP3deElPa9+HdpmA=
+        secure: P/Izz6Ef3eUD6yI7p2/IKRrXvVvUC5oBhu3NiPEYl9FOunmF7kk+V1ZuQm5KvHV3Y+n3ZP6WYPrHDVtxiKPS12xArt3MvUd8ssaNQvkNTwiqy16y3REElj0KiTYXHf9XDw2WBCp+E5UZ4kEdfNrWTtHEqmc6KMPp4ySVVHOPu81GV2bPOgNWC/QwUnqKUYW1y9CbcEA+MQWZCDXyb7HYl2+4tatj+V9Sz60UBeMZwYDXHtz+VdOLLmQKbfo81WiQ7HuNmd/0kg/Wu6Vq1dHjtUsl/14RjcHA/Z+ZyWdTBSxo/8JY6jVyjiPlGjBTABt14GzeScrZKnYP7XTXfv3AKrMnR2ItNDA6D5yOEYvYKRl1oPDM9vy92RPzw1nXivJ+IljNLNKmgWh2Vo8njMIb0buOyQmtoqy8lq9s/yA1jS9BsrrkODIECv40xrJeUb39I8bj1/tLzlPA3RHUd05kmTEFfiIAlJU5K7x7ko4Hub3blJfFKcR/kce2CUqRErhH0M6ZyPXayzCaSLwwPX1hF0d8HCGTIA7b3xmej6otbAFSQI2njD1ju2lYdftxo11rxt/PEDszUa3BCuoPFr4cu3sasI7tt4tuioNdxpFndUu/A58DdZ0tpcmFj+5hRabbYNFbfCwTes+b/LJCEuHqZdKfNgNGGVC/HrsaAozydHk=
   - provider: s3
     skip_cleanup: true
     bucket: games.gridbugs.org
@@ -37,8 +37,8 @@ deploy:
     acl: public_read
     on:
       all_branches: true
-      repo: stevebob/punchcards
+      repo: stevebob/meters-below-the-ground
       condition: "$TRAVIS_RUST_VERSION = beta"
     access_key_id: AKIAJTZWT26OECTU2UVQ
     secret_access_key:
-      secure: RxrlrE/Me3fAEkVq7YZwfkXrs65r5SHIdjwLS3ABNcIF5WxdqAucB8iZNh9PRlEIl1353iZzlh+HzFKPultwakYILl68uLsqB+ypclEJ+THRu6JuY/qsptZ2MlItWlbv+vdsgU87OESDDO9GY1bkhabuNogW9pHCjm9PWCUfh6BQXKINiMET8III/cN4hh4CmAf/xJzr1SgHWxYRUi+xx6zjNzDwAoppx7JKKlpssfL9dzjga5tI1YejoNVXBv3BqD0kElah305SWHbOEatCFKlx2DOOcPx21eubUR/q7CfIGJVqf2o3j5SF3d8kbcVfyWLhJOV43GIuL1Ulewoj7g134SR+jmHicz8Hvk6bt9uwZCIh1UB9RBCDM5K6hG8rndKFveaFAh1T3nLOUzQroC6Up9qoySCHVq7vA7iTbDxg0DNvFc5cxsXCloWcEZiS8M/Ub1AVIWW2VJtcTH9mP19+LhtFZ1IYWOp5wCqxCxk/wDwjVongGPGndglg2PJTRkqxPzK3HGUrUmz9Ei9B3pZ0BuzGkYygUSOSqwcYdzMoVq61jR7yIi3ZbTTYbyfMTs5Pyr1Ry+JU241FDjvypJDWw+Fz3ZfGMGLkW5oYE/uRjsAQx1WgFS2BQkF2mpJUZeAYbcuNn8MBjb7yumgDhk5wOdiDP3deElPa9+HdpmA=
+        secure: P/Izz6Ef3eUD6yI7p2/IKRrXvVvUC5oBhu3NiPEYl9FOunmF7kk+V1ZuQm5KvHV3Y+n3ZP6WYPrHDVtxiKPS12xArt3MvUd8ssaNQvkNTwiqy16y3REElj0KiTYXHf9XDw2WBCp+E5UZ4kEdfNrWTtHEqmc6KMPp4ySVVHOPu81GV2bPOgNWC/QwUnqKUYW1y9CbcEA+MQWZCDXyb7HYl2+4tatj+V9Sz60UBeMZwYDXHtz+VdOLLmQKbfo81WiQ7HuNmd/0kg/Wu6Vq1dHjtUsl/14RjcHA/Z+ZyWdTBSxo/8JY6jVyjiPlGjBTABt14GzeScrZKnYP7XTXfv3AKrMnR2ItNDA6D5yOEYvYKRl1oPDM9vy92RPzw1nXivJ+IljNLNKmgWh2Vo8njMIb0buOyQmtoqy8lq9s/yA1jS9BsrrkODIECv40xrJeUb39I8bj1/tLzlPA3RHUd05kmTEFfiIAlJU5K7x7ko4Hub3blJfFKcR/kce2CUqRErhH0M6ZyPXayzCaSLwwPX1hF0d8HCGTIA7b3xmej6otbAFSQI2njD1ju2lYdftxo11rxt/PEDszUa3BCuoPFr4cu3sasI7tt4tuioNdxpFndUu/A58DdZ0tpcmFj+5hRabbYNFbfCwTes+b/LJCEuHqZdKfNgNGGVC/HrsaAozydHk=

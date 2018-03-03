@@ -3,7 +3,7 @@
 set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-BIN_NAME=punchcards
+BIN_NAME=meters
 PROJECT_ROOT=$DIR/..
 UNIX_CRATE=$PROJECT_ROOT/unix
 WASM_CRATE=$PROJECT_ROOT/wasm

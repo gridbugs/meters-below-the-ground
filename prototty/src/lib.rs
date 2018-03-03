@@ -1,24 +1,24 @@
 extern crate direction;
 extern crate prototty;
 extern crate prototty_common;
-extern crate punchcards;
+extern crate meters;
 extern crate rand;
 
 use std::fmt::Write;
 use std::time::Duration;
 use rand::{Rng, SeedableRng, StdRng};
 use direction::CardinalDirection;
-use punchcards::state::*;
-use punchcards::tile::Tile;
-use punchcards::tile_info::TileInfo;
+use meters::state::*;
+use meters::tile::Tile;
+use meters::tile_info::TileInfo;
 use prototty::*;
 use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
 use prototty_common::*;
-use punchcards::input::Input as PunchcardsInput;
-use punchcards::card::Card;
-use punchcards::card_state::CardState;
-use punchcards::ExternalEvent;
+use meters::input::Input as MetersInput;
+use meters::card::Card;
+use meters::card_state::CardState;
+use meters::ExternalEvent;
 
 use self::CardinalDirection::*;
 
@@ -35,7 +35,7 @@ const DECK_HEIGHT: u32 = 1;
 const GAME_PADDING_BOTTOM: u32 = 1;
 const GAME_PADDING_RIGHT: u32 = 1;
 
-const TITLE_WIDTH: u32 = 16;
+const TITLE_WIDTH: u32 = 24;
 const TITLE_HEIGHT: u32 = 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -228,7 +228,7 @@ pub enum ControlFlow {
 }
 
 enum InputType {
-    Game(PunchcardsInput),
+    Game(MetersInput),
     ControlFlow(ControlFlow),
 }
 
@@ -270,7 +270,7 @@ impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
         depth: i32,
         grid: &mut G,
     ) {
-        self.title_view.view("Punchcards", offset, depth, grid);
+        self.title_view.view("Meters Below the Ground", offset, depth, grid);
         self.main_menu_view
             .view(menu, offset + Coord::new(0, 2), depth, grid);
     }
@@ -300,7 +300,7 @@ pub struct App<S: Storage> {
     app_state: AppState,
     state: State,
     in_progress: bool,
-    input_buffer: Vec<PunchcardsInput>,
+    input_buffer: Vec<MetersInput>,
     game_over_duration: Duration,
     rng: StdRng,
     storage: S,
@@ -482,17 +482,17 @@ impl<S: Storage> App<S> {
             AppState::Game => {
                 for input in inputs {
                     let input_type = match input {
-                        ProtottyInput::Up => InputType::Game(PunchcardsInput::Direction(North)),
-                        ProtottyInput::Down => InputType::Game(PunchcardsInput::Direction(South)),
-                        ProtottyInput::Left => InputType::Game(PunchcardsInput::Direction(West)),
-                        ProtottyInput::Right => InputType::Game(PunchcardsInput::Direction(East)),
-                        ProtottyInput::Char('1') => InputType::Game(PunchcardsInput::SelectCard(0)),
-                        ProtottyInput::Char('2') => InputType::Game(PunchcardsInput::SelectCard(1)),
-                        ProtottyInput::Char('3') => InputType::Game(PunchcardsInput::SelectCard(2)),
-                        ProtottyInput::Char('4') => InputType::Game(PunchcardsInput::SelectCard(3)),
-                        ProtottyInput::Char('5') => InputType::Game(PunchcardsInput::SelectCard(4)),
-                        ProtottyInput::Char('6') => InputType::Game(PunchcardsInput::SelectCard(5)),
-                        ProtottyInput::Char(' ') => InputType::Game(PunchcardsInput::Wait),
+                        ProtottyInput::Up => InputType::Game(MetersInput::Direction(North)),
+                        ProtottyInput::Down => InputType::Game(MetersInput::Direction(South)),
+                        ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
+                        ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
+                        ProtottyInput::Char('1') => InputType::Game(MetersInput::SelectCard(0)),
+                        ProtottyInput::Char('2') => InputType::Game(MetersInput::SelectCard(1)),
+                        ProtottyInput::Char('3') => InputType::Game(MetersInput::SelectCard(2)),
+                        ProtottyInput::Char('4') => InputType::Game(MetersInput::SelectCard(3)),
+                        ProtottyInput::Char('5') => InputType::Game(MetersInput::SelectCard(4)),
+                        ProtottyInput::Char('6') => InputType::Game(MetersInput::SelectCard(5)),
+                        ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         prototty_inputs::ESCAPE => {
                             self.app_state = AppState::MainMenu;

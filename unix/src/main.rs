@@ -1,7 +1,7 @@
 extern crate prototty;
 extern crate prototty_file_storage;
 extern crate prototty_unix;
-extern crate punchcards_prototty;
+extern crate meters_prototty;
 extern crate rand;
 
 use std::time::Duration;
@@ -10,7 +10,7 @@ use rand::Rng;
 use prototty_unix::Context;
 use prototty::Renderer;
 use prototty_file_storage::FileStorage;
-use punchcards_prototty::*;
+use meters_prototty::*;
 
 const USER_DIR: &'static str = "user";
 const TICK_MILLIS: u64 = 33;

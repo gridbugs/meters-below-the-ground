@@ -1,13 +1,13 @@
 extern crate prototty;
 extern crate prototty_wasm;
-extern crate punchcards_prototty;
+extern crate meters_prototty;
 extern crate rand;
 
 use std::time::Duration;
 use prototty_wasm::*;
 use prototty::Renderer;
 use prototty::Input as ProtottyInput;
-use punchcards_prototty::*;
+use meters_prototty::*;
 
 pub struct WebApp {
     app: App<WasmStorage>,

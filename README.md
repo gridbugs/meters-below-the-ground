@@ -1,19 +1,19 @@
-# Punchcards
+# Meters Below the Ground
 
-[![Travis-CI Status](https://travis-ci.org/stevebob/punchcards.svg?branch=master)](https://travis-ci.org/stevebob/punchcards)
-[![Appveyor Status](https://ci.appveyor.com/api/projects/status/github/stevebob/punchcards?branch=master&svg=true)](https://ci.appveyor.com/project/stevebob/punchcards)
-[![dependency status](https://deps.rs/repo/github/stevebob/punchcards/status.svg)](https://deps.rs/repo/github/stevebob/punchcards)
+[![Travis-CI Status](https://travis-ci.org/stevebob/meters-below-the-ground.svg?branch=master)](https://travis-ci.org/stevebob/meters-below-the-ground)
+[![Appveyor Status](https://ci.appveyor.com/api/projects/status/github/stevebob/meters-below-the-ground?branch=master&svg=true)](https://ci.appveyor.com/project/stevebob/meters-below-the-ground)
+[![dependency status](https://deps.rs/repo/github/stevebob/meters-below-the-ground/status.svg)](https://deps.rs/repo/github/stevebob/meters-below-the-ground)
 
-A roguelike about an old fighting robot trying to reclaim its title.
+A roguelike where all mechanics are expressed via progress meters
 
 ## Builds
 
-- [Run in browser](https://games.gridbugs.org/punchcards/master/)
-- [Linux Terminal](https://files.gridbugs.org/punchcards-terminal-linux-x86_64-master.zip)
-- [Linux OpenGL](https://files.gridbugs.org/punchcards-opengl-linux-x86_64-master.zip)
-- [MacOS Terminal](https://files.gridbugs.org/punchcards-terminal-macos-x86_64-master.zip)
-- [MacOS OpenGL](https://files.gridbugs.org/PunchCards-master.dmg)
-- [Windows OpenGL](https://files.gridbugs.org/punchcards-opengl-windows-x86_64-master.zip)
+- [Run in browser](https://games.gridbugs.org/meters-below-the-ground/master/)
+- [Linux Terminal](https://files.gridbugs.org/meters-below-the-ground-terminal-linux-x86_64-master.zip)
+- [Linux OpenGL](https://files.gridbugs.org/meters-below-the-ground-opengl-linux-x86_64-master.zip)
+- [MacOS Terminal](https://files.gridbugs.org/meters-below-the-ground-terminal-macos-x86_64-master.zip)
+- [MacOS OpenGL](https://files.gridbugs.org/meters-below-the-ground-master.dmg)
+- [Windows OpenGL](https://files.gridbugs.org/meters-below-the-ground-opengl-windows-x86_64-master.zip)
 
 ## Fonts
 

@@ -1,7 +1,7 @@
 extern crate prototty;
 extern crate prototty_file_storage;
 extern crate prototty_glutin;
-extern crate punchcards_prototty;
+extern crate meters_prototty;
 extern crate rand;
 
 use std::time::Instant;
@@ -9,7 +9,7 @@ use rand::Rng;
 use prototty::Renderer;
 use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
-use punchcards_prototty::*;
+use meters_prototty::*;
 
 const USER_DIR: &'static str = "user";
 

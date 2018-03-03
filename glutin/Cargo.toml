@@ -1,11 +1,11 @@
 [package]
-name = "punchcards_glutin"
+name = "meters_glutin"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
 rand = "0.4"
-punchcards_prototty = { path = "../prototty" }
+meters_prototty = { path = "../prototty" }
 prototty = "0.17"
 prototty_glutin = "0.17"
 prototty_file_storage = "0.17"

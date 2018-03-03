@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CRATE="punchcards_wasm"
+CRATE="meters_wasm"
 
 set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

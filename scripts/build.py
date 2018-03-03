@@ -5,8 +5,8 @@ import shutil
 import toml
 import zipfile
 
-APP_NAME = "punchcards"
-MACOS_APP_NAME = "PunchCards"
+APP_NAME = "meters"
+MACOS_APP_NAME = "MetersBelowTheGround"
 README_NAME = "README.md"
 LICENSE_NAME = "LICENSE"
 
