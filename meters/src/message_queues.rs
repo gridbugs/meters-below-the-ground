@@ -34,6 +34,7 @@ pub struct MessageQueues {
     pub take_cards: Vec<(EntityId, Card)>,
     pub player_moved_to: Option<Coord>,
     pub next_level: bool,
+    pub game_over: bool,
 }
 
 impl MessageQueues {
@@ -45,6 +46,7 @@ impl MessageQueues {
             take_cards: Vec::new(),
             player_moved_to: None,
             next_level: false,
+            game_over: false,
         }
     }
 }
@@ -56,6 +58,7 @@ pub trait PushMessages {
     fn take_card(&mut self, entity_id: EntityId, card: Card);
     fn move_player(&mut self, coord: Coord);
     fn next_level(&mut self);
+    fn game_over(&mut self);
 }
 
 impl PushMessages for MessageQueues {
@@ -76,5 +79,8 @@ impl PushMessages for MessageQueues {
     }
     fn next_level(&mut self) {
         self.next_level = true;
+    }
+    fn game_over(&mut self) {
+        self.game_over = true;
     }
 }

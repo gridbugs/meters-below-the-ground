@@ -1,5 +1,6 @@
 use std::time::Duration;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
+use std::collections::btree_map;
 use grid_2d::Size;
 use entity_store::*;
 use input::Input;
@@ -14,6 +15,7 @@ use terrain::TerrainType;
 use world::World;
 use change::ChangeContext;
 use event::*;
+use meter::*;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -27,6 +29,27 @@ pub enum InputState {
 enum TurnState {
     Player,
     Npcs,
+}
+
+pub struct MeterInfoIter<'a> {
+    entity_store: &'a EntityStore,
+    entity_id: EntityId,
+    meter_metadata: btree_map::Iter<'a, char, MeterType>,
+}
+
+impl<'a> Iterator for MeterInfoIter<'a> {
+    type Item = MeterInfo;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.meter_metadata.next().map(|(&identifier, &typ)| {
+            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
+                .expect("Meter identifiers out of sync with game state");
+            MeterInfo {
+                typ,
+                identifier,
+                meter,
+            }
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -43,6 +66,7 @@ pub struct State {
     turn: TurnState,
     pathfinding: PathfindingContext,
     change_context: ChangeContext,
+    meter_identifiers: BTreeMap<char, MeterType>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -57,10 +81,12 @@ pub struct SaveState {
     size: Size,
     turn: TurnState,
     messages: MessageQueues,
+    meter_identifiers: BTreeMap<char, MeterType>,
 }
 
-impl State {
+const METER_IDS: &'static str = "abcdefghijklmnopqrstuvwxyz";
 
+impl State {
     pub fn switch_levels(&mut self) {
         let terrain = TerrainType::StaticStrings(vec![
             "##########",
@@ -77,9 +103,16 @@ impl State {
 
         let mut next_world = World::new(&terrain, &mut self.messages);
 
-        let next_player_id = *next_world.entity_store.player.iter().next().expect("No player");
+        let next_player_id = *next_world
+            .entity_store
+            .player
+            .iter()
+            .next()
+            .expect("No player");
 
-        for change in self.world.component_drain_insert(self.player_id, next_player_id) {
+        for change in self.world
+            .component_drain_insert(self.player_id, next_player_id)
+        {
             if change.typ() == ComponentType::Coord {
                 // otherwise the player would be moved to their old position in the new level
                 continue;
@@ -88,7 +121,11 @@ impl State {
             next_world.commit(change);
         }
 
-        let player_coord = *next_world.entity_store.coord.get(&next_player_id).expect("No player coord");
+        let player_coord = *next_world
+            .entity_store
+            .coord
+            .get(&next_player_id)
+            .expect("No player coord");
         self.messages.player_moved_to = Some(player_coord);
 
         self.player_id = next_player_id;
@@ -100,16 +137,36 @@ impl State {
         let mut rng = StdRng::from_seed(&[rng_seed]);
 
         let terrain = TerrainType::StaticStrings(vec![
-            "##########",
-            "#@.>.....#",
-            "##..1.#..#",
-            "#.....#..#",
-            "#.....#..#",
-            "###.###..#",
-            "#........#",
-            "#........#",
-            "#........#",
-            "##########",
+            "##############################",
+            "#............................#",
+            "#.@..........................#",
+            "#......1.....................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "#............................#",
+            "##############################",
         ]);
 
         let mut messages = MessageQueues::new();
@@ -118,8 +175,20 @@ impl State {
 
         let player_id = *world.entity_store.player.iter().next().expect("No player");
 
-        let player_coord = *world.entity_store.coord.get(&player_id).expect("No player coord");
+        let player_coord = *world
+            .entity_store
+            .coord
+            .get(&player_id)
+            .expect("No player coord");
         messages.player_moved_to = Some(player_coord);
+
+        let meter_identifiers: BTreeMap<_, _> = izip!(
+            METER_IDS.chars(),
+            world
+                .entity_components
+                .component_types(player_id)
+                .filter_map(MeterType::from_component_type)
+        ).collect();
 
         let card_state = CardState::new(
             vec![
@@ -152,6 +221,7 @@ impl State {
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
             world,
+            meter_identifiers,
         }
     }
 
@@ -169,6 +239,15 @@ impl State {
             size: self.world.size(),
             turn: self.turn,
             messages: self.messages.clone(),
+            meter_identifiers: self.meter_identifiers.clone(),
+        }
+    }
+
+    pub fn player_meter_info(&self) -> MeterInfoIter {
+        MeterInfoIter {
+            entity_store: &self.world.entity_store,
+            meter_metadata: self.meter_identifiers.iter(),
+            entity_id: self.player_id,
         }
     }
 
@@ -187,50 +266,24 @@ impl State {
 
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
-            Input::SelectCard(index) => {
-                if let Some(card) = self.card_state.hand.get(index) {
-                    self.input_state = InputState::WaitingForDirection(index, *card);
-                }
-                None
-            }
             Input::Direction(direction) => {
-                if let InputState::WaitingForDirection(index, card) = self.input_state {
-                    card.play(
-                        self.player_id,
-                        &self.world.entity_store,
-                        direction,
-                        &mut self.world.id_allocator,
-                        &mut self.messages,
-                    );
-                    if policy::precheck(
-                        &self.messages.changes,
-                        &self.world.entity_store,
-                        &self.world.spatial_hash,
-                    ) {
-                        let card_to_check = self.card_state.hand.remove_card(index);
-                        assert_eq!(card, card_to_check);
-                        self.card_state.fill_hand();
-                        self.input_state = InputState::WaitingForCardSelection;
-                        self.turn = TurnState::Npcs;
+                let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+                let next = current + direction.coord();
+                self.messages
+                    .changes
+                    .push(insert::coord(self.player_id, next));
 
-                        let ret = self.change_context.process(
-                            &mut self.world,
-                            &mut self.card_state,
-                            &mut self.messages,
-                            &mut self.swap_messages,
-                            &mut self.rng,
-                        );
+                let ret = self.change_context.process(
+                    &mut self.world,
+                    &mut self.card_state,
+                    &mut self.messages,
+                    &mut self.swap_messages,
+                    &mut self.rng,
+                );
 
-                        self.world.count += 1;
+                self.world.count += 1;
 
-                        ret
-                    } else {
-                        self.messages.changes.clear();
-                        None
-                    }
-                } else {
-                    None
-                }
+                ret
             }
             Input::Wait => {
                 self.turn = TurnState::Npcs;
@@ -346,6 +399,7 @@ impl From<SaveState> for State {
             size,
             turn,
             messages,
+            meter_identifiers,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -377,6 +431,7 @@ impl From<SaveState> for State {
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
+            meter_identifiers,
         }
     }
 }

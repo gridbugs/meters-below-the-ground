@@ -93,6 +93,11 @@ where
 
                     common_animations::punch(punch_id, coord, direction, messages);
 
+                    let player_id = entity_store.player.iter().next().unwrap();
+                    let mut health = entity_store.health_meter.get(&player_id).cloned().unwrap();
+                    health.value -= 1;
+                    messages.change(insert::health_meter(*player_id, health));
+
                     return false;
                 };
 
@@ -125,6 +130,11 @@ where
                     };
                     messages.change(insert::tile_info(id, tile_info));
                 }
+            }
+        }
+        &Insert(id, HealthMeter(health)) => {
+            if health.value == 0 {
+                messages.game_over();
             }
         }
         _ => (),

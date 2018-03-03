@@ -1,4 +1,6 @@
 extern crate direction;
+#[macro_use]
+extern crate itertools;
 extern crate prototty;
 extern crate prototty_common;
 extern crate meters;
@@ -27,8 +29,8 @@ const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
 
 const GAME_OVER_MS: u64 = 1000;
-const GAME_HEIGHT: u32 = 10;
-const GAME_WIDTH: u32 = 10;
+const GAME_HEIGHT: u32 = 30;
+const GAME_WIDTH: u32 = 30;
 const HAND_WIDTH: u32 = 12;
 const HAND_HEIGHT: u32 = 8;
 const DECK_WIDTH: u32 = 8;
@@ -130,7 +132,6 @@ impl DeckView {
         }
     }
 }
-
 struct MeterView {
     scratch: String,
 }
@@ -143,22 +144,22 @@ impl MeterView {
     }
 }
 
-impl View<Meter> for MeterView {
-    fn view<G: ViewGrid>(&mut self, meter: &Meter, offset: Coord, depth: i32, grid: &mut G) {
+impl View<MeterInfo> for MeterView {
+    fn view<G: ViewGrid>(&mut self, meter: &MeterInfo, offset: Coord, depth: i32, grid: &mut G) {
         self.scratch.clear();
         write_meter(meter, &mut self.scratch);
         StringView.view(&self.scratch, offset, depth, grid);
     }
 }
 
-fn write_meter(meter: &Meter, buf: &mut String) {
-    write!(buf, "{}) ", meter.identifier).unwrap();
-    match meter.typ {
+fn write_meter(info: &MeterInfo, buf: &mut String) {
+    write!(buf, "{}) ", info.identifier).unwrap();
+    match info.typ {
         MeterType::Health => write!(buf, "{:1$}", "Health", METER_NAME_PADDING).unwrap(),
         MeterType::GunAmmo => write!(buf, "{:1$}", "Gun Ammo", METER_NAME_PADDING).unwrap(),
     }
 
-    let filled_meter_width = (METER_WIDTH * meter.value) / meter.max;
+    let filled_meter_width = (METER_WIDTH * info.meter.value) / info.meter.max;
     let remaining_meter_width = METER_WIDTH - filled_meter_width;
     for _ in 0..filled_meter_width {
         buf.push('█');
@@ -167,7 +168,7 @@ fn write_meter(meter: &Meter, buf: &mut String) {
         buf.push('░')
     }
 
-    write!(buf, " {}/{}", meter.value, meter.max);
+    write!(buf, " {}/{}", info.meter.value, info.meter.max).unwrap();
 }
 
 struct HandView {
@@ -374,22 +375,10 @@ impl<S: Storage> View<App<S>> for AppView {
                     }
                 }
 
-                let hud_offset = offset + Coord::new(0, GAME_HEIGHT as i32 + GAME_PADDING_BOTTOM as i32);
-
-                let health_meter = Meter {
-                    identifier: 'a',
-                    typ: MeterType::Health,
-                    max: 8,
-                    value: 5,
-                };
-                let ammo_meter = Meter {
-                    identifier: 'b',
-                    typ: MeterType::GunAmmo,
-                    max: 12,
-                    value: 11,
-                };
-                self.meter_view.view(&health_meter, hud_offset, depth, grid);
-                self.meter_view.view(&ammo_meter, hud_offset + Coord::new(30, 0), depth, grid);
+                let hud_offset = offset + Coord::new(GAME_WIDTH as i32, 0);
+                for (y, info) in izip!(0..26, app.state.player_meter_info()) {
+                    self.meter_view.view(&info, hud_offset + Coord::new(0, y), depth, grid);
+                }
             }
             AppState::GameOver => {
                 StringView.view(&"Game Over", offset, depth, grid);
@@ -534,12 +523,6 @@ impl<S: Storage> App<S> {
                         ProtottyInput::Down => InputType::Game(MetersInput::Direction(South)),
                         ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
                         ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
-                        ProtottyInput::Char('1') => InputType::Game(MetersInput::SelectCard(0)),
-                        ProtottyInput::Char('2') => InputType::Game(MetersInput::SelectCard(1)),
-                        ProtottyInput::Char('3') => InputType::Game(MetersInput::SelectCard(2)),
-                        ProtottyInput::Char('4') => InputType::Game(MetersInput::SelectCard(3)),
-                        ProtottyInput::Char('5') => InputType::Game(MetersInput::SelectCard(4)),
-                        ProtottyInput::Char('6') => InputType::Game(MetersInput::SelectCard(5)),
                         ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         prototty_inputs::ESCAPE => {

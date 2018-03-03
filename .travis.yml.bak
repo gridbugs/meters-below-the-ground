@@ -1,0 +1,44 @@
+language: rust
+matrix:
+  include:
+    - os: linux
+      rust: stable
+    - os: linux
+      rust: beta
+    - os: linux
+      rust: nightly
+    - os: osx
+      rust: stable
+  allow_failures:
+    - rust: nightly
+
+dist: trusty
+script:
+- scripts/build.sh
+deploy:
+  - provider: s3
+    skip_cleanup: true
+    bucket: files.gridbugs.org
+    region: ap-southeast-2
+    local-dir: uploads
+    acl: public_read
+    on:
+      all_branches: true
+      repo: stevebob/meters-below-the-ground
+      condition: "$TRAVIS_RUST_VERSION = stable"
+    access_key_id: AKIAJTZWT26OECTU2UVQ
+    secret_access_key:
+      secure: OHy5mXO/a+CPlAy/fZENBJa+OF6X3IWlh8oAhp1zlHNnuxMgV2GVO2kUliMkFxjLFcbz8ZbHh02I0Fa7jMZjw0UOIEtKVSe/fuBF2cXsfeO2SYkqEEpgOot23wn2cW0cjdQnfNYtzcp8K9U26AuAzw9NqvsKjgKCbJ4+1w+yQsGBfRus2kP9S8WxzzoESrKjZC8kiL4v3bbCGfBxravZMwiTnPpSbrS/SLLkRA625YIqZa7SD9RvUH91h5xtOwp5o6wLU+E2+pOQvt3HueS5yEfKIE/J0RQpvnfs/Wsz71XhWlOYKCaL1W4Xrscj6CoIzzHbiRikmb2/i9re/AhEoJVsjFpRcwd4vnvSeOwNihuAzwroSWxFH9JLu37CSxp6vK4ykju0sHbBdzYXvPIZNwJPVeHZkQT4650WQF7n0j9A/rM7EeHL0wvlreAE11NECOXTU0UXZeJ9XMu2tZds+TQWqarJ3jPO1yVeoRjS0WuSL4XJpOxrO7vojksxnqS0nViLnMBv4Ksof0akx8J39AKjwZJ2QSc33bbPRYFibTTJUJ3vZeGUMv4zUtzVRxwGhJx/+SvwcjRmvvrL7Sw7VGqlnGsa/sBdim8eIc7iJsPhPZ5yPRdwEeKM1Gc98KXkdLWNh2pdjNP8dTAf3Gws7xZXtWOxAXsvzRHWfeTNBNs=
+  - provider: s3
+    skip_cleanup: true
+    bucket: games.gridbugs.org
+    region: ap-southeast-2
+    local-dir: web_uploads
+    acl: public_read
+    on:
+      all_branches: true
+      repo: stevebob/meters-below-the-ground
+      condition: "$TRAVIS_RUST_VERSION = beta"
+    access_key_id: AKIAJTZWT26OECTU2UVQ
+    secret_access_key:
+      secure: OHy5mXO/a+CPlAy/fZENBJa+OF6X3IWlh8oAhp1zlHNnuxMgV2GVO2kUliMkFxjLFcbz8ZbHh02I0Fa7jMZjw0UOIEtKVSe/fuBF2cXsfeO2SYkqEEpgOot23wn2cW0cjdQnfNYtzcp8K9U26AuAzw9NqvsKjgKCbJ4+1w+yQsGBfRus2kP9S8WxzzoESrKjZC8kiL4v3bbCGfBxravZMwiTnPpSbrS/SLLkRA625YIqZa7SD9RvUH91h5xtOwp5o6wLU+E2+pOQvt3HueS5yEfKIE/J0RQpvnfs/Wsz71XhWlOYKCaL1W4Xrscj6CoIzzHbiRikmb2/i9re/AhEoJVsjFpRcwd4vnvSeOwNihuAzwroSWxFH9JLu37CSxp6vK4ykju0sHbBdzYXvPIZNwJPVeHZkQT4650WQF7n0j9A/rM7EeHL0wvlreAE11NECOXTU0UXZeJ9XMu2tZds+TQWqarJ3jPO1yVeoRjS0WuSL4XJpOxrO7vojksxnqS0nViLnMBv4Ksof0akx8J39AKjwZJ2QSc33bbPRYFibTTJUJ3vZeGUMv4zUtzVRxwGhJx/+SvwcjRmvvrL7Sw7VGqlnGsa/sBdim8eIc7iJsPhPZ5yPRdwEeKM1Gc98KXkdLWNh2pdjNP8dTAf3Gws7xZXtWOxAXsvzRHWfeTNBNs=

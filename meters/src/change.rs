@@ -73,7 +73,7 @@ impl ChangeContext {
             world.id_allocator.free(id);
         }
 
-        if card_state.hand.is_empty() {
+        if card_state.hand.is_empty() || messages.game_over {
             Some(Event::External(ExternalEvent::GameOver))
         } else if messages.next_level {
             messages.next_level = false;

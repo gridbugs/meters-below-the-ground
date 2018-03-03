@@ -5,6 +5,7 @@ use tile::Tile;
 use tile_info::TileInfo;
 use card::Card;
 use message_queues::PushMessages;
+use meter::Meter;
 
 const FLOOR_DEPTH: i32      = 1;
 const WALL_DEPTH: i32       = 2;
@@ -45,6 +46,8 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         id,
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
+    messages.change(insert::health_meter(id, Meter::full(8)));
+    messages.change(insert::gun_ammo_meter(id, Meter::full(8)));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {

@@ -5,6 +5,8 @@ extern crate entity_store_helper;
 extern crate enum_primitive;
 extern crate grid_2d;
 extern crate grid_search;
+#[macro_use]
+extern crate itertools;
 extern crate rand;
 extern crate serde;
 #[macro_use]
