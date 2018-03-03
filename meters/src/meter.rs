@@ -1,6 +1,6 @@
 use entity_store::*;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MeterType {
     Health,
     GunAmmo,
@@ -12,6 +12,31 @@ impl MeterType {
             ComponentType::HealthMeter => Some(MeterType::Health),
             ComponentType::GunAmmoMeter => Some(MeterType::GunAmmo),
             _ => None,
+        }
+    }
+    pub fn can_select(self) -> bool {
+        match self {
+            MeterType::Health => false,
+            MeterType::GunAmmo => true,
+        }
+    }
+    pub fn selectable(self) -> Option<SelectableMeterType> {
+        match self {
+            MeterType::Health => None,
+            MeterType::GunAmmo => Some(SelectableMeterType::GunAmmo),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum SelectableMeterType {
+    GunAmmo,
+}
+
+impl SelectableMeterType {
+    pub fn meter(self) -> MeterType {
+        match self {
+            SelectableMeterType::GunAmmo => MeterType::GunAmmo,
         }
     }
 }
@@ -56,4 +81,5 @@ pub struct MeterInfo {
     pub identifier: char,
     pub typ: MeterType,
     pub meter: Meter,
+    pub is_selected: bool,
 }

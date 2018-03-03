@@ -153,7 +153,16 @@ impl View<MeterInfo> for MeterView {
 }
 
 fn write_meter(info: &MeterInfo, buf: &mut String) {
-    write!(buf, "{}) ", info.identifier).unwrap();
+    let seperator = if info.typ.can_select() {
+        if info.is_selected {
+            "[*]"
+        } else {
+            "[ ]"
+        }
+    } else {
+        "   "
+    };
+    write!(buf, "{}){}", info.identifier, seperator).unwrap();
     match info.typ {
         MeterType::Health => write!(buf, "{:1$}", "Health", METER_NAME_PADDING).unwrap(),
         MeterType::GunAmmo => write!(buf, "{:1$}", "Gun Ammo", METER_NAME_PADDING).unwrap(),
@@ -524,10 +533,15 @@ impl<S: Storage> App<S> {
                         ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
                         ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
                         ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
+                        ProtottyInput::Char(ch @ 'a'...'z') => InputType::Game(MetersInput::MeterSelect(ch)),
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         prototty_inputs::ESCAPE => {
-                            self.app_state = AppState::MainMenu;
-                            break;
+                            if self.state.selected_meter_type().is_some() {
+                                InputType::Game(MetersInput::MeterDeselect)
+                            } else {
+                                self.app_state = AppState::MainMenu;
+                                break;
+                            }
                         }
                         _ => continue,
                     };

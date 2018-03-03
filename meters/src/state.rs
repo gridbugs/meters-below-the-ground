@@ -16,6 +16,8 @@ use world::World;
 use change::ChangeContext;
 use event::*;
 use meter::*;
+use common_animations;
+use prototypes;
 
 const INITIAL_HAND_SIZE: usize = 4;
 
@@ -35,6 +37,7 @@ pub struct MeterInfoIter<'a> {
     entity_store: &'a EntityStore,
     entity_id: EntityId,
     meter_metadata: btree_map::Iter<'a, char, MeterType>,
+    selected_meter: Option<SelectableMeterType>,
 }
 
 impl<'a> Iterator for MeterInfoIter<'a> {
@@ -47,6 +50,7 @@ impl<'a> Iterator for MeterInfoIter<'a> {
                 typ,
                 identifier,
                 meter,
+                is_selected: Some(typ) == self.selected_meter.map(|m| m.meter()),
             }
         })
     }
@@ -67,6 +71,7 @@ pub struct State {
     pathfinding: PathfindingContext,
     change_context: ChangeContext,
     meter_identifiers: BTreeMap<char, MeterType>,
+    selected_meter: Option<SelectableMeterType>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -82,12 +87,18 @@ pub struct SaveState {
     turn: TurnState,
     messages: MessageQueues,
     meter_identifiers: BTreeMap<char, MeterType>,
+    selected_meter: Option<SelectableMeterType>,
 }
 
 const METER_IDS: &'static str = "abcdefghijklmnopqrstuvwxyz";
 
 impl State {
-    pub fn switch_levels(&mut self) {
+
+    pub fn selected_meter_type(&self) -> Option<SelectableMeterType> {
+        self.selected_meter
+    }
+
+    fn switch_levels(&mut self) {
         let terrain = TerrainType::StaticStrings(vec![
             "##########",
             "#.....1..#",
@@ -222,6 +233,7 @@ impl State {
             change_context: ChangeContext::new(),
             world,
             meter_identifiers,
+            selected_meter: None,
         }
     }
 
@@ -240,6 +252,7 @@ impl State {
             turn: self.turn,
             messages: self.messages.clone(),
             meter_identifiers: self.meter_identifiers.clone(),
+            selected_meter: self.selected_meter,
         }
     }
 
@@ -248,6 +261,7 @@ impl State {
             entity_store: &self.world.entity_store,
             meter_metadata: self.meter_identifiers.iter(),
             entity_id: self.player_id,
+            selected_meter: self.selected_meter,
         }
     }
 
@@ -267,29 +281,59 @@ impl State {
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
             Input::Direction(direction) => {
-                let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
-                let next = current + direction.coord();
-                self.messages
-                    .changes
-                    .push(insert::coord(self.player_id, next));
+                match self.selected_meter {
+                    None => {
+                        let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+                        let next = current + direction.coord();
+                        self.messages
+                            .changes
+                            .push(insert::coord(self.player_id, next));
+                    }
+                    Some(SelectableMeterType::GunAmmo) => {
+                        let mut ammo = self.world.entity_store.gun_ammo_meter.get(&self.player_id).cloned().unwrap();
 
-                let ret = self.change_context.process(
-                    &mut self.world,
-                    &mut self.card_state,
-                    &mut self.messages,
-                    &mut self.swap_messages,
-                    &mut self.rng,
-                );
-
-                self.world.count += 1;
-
-                ret
+                        if ammo.value > 0 {
+                            let entity_coord = self.world.entity_store.coord.get(&self.player_id).cloned().unwrap();
+                            let start_coord = entity_coord + direction.coord();
+                            let bullet_id = self.world.id_allocator.allocate();
+                            prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
+                            common_animations::bullet(bullet_id, &mut self.messages);
+                            ammo.value -= 1;
+                            self.messages.change(insert::gun_ammo_meter(self.player_id, ammo));
+                        }
+                    }
+                }
             }
-            Input::Wait => {
-                self.turn = TurnState::Npcs;
-                None
+            Input::MeterSelect(identifier) => {
+                if let Some(meter_type) = self.meter_identifiers.get(&identifier).cloned() {
+                    self.selected_meter = meter_type.selectable();
+                }
+                return None;
             }
+            Input::MeterDeselect => {
+                self.selected_meter = None;
+                return None;
+            }
+            Input::Wait => (),
         }
+
+        if !policy::precheck(&self.messages.changes, &self.world.entity_store, &self.world.spatial_hash) {
+            return None;
+        }
+
+        self.turn = TurnState::Npcs;
+
+        let ret = self.change_context.process(
+            &mut self.world,
+            &mut self.card_state,
+            &mut self.messages,
+            &mut self.swap_messages,
+            &mut self.rng,
+            );
+
+        self.world.count += 1;
+
+        ret
     }
 
     fn all_npc_turns(&mut self) -> Option<Event> {
@@ -400,6 +444,7 @@ impl From<SaveState> for State {
             turn,
             messages,
             meter_identifiers,
+            selected_meter,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -432,6 +477,7 @@ impl From<SaveState> for State {
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
             meter_identifiers,
+            selected_meter,
         }
     }
 }
