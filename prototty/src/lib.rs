@@ -6,7 +6,6 @@ extern crate prototty;
 extern crate prototty_common;
 extern crate rand;
 
-use std::fmt::Write;
 use std::time::Duration;
 use rand::{Rng, SeedableRng, StdRng};
 use direction::CardinalDirection;
@@ -18,10 +17,15 @@ use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
 use prototty_common::*;
 use meters::input::Input as MetersInput;
-use meters::meter::*;
 use meters::ExternalEvent;
 
 use self::CardinalDirection::*;
+
+mod meter;
+use self::meter::*;
+
+mod goal;
+use self::goal::*;
 
 const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
@@ -32,8 +36,14 @@ const GAME_WIDTH: u32 = 30;
 const TITLE_WIDTH: u32 = 24;
 const TITLE_HEIGHT: u32 = 6;
 
+const GAME_TOP_PADDING: i32 = 2;
+
 const METER_NAME_PADDING: usize = 9;
 const METER_WIDTH: u32 = 11;
+
+const OVERALL_PROGRESS_Y: i32 = 33;
+const OVERALL_PROGRESS_METER_NAME_PADDING: usize = 21;
+const OVERALL_PROGRESS_METER_WIDTH: u32 = 26;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
@@ -103,54 +113,6 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
 
 const INITIAL_INPUT_BUFFER_SIZE: usize = 16;
 
-struct MeterView {
-    scratch: String,
-}
-
-impl MeterView {
-    fn new() -> Self {
-        Self {
-            scratch: String::new(),
-        }
-    }
-}
-
-impl View<MeterInfo> for MeterView {
-    fn view<G: ViewGrid>(&mut self, meter: &MeterInfo, offset: Coord, depth: i32, grid: &mut G) {
-        self.scratch.clear();
-        write_meter(meter, &mut self.scratch);
-        StringView.view(&self.scratch, offset, depth, grid);
-    }
-}
-
-fn write_meter(info: &MeterInfo, buf: &mut String) {
-    let seperator = if info.typ.can_select() {
-        if info.is_selected {
-            "[*]"
-        } else {
-            "[ ]"
-        }
-    } else {
-        "   "
-    };
-    write!(buf, "{}){}", info.identifier, seperator).unwrap();
-    match info.typ {
-        MeterType::Health => write!(buf, "{:1$}", "Health", METER_NAME_PADDING).unwrap(),
-        MeterType::GunAmmo => write!(buf, "{:1$}", "Gun Ammo", METER_NAME_PADDING).unwrap(),
-    }
-
-    let filled_meter_width = (METER_WIDTH * info.meter.value) / info.meter.max;
-    let remaining_meter_width = METER_WIDTH - filled_meter_width;
-    for _ in 0..filled_meter_width {
-        buf.push('█');
-    }
-    for _ in 0..remaining_meter_width {
-        buf.push('░')
-    }
-
-    write!(buf, " {}/{}", info.meter.value, info.meter.max).unwrap();
-}
-
 #[derive(Debug, Clone, Copy)]
 enum GameOverMessage {
     Lose,
@@ -200,6 +162,8 @@ impl TitleScreenView {
 pub struct AppView {
     title_screen_view: Decorated<TitleScreenView, Align>,
     meter_view: MeterView,
+    overall_progress_view: MeterView,
+    goal_view: GoalView,
 }
 
 impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
@@ -227,7 +191,12 @@ impl AppView {
         let align = Align::new(size, Alignment::Centre, Alignment::Centre);
         Self {
             title_screen_view: Decorated::new(TitleScreenView::new(), align),
-            meter_view: MeterView::new(),
+            meter_view: MeterView::new(METER_NAME_PADDING, METER_WIDTH),
+            overall_progress_view: MeterView::new(
+                OVERALL_PROGRESS_METER_NAME_PADDING,
+                OVERALL_PROGRESS_METER_WIDTH,
+            ),
+            goal_view: GoalView::new(),
         }
     }
     pub fn set_size(&mut self, size: Size) {
@@ -256,12 +225,14 @@ impl<S: Storage> View<App<S>> for AppView {
                     .view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
-                let entity_store = app.state.entity_store();
 
+                self.goal_view.view(&app.state.goal(), offset, depth, grid);
+
+                let entity_store = app.state.entity_store();
                 for (id, tile_info) in entity_store.tile_info.iter() {
                     if let Some(coord) = entity_store.coord.get(&id) {
                         if let Some(cell) = grid.get_mut(
-                            offset + Coord::new(coord.x, coord.y),
+                            offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
                             tile_info.depth + depth,
                         ) {
                             view_tile(*tile_info, cell);
@@ -269,11 +240,21 @@ impl<S: Storage> View<App<S>> for AppView {
                     }
                 }
 
-                let hud_offset = offset + Coord::new(GAME_WIDTH as i32, 0);
+                let hud_offset = offset + Coord::new(GAME_WIDTH as i32, GAME_TOP_PADDING);
                 for (y, info) in izip!(0..26, app.state.player_meter_info()) {
                     self.meter_view
                         .view(&info, hud_offset + Coord::new(0, y), depth, grid);
                 }
+
+                let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
+                const OVERALL_PROGRESS_TITLE: &'static str = "Metres below the ground";
+                let overall_progress_meter = app.state.overall_progress_meter();
+                self.overall_progress_view.view(
+                    &(OVERALL_PROGRESS_TITLE, overall_progress_meter),
+                    overall_progress_offset,
+                    depth,
+                    grid,
+                );
             }
             AppState::GameOver(message) => {
                 match message {

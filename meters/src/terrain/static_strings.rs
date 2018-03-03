@@ -1,6 +1,5 @@
 use grid_2d::*;
 use entity_store::EntityIdAllocator;
-use message_queues::*;
 use prototypes;
 use super::*;
 

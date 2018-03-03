@@ -14,6 +14,7 @@ use world::World;
 use change::ChangeContext;
 use event::*;
 use meter::*;
+use goal::*;
 use common_animations;
 use prototypes;
 
@@ -255,6 +256,17 @@ impl State {
     }
     pub fn spatial_hash(&self) -> &SpatialHashTable {
         &self.world.spatial_hash
+    }
+
+    pub fn goal(&self) -> Goal {
+        Goal::Escape
+    }
+
+    pub fn overall_progress_meter(&self) -> Meter {
+        Meter {
+            value: 12,
+            max: 100,
+        }
     }
 
     fn player_turn(&mut self, input: Input) -> Option<Event> {

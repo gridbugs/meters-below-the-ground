@@ -21,7 +21,7 @@ fn main() {
         .with_cell_dimensions(16, 16)
         .with_underline_position(14)
         .with_underline_width(1)
-        .with_max_grid_size(60, 30)
+        .with_max_grid_size(60, 34)
         .build()
         .unwrap();
 

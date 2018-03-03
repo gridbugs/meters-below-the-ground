@@ -30,6 +30,7 @@ mod animation;
 mod pathfinding;
 mod event;
 
+pub mod goal;
 pub mod input;
 pub mod tile;
 pub mod tile_info;
