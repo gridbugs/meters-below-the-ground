@@ -12,6 +12,8 @@ npc = { storage = 'btree' }
 hit_points = { type = 'i32', storage = 'hash' }
 punch = { storage = 'hash' }
 stairs = { storage = 'hash' }
+slide_direction = { type = '::direction::CardinalDirection', storage = 'hash' }
+bullet = { storage = 'hash' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }

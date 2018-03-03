@@ -8,11 +8,12 @@ use message_queues::PushMessages;
 
 const FLOOR_DEPTH: i32      = 1;
 const WALL_DEPTH: i32       = 2;
-const STAIRS_DEPTH: i32      = 3;
-const CARD_DEPTH: i32       = 4;
-const NPC_DEPTH: i32        = 5;
-const PLAYER_DEPTH: i32     = 6;
-const ANIMATION_DEPTH: i32  = 7;
+const STAIRS_DEPTH: i32     = 3;
+const BULLET_DEPTH: i32     = 4;
+const CARD_DEPTH: i32       = 5;
+const NPC_DEPTH: i32        = 6;
+const PLAYER_DEPTH: i32     = 7;
+const ANIMATION_DEPTH: i32  = 8;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
@@ -100,5 +101,15 @@ pub fn stairs<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Stairs, STAIRS_DEPTH),
+    ));
+}
+
+pub fn bullet<M: PushMessages>(id: EntityId, coord: Coord, direction: CardinalDirection, messages: &mut M) {
+    messages.change(insert::slide_direction(id, direction));
+    messages.change(insert::bullet(id));
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(
+            id,
+            TileInfo::new(Tile::Bullet, BULLET_DEPTH),
     ));
 }

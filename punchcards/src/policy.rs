@@ -52,11 +52,23 @@ where
                             messages.change(insert::hit_points(*npc_id, hit_points - 1));
                         }
                     }
+                    if entity_store.bullet.contains(&id) {
+                        if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
+                            messages.change(insert::hit_points(*npc_id, hit_points - 1));
+                        }
+                        messages.remove(id);
+                        return false;
+                    }
                 }
 
                 let solid_cell = sh_cell.solid_count > 0 || sh_cell.npc_set.len() > 0;
 
                 if solid_cell && entity_store.collider.contains(&id) {
+                    return false;
+                }
+
+                if sh_cell.solid_count > 0 && entity_store.bullet.contains(&id) {
+                    messages.remove(id);
                     return false;
                 }
 

@@ -10,4 +10,5 @@ pub enum Tile {
     TargetDummy,
     SmallRobot,
     Stairs,
+    Bullet,
 }

@@ -105,6 +105,11 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
             cell.set_bold(true);
             cell.set_character('>');
         }
+        Tile::Bullet => {
+            cell.set_foreground_colour(colours::WHITE);
+            cell.set_bold(true);
+            cell.set_character('•');
+        }
     }
 }
 
@@ -150,6 +155,7 @@ fn write_card(card: Card, string: &mut String) {
     match card {
         Card::Move => write!(string, "Move").unwrap(),
         Card::Punch => write!(string, "Punch").unwrap(),
+        Card::Shoot => write!(string, "Shoot").unwrap(),
     }
 }
 

@@ -2,11 +2,13 @@ use entity_store::*;
 use direction::CardinalDirection;
 use common_animations;
 use message_queues::PushMessages;
+use prototypes;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Card {
     Move,
     Punch,
+    Shoot,
 }
 
 impl Card {
@@ -34,6 +36,13 @@ impl Card {
                 let punch_id = id_allocator.allocate();
 
                 common_animations::punch(punch_id, coord, direction, messages);
+            }
+            Card::Shoot => {
+                let entity_coord = entity_store.coord.get(&entity_id).cloned().unwrap();
+                let start_coord = entity_coord + direction.coord();
+                let bullet_id = id_allocator.allocate();
+                prototypes::bullet(bullet_id, start_coord, direction, messages);
+                common_animations::bullet(bullet_id, messages);
             }
         }
     }

@@ -102,7 +102,7 @@ impl State {
         let terrain = TerrainType::StaticStrings(vec![
             "##########",
             "#@.>.....#",
-            "#...1.#..#",
+            "##..1.#..#",
             "#.....#..#",
             "#.....#..#",
             "###.###..#",
@@ -125,16 +125,15 @@ impl State {
             vec![
                 Card::Punch,
                 Card::Punch,
-                Card::Punch,
-                Card::Punch,
-                Card::Punch,
-                Card::Punch,
                 Card::Move,
                 Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
-                Card::Move,
+                Card::Shoot,
+                Card::Shoot,
+                Card::Shoot,
+                Card::Shoot,
+                Card::Shoot,
+                Card::Shoot,
+                Card::Shoot,
             ],
             INITIAL_HAND_SIZE,
             &mut rng,
@@ -281,16 +280,18 @@ impl State {
         self.seen_animation_channels.clear();
 
         for animation in swap_drain!(animations, self.messages, self.swap_messages) {
-            let channel = animation.channel;
-            if self.seen_animation_channels.contains(&channel) {
-                self.messages.animations.push(animation);
-            } else {
-                match animation.step(period, &mut self.messages) {
-                    AnimationStatus::Continuing => {
-                        self.seen_animation_channels.insert(channel);
-                    }
-                    AnimationStatus::Finished => (),
+            if let Some(channel) = animation.channel {
+                if self.seen_animation_channels.contains(&channel) {
+                    self.messages.animations.push(animation);
+                    continue;
                 }
+            }
+
+            match animation.step(period, &self.world.entity_store, &mut self.messages) {
+                AnimationStatus::ContinuingOnChannel(channel) => {
+                    self.seen_animation_channels.insert(channel);
+                }
+                AnimationStatus::Finished | AnimationStatus::Continuing => (),
             }
         }
         self.change_context.process(
