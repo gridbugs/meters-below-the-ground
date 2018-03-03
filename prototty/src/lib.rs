@@ -17,6 +17,7 @@ use prototty::Input as ProtottyInput;
 use prototty::inputs as prototty_inputs;
 use prototty_common::*;
 use meters::input::Input as MetersInput;
+use meters::input::ActiveMeterIdentifier;
 use meters::ExternalEvent;
 
 use self::CardinalDirection::*;
@@ -39,11 +40,15 @@ const TITLE_HEIGHT: u32 = 6;
 const GAME_TOP_PADDING: i32 = 2;
 
 const METER_NAME_PADDING: usize = 9;
-const METER_WIDTH: usize = 11;
+const METER_WIDTH: usize = 10;
 
 const OVERALL_PROGRESS_Y: i32 = 33;
 const OVERALL_PROGRESS_METER_NAME_PADDING: usize = 21;
-const OVERALL_PROGRESS_METER_WIDTH: usize = 26;
+const OVERALL_PROGRESS_METER_WIDTH: usize = 29;
+
+const ACTIVE_METER_Y: i32 = 0;
+const NUM_ACTIVE_METERS: i32 = 10;
+const NUM_PASSIVE_METERS: i32 = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
@@ -240,14 +245,23 @@ impl<S: Storage> View<App<S>> for AppView {
                     }
                 }
 
-                let hud_offset = offset + Coord::new(GAME_WIDTH as i32, GAME_TOP_PADDING);
-                for (y, info) in izip!(0..26, app.state.player_meter_info()) {
+                let mut active_end = 0;
+                let active_meter_offset = offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y);
+                for (y, info) in izip!(0..NUM_ACTIVE_METERS, app.state.player_active_meter_info()) {
                     self.meter_view
-                        .view(&info, hud_offset + Coord::new(0, y), depth, grid);
+                        .view(&info, active_meter_offset + Coord::new(0, y), depth, grid);
+                    active_end += 1;
                 }
 
+                let passive_meter_offset = offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y + active_end);
+                for (y, info) in izip!(0..NUM_PASSIVE_METERS, app.state.player_passive_meter_info()) {
+                    self.meter_view
+                        .view(&info, passive_meter_offset + Coord::new(0, y), depth, grid);
+                }
+
+
                 let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
-                const OVERALL_PROGRESS_TITLE: &'static str = "Metres below the ground";
+                const OVERALL_PROGRESS_TITLE: &'static str = "Metres Below the Ground";
                 let overall_progress_meter = app.state.overall_progress_meter();
                 self.overall_progress_view.view(
                     &(OVERALL_PROGRESS_TITLE, overall_progress_meter),
@@ -407,8 +421,9 @@ impl<S: Storage> App<S> {
                         ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
                         ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
                         ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
-                        ProtottyInput::Char(ch @ 'a'...'z') => {
-                            InputType::Game(MetersInput::MeterSelect(ch))
+                        ProtottyInput::Char(ch @ '0'...'9') => {
+                            let identifier = ActiveMeterIdentifier::from_char(ch);
+                            InputType::Game(MetersInput::ActiveMeterSelect(identifier))
                         }
                         prototty_inputs::ETX => InputType::ControlFlow(ControlFlow::Quit),
                         prototty_inputs::ESCAPE => {

@@ -1,9 +1,10 @@
 use std::time::Duration;
-use std::collections::{BTreeMap, HashSet};
-use std::collections::btree_map;
+use std::collections::HashSet;
+use std::slice;
+use std::iter::Enumerate;
 use grid_2d::Size;
 use entity_store::*;
-use input::Input;
+use input::*;
 use policy;
 use animation::*;
 use rand::{SeedableRng, StdRng};
@@ -24,24 +25,44 @@ enum TurnState {
     Npcs,
 }
 
-pub struct MeterInfoIter<'a> {
+pub struct ActiveMeterInfoIter<'a> {
     entity_store: &'a EntityStore,
     entity_id: EntityId,
-    meter_metadata: btree_map::Iter<'a, char, MeterType>,
-    selected_meter: Option<SelectableMeterType>,
+    meter_metadata: Enumerate<slice::Iter<'a, ActiveMeterType>>,
+    selected_meter: Option<ActiveMeterType>,
 }
 
-impl<'a> Iterator for MeterInfoIter<'a> {
-    type Item = MeterInfo;
+impl<'a> Iterator for ActiveMeterInfoIter<'a> {
+    type Item = ActiveMeterInfo;
     fn next(&mut self) -> Option<Self::Item> {
-        self.meter_metadata.next().map(|(&identifier, &typ)| {
+        self.meter_metadata.next().map(|(index, &typ)| {
             let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
                 .expect("Meter identifiers out of sync with game state");
-            MeterInfo {
+            ActiveMeterInfo {
                 typ,
-                identifier,
+                identifier: ActiveMeterIdentifier::from_index(index),
                 meter,
-                is_selected: Some(typ) == self.selected_meter.map(|m| m.meter()),
+                is_selected: Some(typ) == self.selected_meter,
+            }
+        })
+    }
+}
+
+pub struct PassiveMeterInfoIter<'a> {
+    entity_store: &'a EntityStore,
+    entity_id: EntityId,
+    meter_metadata: slice::Iter<'a, PassiveMeterType>,
+}
+
+impl<'a> Iterator for PassiveMeterInfoIter<'a> {
+    type Item = PassiveMeterInfo;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.meter_metadata.next().map(|&typ| {
+            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
+                .expect("Meter list out of sync with game state");
+            PassiveMeterInfo {
+                typ,
+                meter,
             }
         })
     }
@@ -59,8 +80,9 @@ pub struct State {
     turn: TurnState,
     pathfinding: PathfindingContext,
     change_context: ChangeContext,
-    meter_identifiers: BTreeMap<char, MeterType>,
-    selected_meter: Option<SelectableMeterType>,
+    active_meters: Vec<ActiveMeterType>,
+    passive_meters: Vec<PassiveMeterType>,
+    selected_meter: Option<ActiveMeterType>,
     levels: Vec<TerrainInfo>,
     level_index: usize,
 }
@@ -75,16 +97,14 @@ pub struct SaveState {
     size: Size,
     turn: TurnState,
     messages: MessageQueues,
-    meter_identifiers: BTreeMap<char, MeterType>,
-    selected_meter: Option<SelectableMeterType>,
+    active_meters: Vec<ActiveMeterType>,
+    passive_meters: Vec<PassiveMeterType>,
     levels: Vec<TerrainInfo>,
     level_index: usize,
 }
 
-const METER_IDS: &'static str = "abcdefghijklmnopqrstuvwxyz";
-
 impl State {
-    pub fn selected_meter_type(&self) -> Option<SelectableMeterType> {
+    pub fn selected_meter_type(&self) -> Option<ActiveMeterType> {
         self.selected_meter
     }
 
@@ -125,38 +145,42 @@ impl State {
     pub fn new(rng_seed: usize) -> Self {
         let rng = StdRng::from_seed(&[rng_seed]);
 
-        let terrain = TerrainType::StaticStrings(vec![
-            "##############################",
-            "#............................#",
-            "#.@.<........................#",
-            "#......l.....................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "#............................#",
-            "##############################",
-        ].into_iter().map(|s| s.to_string()).collect());
+        let terrain = TerrainType::StaticStrings(
+            vec![
+                "##############################",
+                "#............................#",
+                "#.@.<........................#",
+                "#......l.....................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "#............................#",
+                "##############################",
+            ].into_iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
 
         let first_terrain = TerrainInfo {
             typ: terrain,
@@ -170,9 +194,7 @@ impl State {
 
         let final_terrain = TerrainInfo {
             typ: TerrainType::Empty,
-            config: TerrainConfig {
-                final_level: true,
-            },
+            config: TerrainConfig { final_level: true },
         };
 
         let levels = vec![
@@ -197,13 +219,18 @@ impl State {
             .expect("No player coord");
         messages.player_moved_to = Some(player_coord);
 
-        let meter_identifiers: BTreeMap<_, _> = izip!(
-            METER_IDS.chars(),
+        let active_meters: Vec<_> =
             world
                 .entity_components
                 .component_types(player_id)
-                .filter_map(MeterType::from_component_type)
-        ).collect();
+                .filter_map(ActiveMeterType::from_component_type)
+                .collect();
+
+        let passive_meters: Vec<_> = world
+            .entity_components
+            .component_types(player_id)
+            .filter_map(PassiveMeterType::from_component_type)
+            .collect();
 
         Self {
             player_id,
@@ -216,7 +243,8 @@ impl State {
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
             world,
-            meter_identifiers,
+            active_meters,
+            passive_meters,
             selected_meter: None,
             levels,
             level_index,
@@ -235,19 +263,27 @@ impl State {
             size: self.world.size(),
             turn: self.turn,
             messages: self.messages.clone(),
-            meter_identifiers: self.meter_identifiers.clone(),
-            selected_meter: self.selected_meter,
+            active_meters: self.active_meters.clone(),
+            passive_meters: self.passive_meters.clone(),
             levels: self.levels.clone(),
             level_index: self.level_index,
         }
     }
 
-    pub fn player_meter_info(&self) -> MeterInfoIter {
-        MeterInfoIter {
+    pub fn player_active_meter_info(&self) -> ActiveMeterInfoIter {
+        ActiveMeterInfoIter {
             entity_store: &self.world.entity_store,
-            meter_metadata: self.meter_identifiers.iter(),
+            meter_metadata: self.active_meters.iter().enumerate(),
             entity_id: self.player_id,
             selected_meter: self.selected_meter,
+        }
+    }
+
+    pub fn player_passive_meter_info(&self) -> PassiveMeterInfoIter {
+        PassiveMeterInfoIter {
+            entity_store: &self.world.entity_store,
+            meter_metadata: self.passive_meters.iter(),
+            entity_id: self.player_id,
         }
     }
 
@@ -279,7 +315,7 @@ impl State {
                         .changes
                         .push(insert::coord(self.player_id, next));
                 }
-                Some(SelectableMeterType::GunAmmo) => {
+                Some(ActiveMeterType::GunAmmo) => {
                     let mut ammo = self.world
                         .entity_store
                         .gun_ammo_meter
@@ -304,9 +340,9 @@ impl State {
                     }
                 }
             },
-            Input::MeterSelect(identifier) => {
-                if let Some(meter_type) = self.meter_identifiers.get(&identifier).cloned() {
-                    self.selected_meter = meter_type.selectable();
+            Input::ActiveMeterSelect(identifier) => {
+                if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
+                    self.selected_meter = Some(meter_type);
                 }
                 return None;
             }
@@ -437,8 +473,8 @@ impl From<SaveState> for State {
             size,
             turn,
             messages,
-            meter_identifiers,
-            selected_meter,
+            active_meters,
+            passive_meters,
             levels,
             level_index,
         }: SaveState,
@@ -470,8 +506,9 @@ impl From<SaveState> for State {
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
-            meter_identifiers,
-            selected_meter,
+            active_meters,
+            passive_meters,
+            selected_meter: None,
             levels,
             level_index,
         }

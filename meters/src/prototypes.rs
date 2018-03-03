@@ -39,7 +39,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
     messages.change(insert::health_meter(id, Meter::full(8)));
-    messages.change(insert::gun_ammo_meter(id, Meter::full(8)));
+    messages.change(insert::gun_ammo_meter(id, Meter::full(10)));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {

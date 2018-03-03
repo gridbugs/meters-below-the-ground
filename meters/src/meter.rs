@@ -1,51 +1,46 @@
 use entity_store::*;
+use input::ActiveMeterIdentifier;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum MeterType {
-    Health,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ActiveMeterType {
     GunAmmo,
 }
 
-impl MeterType {
+impl ActiveMeterType {
     pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
         match component_type {
-            ComponentType::HealthMeter => Some(MeterType::Health),
-            ComponentType::GunAmmoMeter => Some(MeterType::GunAmmo),
+            ComponentType::GunAmmoMeter => Some(ActiveMeterType::GunAmmo),
             _ => None,
         }
     }
-    pub fn can_select(self) -> bool {
-        match self {
-            MeterType::Health => false,
-            MeterType::GunAmmo => true,
-        }
-    }
-    pub fn selectable(self) -> Option<SelectableMeterType> {
-        match self {
-            MeterType::Health => None,
-            MeterType::GunAmmo => Some(SelectableMeterType::GunAmmo),
+}
+
+impl From<ActiveMeterType> for ComponentType {
+    fn from(typ: ActiveMeterType) -> Self {
+        match typ {
+            ActiveMeterType::GunAmmo => ComponentType::GunAmmoMeter,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum SelectableMeterType {
-    GunAmmo,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum PassiveMeterType {
+    Health,
 }
 
-impl SelectableMeterType {
-    pub fn meter(self) -> MeterType {
-        match self {
-            SelectableMeterType::GunAmmo => MeterType::GunAmmo,
+impl PassiveMeterType {
+    pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
+        match component_type {
+            ComponentType::HealthMeter => Some(PassiveMeterType::Health),
+            _ => None,
         }
     }
 }
 
-impl From<MeterType> for ComponentType {
-    fn from(meter_type: MeterType) -> Self {
-        match meter_type {
-            MeterType::Health => ComponentType::HealthMeter,
-            MeterType::GunAmmo => ComponentType::GunAmmoMeter,
+impl From<PassiveMeterType> for ComponentType {
+    fn from(typ: PassiveMeterType) -> Self {
+        match typ {
+            PassiveMeterType::Health => ComponentType::HealthMeter,
         }
     }
 }
@@ -67,10 +62,10 @@ impl Meter {
             _ => None,
         }
     }
-    pub fn from_entity_store(
+    pub fn from_entity_store<T: Into<ComponentType>>(
         id: EntityId,
         entity_store: &EntityStore,
-        typ: MeterType,
+        typ: T,
     ) -> Option<Self> {
         let component_type = typ.into();
         entity_store
@@ -80,9 +75,15 @@ impl Meter {
 }
 
 #[derive(Debug, Clone)]
-pub struct MeterInfo {
-    pub identifier: char,
-    pub typ: MeterType,
-    pub meter: Meter,
+pub struct ActiveMeterInfo {
+    pub identifier: ActiveMeterIdentifier,
     pub is_selected: bool,
+    pub typ: ActiveMeterType,
+    pub meter: Meter,
+}
+
+#[derive(Debug, Clone)]
+pub struct PassiveMeterInfo {
+    pub typ: PassiveMeterType,
+    pub meter: Meter,
 }
