@@ -1,0 +1,22 @@
+- goal for each level represented by progress meters
+    - kill the boss
+    - kill n eggs before they hatch
+    - defend stationary vip for x turns
+    - reach a location within x turns
+    - collect x well-guarded items
+- you only get an upgrade if you complete the goal
+- on the final level the goal is to escape
+- persistent progress bar of how many metres are left
+- meters
+    - active
+        - gun: charge by collecting ammo.
+        - medkit: Charges over time. Use to drain and heal by square of current charge.
+        - personal teleport: Charges over time, fluctuating between full and empty.
+                Use to teleport by distance determined by current charge, draining charge into negative.
+        - kinetic pulse: When fully charged, discharge to knock back nearby enemies
+    - passive
+        - health: charge by using medkit or collecting bandages. You die when it runs out.
+        - kevlar: charge by collecting scrap. Probabilistically absorbs damage when non-empty, draining by 1.
+        - gasmask: charges over time. Drains when in gas instead of health.
+        - compass: shows the distance to your nearest goal
+

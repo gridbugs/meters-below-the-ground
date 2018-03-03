@@ -10,6 +10,13 @@ macro_rules! swap_drain {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum Special {
+    Lose,
+    Win,
+    NextLevel,
+}
+
 #[derive(Clone, Debug)]
 pub struct MessageQueuesSwap {
     pub animations: Vec<Animation>,
@@ -31,8 +38,7 @@ pub struct MessageQueues {
     pub changes: Vec<EntityChange>,
     pub removed_entities: Vec<EntityId>,
     pub player_moved_to: Option<Coord>,
-    pub next_level: bool,
-    pub game_over: bool,
+    pub special: Option<Special>,
 }
 
 impl MessageQueues {
@@ -42,8 +48,7 @@ impl MessageQueues {
             changes: Vec::new(),
             removed_entities: Vec::new(),
             player_moved_to: None,
-            next_level: false,
-            game_over: false,
+            special: None,
         }
     }
 }
@@ -54,7 +59,8 @@ pub trait PushMessages {
     fn remove(&mut self, entity_id: EntityId);
     fn move_player(&mut self, coord: Coord);
     fn next_level(&mut self);
-    fn game_over(&mut self);
+    fn lose(&mut self);
+    fn win(&mut self);
 }
 
 impl PushMessages for MessageQueues {
@@ -71,9 +77,12 @@ impl PushMessages for MessageQueues {
         self.player_moved_to = Some(coord);
     }
     fn next_level(&mut self) {
-        self.next_level = true;
+        self.special = Some(Special::NextLevel);
     }
-    fn game_over(&mut self) {
-        self.game_over = true;
+    fn lose(&mut self) {
+        self.special = Some(Special::Lose);
+    }
+    fn win(&mut self) {
+        self.special = Some(Special::Win);
     }
 }

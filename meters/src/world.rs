@@ -13,7 +13,7 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(terrain: &TerrainType, messages: &mut MessageQueues) -> Self {
+    pub fn new(terrain: &TerrainInfo, messages: &mut MessageQueues) -> Self {
         let size = terrain.size();
 
         let mut world = Self {

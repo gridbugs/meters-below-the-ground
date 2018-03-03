@@ -64,13 +64,11 @@ impl ChangeContext {
             world.id_allocator.free(id);
         }
 
-        if messages.game_over {
-            Some(Event::External(ExternalEvent::GameOver))
-        } else if messages.next_level {
-            messages.next_level = false;
-            Some(Event::NextLevel)
-        } else {
-            None
+        match messages.special.take() {
+            Some(Special::Lose) => Some(Event::External(ExternalEvent::Lose)),
+            Some(Special::Win) => Some(Event::External(ExternalEvent::Win)),
+            Some(Special::NextLevel) => Some(Event::NextLevel),
+            None => None,
         }
     }
 }

@@ -3,25 +3,53 @@ use entity_store::EntityIdAllocator;
 use message_queues::*;
 
 mod static_strings;
+mod empty;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TerrainType {
-    StaticStrings(Vec<&'static str>),
+    StaticStrings(Vec<String>),
+    Empty,
 }
 
-impl TerrainType {
+impl TerrainInfo {
     pub fn size(&self) -> Size {
-        match self {
+        match &self.typ {
             &TerrainType::StaticStrings(ref strings) => {
                 Size::new(strings[0].len() as u32, strings.len() as u32)
+            }
+            &TerrainType::Empty => {
+                Size::new(30, 30)
             }
         }
     }
 
     pub fn populate(&self, id_allocator: &mut EntityIdAllocator, messages: &mut MessageQueues) {
-        match self {
+        match &self.typ {
             &TerrainType::StaticStrings(ref strings) => {
-                static_strings::populate(strings, id_allocator, messages);
+                static_strings::populate(strings, self.config, id_allocator, messages);
+            }
+            &TerrainType::Empty => {
+                empty::populate(self.config, id_allocator, messages);
             }
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct TerrainConfig {
+    pub final_level: bool,
+}
+
+impl Default for TerrainConfig {
+    fn default() -> Self {
+        Self {
+            final_level: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TerrainInfo {
+    pub typ: TerrainType,
+    pub config: TerrainConfig,
 }

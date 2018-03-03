@@ -86,7 +86,12 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
         Tile::Stairs => {
             cell.set_foreground_colour(colours::WHITE);
             cell.set_bold(true);
-            cell.set_character('>');
+            cell.set_character('<');
+        }
+        Tile::Exit => {
+            cell.set_foreground_colour(colours::WHITE);
+            cell.set_bold(true);
+            cell.set_character('Ω');
         }
         Tile::Bullet => {
             cell.set_foreground_colour(colours::WHITE);
@@ -147,9 +152,15 @@ fn write_meter(info: &MeterInfo, buf: &mut String) {
 }
 
 #[derive(Debug, Clone, Copy)]
+enum GameOverMessage {
+    Lose,
+    Win,
+}
+
+#[derive(Debug, Clone, Copy)]
 enum AppState {
     Game,
-    GameOver,
+    GameOver(GameOverMessage),
     MainMenu,
 }
 
@@ -264,8 +275,15 @@ impl<S: Storage> View<App<S>> for AppView {
                         .view(&info, hud_offset + Coord::new(0, y), depth, grid);
                 }
             }
-            AppState::GameOver => {
-                StringView.view(&"Game Over", offset, depth, grid);
+            AppState::GameOver(message) => {
+                match message {
+                    GameOverMessage::Lose => {
+                        StringView.view(&"You Died", offset, depth, grid);
+                    }
+                    GameOverMessage::Win => {
+                        StringView.view(&"You Win!", offset, depth, grid);
+                    }
+                }
             }
         }
     }
@@ -432,8 +450,12 @@ impl<S: Storage> App<S> {
 
                 if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period) {
                     match meta {
-                        ExternalEvent::GameOver => {
-                            self.app_state = AppState::GameOver;
+                        ExternalEvent::Lose => {
+                            self.app_state = AppState::GameOver(GameOverMessage::Lose);
+                            self.game_over_duration = Duration::from_millis(GAME_OVER_MS);
+                        }
+                        ExternalEvent::Win => {
+                            self.app_state = AppState::GameOver(GameOverMessage::Win);
                             self.game_over_duration = Duration::from_millis(GAME_OVER_MS);
                         }
                     }
@@ -441,7 +463,7 @@ impl<S: Storage> App<S> {
 
                 None
             }
-            AppState::GameOver => {
+            AppState::GameOver(_) => {
                 if let Some(remaining) = self.game_over_duration.checked_sub(period) {
                     self.game_over_duration = remaining;
                 } else {

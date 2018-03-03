@@ -89,6 +89,15 @@ pub fn stairs<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
 }
 
+pub fn exit<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::exit(id));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::Exit, STAIRS_DEPTH),
+    ));
+}
+
 pub fn bullet<M: PushMessages>(
     id: EntityId,
     coord: Coord,

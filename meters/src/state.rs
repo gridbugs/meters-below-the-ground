@@ -9,7 +9,7 @@ use animation::*;
 use rand::{SeedableRng, StdRng};
 use pathfinding::PathfindingContext;
 use message_queues::*;
-use terrain::TerrainType;
+use terrain::*;
 use world::World;
 use change::ChangeContext;
 use event::*;
@@ -60,6 +60,8 @@ pub struct State {
     change_context: ChangeContext,
     meter_identifiers: BTreeMap<char, MeterType>,
     selected_meter: Option<SelectableMeterType>,
+    levels: Vec<TerrainInfo>,
+    level_index: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -74,6 +76,8 @@ pub struct SaveState {
     messages: MessageQueues,
     meter_identifiers: BTreeMap<char, MeterType>,
     selected_meter: Option<SelectableMeterType>,
+    levels: Vec<TerrainInfo>,
+    level_index: usize,
 }
 
 const METER_IDS: &'static str = "abcdefghijklmnopqrstuvwxyz";
@@ -84,20 +88,8 @@ impl State {
     }
 
     fn switch_levels(&mut self) {
-        let terrain = TerrainType::StaticStrings(vec![
-            "##########",
-            "#.....1..#",
-            "#..m.....#",
-            "#m..1....#",
-            "#1.......#",
-            "#..#####.#",
-            "#........#",
-            "#.....@>.#",
-            "#........#",
-            "##########",
-        ]);
-
-        let mut next_world = World::new(&terrain, &mut self.messages);
+        self.level_index += 1;
+        let mut next_world = World::new(&self.levels[self.level_index], &mut self.messages);
 
         let next_player_id = *next_world
             .entity_store
@@ -135,7 +127,7 @@ impl State {
         let terrain = TerrainType::StaticStrings(vec![
             "##############################",
             "#............................#",
-            "#.@..........................#",
+            "#.@.<........................#",
             "#......l.....................#",
             "#............................#",
             "#............................#",
@@ -163,11 +155,37 @@ impl State {
             "#............................#",
             "#............................#",
             "##############################",
-        ]);
+        ].into_iter().map(|s| s.to_string()).collect());
+
+        let first_terrain = TerrainInfo {
+            typ: terrain,
+            config: Default::default(),
+        };
+
+        let common_terrain = TerrainInfo {
+            typ: TerrainType::Empty,
+            config: Default::default(),
+        };
+
+        let final_terrain = TerrainInfo {
+            typ: TerrainType::Empty,
+            config: TerrainConfig {
+                final_level: true,
+            },
+        };
+
+        let levels = vec![
+            first_terrain,
+            common_terrain.clone(),
+            common_terrain.clone(),
+            final_terrain,
+        ];
+
+        let level_index = 0;
 
         let mut messages = MessageQueues::new();
 
-        let world = World::new(&terrain, &mut messages);
+        let world = World::new(&levels[level_index], &mut messages);
 
         let player_id = *world.entity_store.player.iter().next().expect("No player");
 
@@ -199,6 +217,8 @@ impl State {
             world,
             meter_identifiers,
             selected_meter: None,
+            levels,
+            level_index,
         }
     }
 
@@ -216,6 +236,8 @@ impl State {
             messages: self.messages.clone(),
             meter_identifiers: self.meter_identifiers.clone(),
             selected_meter: self.selected_meter,
+            levels: self.levels.clone(),
+            level_index: self.level_index,
         }
     }
 
@@ -405,6 +427,8 @@ impl From<SaveState> for State {
             messages,
             meter_identifiers,
             selected_meter,
+            levels,
+            level_index,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -436,6 +460,8 @@ impl From<SaveState> for State {
             change_context: ChangeContext::new(),
             meter_identifiers,
             selected_meter,
+            levels,
+            level_index,
         }
     }
 }

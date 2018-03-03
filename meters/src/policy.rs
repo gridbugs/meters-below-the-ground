@@ -106,6 +106,8 @@ where
                 if is_player {
                     if sh_cell.stairs_count > 0 {
                         messages.next_level();
+                    } else if sh_cell.exit_count > 0 {
+                        messages.win();
                     } else {
                         messages.move_player(coord);
                     }
@@ -127,7 +129,7 @@ where
         }
         &Insert(id, HealthMeter(health)) => {
             if entity_store.player.contains(&id) && health.value == 0 {
-                messages.game_over();
+                messages.lose();
             }
         }
         _ => (),

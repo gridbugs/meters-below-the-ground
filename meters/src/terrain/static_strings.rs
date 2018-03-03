@@ -2,9 +2,11 @@ use grid_2d::*;
 use entity_store::EntityIdAllocator;
 use message_queues::*;
 use prototypes;
+use super::*;
 
 pub fn populate(
-    strings: &Vec<&'static str>,
+    strings: &Vec<String>,
+    config: TerrainConfig,
     id_allocator: &mut EntityIdAllocator,
     messages: &mut MessageQueues,
 ) {
@@ -23,8 +25,12 @@ pub fn populate(
                     prototypes::larvae(id_allocator.allocate(), coord, messages);
                     prototypes::floor(id_allocator.allocate(), coord, messages);
                 }
-                '>' => {
-                    prototypes::stairs(id_allocator.allocate(), coord, messages);
+                '<' => {
+                    if config.final_level {
+                        prototypes::exit(id_allocator.allocate(), coord, messages);
+                    } else {
+                        prototypes::stairs(id_allocator.allocate(), coord, messages);
+                    }
                 }
                 '@' => {
                     let id = id_allocator.allocate();

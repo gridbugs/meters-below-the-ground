@@ -7,6 +7,7 @@ pub enum Tile {
     Floor,
     Punch(CardinalDirection),
     Stairs,
+    Exit,
     Bullet,
     Larvae,
 }

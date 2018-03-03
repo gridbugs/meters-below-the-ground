@@ -1,5 +1,6 @@
 pub enum ExternalEvent {
-    GameOver,
+    Lose,
+    Win,
 }
 
 pub enum Event {
