@@ -17,8 +17,10 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
         match change {
             &Insert(id, Coord(coord)) => {
                 if let Some(sh_cell) = spatial_hash.get(coord) {
-                    let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
-                    let solid_cell = (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
+                    let door_cell =
+                        sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
+                    let solid_cell =
+                        (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
                     if solid_cell && entity_store.collider.contains(&id) {
                         return false;
                     }
@@ -32,11 +34,15 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     true
 }
 
-pub fn kevlar_blocks_attack<R: Rng>(entity_id: EntityId, entity_store: &EntityStore, rng: &mut R) -> Option<Meter> {
+pub fn kevlar_blocks_attack<R: Rng>(
+    entity_id: EntityId,
+    entity_store: &EntityStore,
+    rng: &mut R,
+) -> Option<Meter> {
     if let Some(kevlar) = entity_store.kevlar_meter.get(&entity_id).cloned() {
         if kevlar.value > 0 {
             if rng.gen() {
-                return Some(kevlar)
+                return Some(kevlar);
             }
         }
     }
@@ -79,7 +85,8 @@ where
 
                 let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
 
-                let solid_cell = (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
+                let solid_cell =
+                    (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
 
                 if solid_cell && entity_store.collider.contains(&id) {
                     return false;
@@ -115,7 +122,9 @@ where
 
                     let mut health = entity_store.health_meter.get(player_id).cloned().unwrap();
 
-                    let change = if let Some(mut kevlar) = kevlar_blocks_attack(*player_id, entity_store, rng) {
+                    let change = if let Some(mut kevlar) =
+                        kevlar_blocks_attack(*player_id, entity_store, rng)
+                    {
                         kevlar.value -= 1;
                         insert::kevlar_meter(*player_id, kevlar)
                     } else {

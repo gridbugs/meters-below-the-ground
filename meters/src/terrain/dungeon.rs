@@ -1,5 +1,5 @@
 use std::mem;
-use std::collections::{VecDeque, HashSet};
+use std::collections::{HashSet, VecDeque};
 use rand::Rng;
 use direction::*;
 use entity_store::EntityIdAllocator;
@@ -28,7 +28,6 @@ struct PrelimRoom {
 
 impl PrelimRoom {
     fn room<R: Rng>(&self, rng: &mut R) -> Room {
-
         use self::CardinalDirection::*;
         let mut door_sides = vec![North, East, South, West];
         rng.shuffle(&mut door_sides);
@@ -37,29 +36,32 @@ impl PrelimRoom {
             door_sides.pop();
         }
 
-        let doors = door_sides.iter().map(|&d| {
-            let coord = match d {
-                North => {
-                    let offset = random_between_inclusive(1, self.size.x() - 2, rng) as i32;
-                    Coord::new(offset, 0)
-                }
-                South => {
-                    let offset = random_between_inclusive(1, self.size.x() - 2, rng) as i32;
-                    Coord::new(offset, self.size.y() as i32 - 1)
-                }
-                East => {
-                    let offset = random_between_inclusive(1, self.size.y() - 2, rng) as i32;
-                    Coord::new(self.size.x() as i32 - 1, offset)
-                }
-                West => {
-                    let offset = random_between_inclusive(1, self.size.y() - 2, rng) as i32;
-                    Coord::new(0, offset)
-                }
-            };
-            // covert coordinate system
-            let coord = coord + coord;
-            (d, coord)
-        }).collect();
+        let doors = door_sides
+            .iter()
+            .map(|&d| {
+                let coord = match d {
+                    North => {
+                        let offset = random_between_inclusive(1, self.size.x() - 2, rng) as i32;
+                        Coord::new(offset, 0)
+                    }
+                    South => {
+                        let offset = random_between_inclusive(1, self.size.x() - 2, rng) as i32;
+                        Coord::new(offset, self.size.y() as i32 - 1)
+                    }
+                    East => {
+                        let offset = random_between_inclusive(1, self.size.y() - 2, rng) as i32;
+                        Coord::new(self.size.x() as i32 - 1, offset)
+                    }
+                    West => {
+                        let offset = random_between_inclusive(1, self.size.y() - 2, rng) as i32;
+                        Coord::new(0, offset)
+                    }
+                };
+                // covert coordinate system
+                let coord = coord + coord;
+                (d, coord)
+            })
+            .collect();
 
         Room {
             size: self.size + self.size - Size::new(1, 1),
@@ -97,10 +99,7 @@ fn choose_rooms<R: Rng>(rng: &mut R) -> Vec<Room> {
         let x = random_between_inclusive(1, max_x - 1, rng);
         let y = random_between_inclusive(1, max_y - 1, rng);
         let position = Coord::new(x as i32, y as i32);
-        let room = PrelimRoom {
-            position,
-            size,
-        };
+        let room = PrelimRoom { position, size };
 
         let mut valid = true;
         for coord in size.coords().map(|c| c + position) {
@@ -140,11 +139,14 @@ impl Default for Cell {
     }
 }
 
-fn place_rooms<R: Rng>(grid: &mut Grid<Cell>, rooms: &Vec<Room>, rng: &mut R) -> Vec<(Coord, CardinalDirection)> {
+fn place_rooms<R: Rng>(
+    grid: &mut Grid<Cell>,
+    rooms: &Vec<Room>,
+    rng: &mut R,
+) -> Vec<(Coord, CardinalDirection)> {
     let mut doors = Vec::new();
 
     for room in rooms.iter() {
-
         for coord in room.size.coords().map(|c| c + room.position) {
             let cell = grid.get_mut(coord).unwrap();
             *cell = Cell::Floor;
@@ -218,7 +220,9 @@ fn place_caverns<R: Rng>(grid: &mut Grid<Cell>, rng: &mut R) {
 
     for _ in 0..NUM_CAVERN_STEPS {
         for coord in conway_grid.coords() {
-            if coord.x == 0 || coord.y == 0 || coord.x == width as i32 - 1 || coord.y == height as i32 - 1 {
+            if coord.x == 0 || coord.y == 0 || coord.x == width as i32 - 1
+                || coord.y == height as i32 - 1
+            {
                 let cell = conway_grid.get_mut(coord).unwrap();
                 cell.next_alive = true;
             } else {
@@ -235,7 +239,8 @@ fn place_caverns<R: Rng>(grid: &mut Grid<Cell>, rng: &mut R) {
                 if cell.alive {
                     cell.next_alive = count >= CAVERN_SURVIVE_MIN && count <= CAVERN_SURVIVE_MAX;
                 } else {
-                    cell.next_alive = count >= CAVERN_RESURRECT_MIN && count <= CAVERN_RESURRECT_MAX;
+                    cell.next_alive =
+                        count >= CAVERN_RESURRECT_MIN && count <= CAVERN_RESURRECT_MAX;
                 }
             }
         }
@@ -278,14 +283,13 @@ fn place_caverns<R: Rng>(grid: &mut Grid<Cell>, rng: &mut R) {
         }
     }
 
-    for (conway_cell, world_cell) in izip!(conway_grid.iter(), grid.iter_mut())  {
+    for (conway_cell, world_cell) in izip!(conway_grid.iter(), grid.iter_mut()) {
         if conway_cell.alive {
             *world_cell = Cell::CavernWall;
         } else {
             *world_cell = Cell::Floor;
         }
     }
-
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -295,7 +299,6 @@ enum Visited {
 }
 
 fn door_dig(grid: &mut Grid<Cell>, doors: &Vec<(Coord, CardinalDirection)>) {
-
     for &(coord, direction) in doors.iter() {
         let outside_door_coord = coord + direction.coord();
         if *grid.get(outside_door_coord).unwrap() != Cell::Floor {
@@ -312,12 +315,14 @@ fn door_dig(grid: &mut Grid<Cell>, doors: &Vec<(Coord, CardinalDirection)>) {
                             continue;
                         }
                         if cell == Cell::Floor {
-                            *visited.get_mut(neighbour_coord).unwrap() = Some(Visited::Step(d.opposite()));
+                            *visited.get_mut(neighbour_coord).unwrap() =
+                                Some(Visited::Step(d.opposite()));
                             dest = Some(neighbour_coord);
                             break 'outer;
                         }
                         if cell == Cell::CavernWall {
-                            *visited.get_mut(neighbour_coord).unwrap() = Some(Visited::Step(d.opposite()));
+                            *visited.get_mut(neighbour_coord).unwrap() =
+                                Some(Visited::Step(d.opposite()));
                             open_set.push_back(neighbour_coord);
                         }
                     }
@@ -341,13 +346,10 @@ fn door_dig(grid: &mut Grid<Cell>, doors: &Vec<(Coord, CardinalDirection)>) {
 const PRUNE_SIZE_THRESHOLD: usize = 12;
 
 fn prune_small_areas(grid: &mut Grid<Cell>) {
-
     let mut processed: Grid<bool> = Grid::new_default(size());
 
     for coord in grid.coords() {
-        if *grid.get(coord).unwrap() == Cell::Floor &&
-            !processed.get(coord).unwrap() {
-
+        if *grid.get(coord).unwrap() == Cell::Floor && !processed.get(coord).unwrap() {
             let mut seen = Vec::new();
             let mut to_visit = vec![coord];
 
@@ -357,9 +359,7 @@ fn prune_small_areas(grid: &mut Grid<Cell>) {
 
                 for d in CardinalDirections {
                     let next = coord + d.coord();
-                    if *grid.get(next).unwrap() == Cell::Floor &&
-                        !processed.get(next).unwrap() {
-
+                    if *grid.get(next).unwrap() == Cell::Floor && !processed.get(next).unwrap() {
                         to_visit.push(next);
                     }
                 }
@@ -378,17 +378,13 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
     let mut largest: Vec<Coord> = Vec::new();
     let mut processed: Grid<bool> = Grid::new_default(size());
 
-    let is_candidate = |cell| {
-        match cell {
-            Cell::Floor | Cell::Doorway(_, _) => true,
-            _ => false,
-        }
+    let is_candidate = |cell| match cell {
+        Cell::Floor | Cell::Doorway(_, _) => true,
+        _ => false,
     };
 
     for coord in grid.coords() {
-        if !processed.get(coord).unwrap() &&
-            is_candidate(*grid.get(coord).unwrap()) {
-
+        if !processed.get(coord).unwrap() && is_candidate(*grid.get(coord).unwrap()) {
             let mut seen = Vec::new();
             let mut to_visit = vec![coord];
             *processed.get_mut(coord).unwrap() = true;
@@ -398,9 +394,7 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
 
                 for d in CardinalDirections {
                     let next = coord + d.coord();
-                    if !processed.get(next).unwrap() &&
-                        is_candidate(*grid.get(next).unwrap()) {
-
+                    if !processed.get(next).unwrap() && is_candidate(*grid.get(next).unwrap()) {
                         to_visit.push(next);
                         *processed.get_mut(next).unwrap() = true;
                     }
@@ -422,7 +416,6 @@ pub fn populate<R: Rng>(
     messages: &mut MessageQueues,
     rng: &mut R,
 ) -> bool {
-
     let mut grid: Grid<Cell> = Grid::new_default(size());
 
     place_caverns(&mut grid, rng);
@@ -438,7 +431,11 @@ pub fn populate<R: Rng>(
     rng.shuffle(&mut largest_space);
 
     let room_centres = rooms.iter().map(|r| r.centre()).collect::<HashSet<_>>();
-    let room_centres_in_largest_space = largest_space.iter().cloned().filter(|coord| room_centres.contains(coord)).collect::<Vec<_>>();
+    let room_centres_in_largest_space = largest_space
+        .iter()
+        .cloned()
+        .filter(|coord| room_centres.contains(coord))
+        .collect::<Vec<_>>();
 
     if room_centres_in_largest_space.len() < 2 {
         return false;
@@ -458,16 +455,14 @@ pub fn populate<R: Rng>(
             Cell::Floor => {
                 prototypes::floor(id_allocator.allocate(), coord, messages);
             }
-            Cell::Doorway(_, door) => {
-                match door {
-                    Door::Present => {
-                        prototypes::door(id_allocator.allocate(), coord, messages);
-                    }
-                    Door::Absent => {
-                        prototypes::floor(id_allocator.allocate(), coord, messages);
-                    }
+            Cell::Doorway(_, door) => match door {
+                Door::Present => {
+                    prototypes::door(id_allocator.allocate(), coord, messages);
                 }
-            }
+                Door::Absent => {
+                    prototypes::floor(id_allocator.allocate(), coord, messages);
+                }
+            },
         }
     }
 

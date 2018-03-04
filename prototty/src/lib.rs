@@ -240,7 +240,6 @@ impl<S: Storage> View<App<S>> for AppView {
                     .view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
-
                 self.goal_view.view(&app.state.goal(), offset, depth, grid);
 
                 let entity_store = app.state.entity_store();
@@ -256,19 +255,32 @@ impl<S: Storage> View<App<S>> for AppView {
                 }
 
                 let mut active_end = 0;
-                let active_meter_offset = offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y);
+                let active_meter_offset =
+                    offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y);
                 for (y, info) in izip!(0..NUM_ACTIVE_METERS, app.state.player_active_meter_info()) {
-                    self.meter_view
-                        .view(&info, active_meter_offset + Coord::new(0, y), depth, grid);
+                    self.meter_view.view(
+                        &info,
+                        active_meter_offset + Coord::new(0, y),
+                        depth,
+                        grid,
+                    );
                     active_end += 1;
                 }
 
-                let passive_meter_offset = offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y + active_end);
-                for (y, info) in izip!(0..NUM_PASSIVE_METERS, app.state.player_passive_meter_info()) {
-                    self.meter_view
-                        .view(&info, passive_meter_offset + Coord::new(0, y), depth, grid);
+                let passive_meter_offset = offset
+                    + Coord::new(
+                        GAME_WIDTH as i32 + 1,
+                        GAME_TOP_PADDING + ACTIVE_METER_Y + active_end,
+                    );
+                for (y, info) in izip!(0..NUM_PASSIVE_METERS, app.state.player_passive_meter_info())
+                {
+                    self.meter_view.view(
+                        &info,
+                        passive_meter_offset + Coord::new(0, y),
+                        depth,
+                        grid,
+                    );
                 }
-
 
                 let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
                 const OVERALL_PROGRESS_TITLE: &'static str = "Metres Below the Ground";
@@ -280,16 +292,14 @@ impl<S: Storage> View<App<S>> for AppView {
                     grid,
                 );
             }
-            AppState::GameOver(message) => {
-                match message {
-                    GameOverMessage::Lose => {
-                        StringView.view(&"You Died", offset, depth, grid);
-                    }
-                    GameOverMessage::Win => {
-                        StringView.view(&"You Win!", offset, depth, grid);
-                    }
+            AppState::GameOver(message) => match message {
+                GameOverMessage::Lose => {
+                    StringView.view(&"You Died", offset, depth, grid);
                 }
-            }
+                GameOverMessage::Win => {
+                    StringView.view(&"You Win!", offset, depth, grid);
+                }
+            },
         }
     }
 }

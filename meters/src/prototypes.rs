@@ -59,7 +59,10 @@ pub fn wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
 
 pub fn cavern_wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::tile_info(id, TileInfo::new(Tile::CavernWall, WALL_DEPTH)));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::CavernWall, WALL_DEPTH),
+    ));
     messages.change(insert::solid(id));
 }
 

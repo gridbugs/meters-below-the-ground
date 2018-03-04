@@ -25,7 +25,12 @@ impl TerrainInfo {
         }
     }
 
-    pub fn populate<R: Rng>(&self, id_allocator: &mut EntityIdAllocator, messages: &mut MessageQueues, rng: &mut R) {
+    pub fn populate<R: Rng>(
+        &self,
+        id_allocator: &mut EntityIdAllocator,
+        messages: &mut MessageQueues,
+        rng: &mut R,
+    ) {
         match &self.typ {
             &TerrainType::StaticStrings(ref strings) => {
                 static_strings::populate(strings, self.config, id_allocator, messages);
@@ -47,9 +52,7 @@ pub struct TerrainConfig {
 
 impl Default for TerrainConfig {
     fn default() -> Self {
-        Self {
-            final_level: false,
-        }
+        Self { final_level: false }
     }
 }
 

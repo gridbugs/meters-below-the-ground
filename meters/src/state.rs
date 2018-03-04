@@ -83,10 +83,7 @@ impl<'a> Iterator for PassiveMeterInfoIter<'a> {
         self.meter_metadata.next().map(|&typ| {
             let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
                 .expect("Meter list out of sync with game state");
-            PassiveMeterInfo {
-                typ,
-                meter,
-            }
+            PassiveMeterInfo { typ, meter }
         })
     }
 }
@@ -135,7 +132,11 @@ impl State {
 
     fn switch_levels(&mut self) {
         self.level_index += 1;
-        let mut next_world = World::new(&self.levels[self.level_index], &mut self.messages, &mut self.rng);
+        let mut next_world = World::new(
+            &self.levels[self.level_index],
+            &mut self.messages,
+            &mut self.rng,
+        );
 
         let next_player_id = *next_world
             .entity_store
@@ -161,12 +162,14 @@ impl State {
             self.passive_meters.push(PassiveMeterType::Kevlar);
             self.active_meters.push(ActiveMeterType::Medkit);
             if let Some(change) = PassiveMeterType::Kevlar.periodic_change() {
-                let event = PlayerTurnEvent::ChangePassiveMeter(PassiveMeterType::Kevlar, change.change);
+                let event =
+                    PlayerTurnEvent::ChangePassiveMeter(PassiveMeterType::Kevlar, change.change);
                 let entry = PlayerTurnEventEntry::full(event, change.turns);
                 self.player_turn_events.push(entry);
             }
             if let Some(change) = ActiveMeterType::Medkit.periodic_change() {
-                let event = PlayerTurnEvent::ChangeActiveMeter(ActiveMeterType::Medkit, change.change);
+                let event =
+                    PlayerTurnEvent::ChangeActiveMeter(ActiveMeterType::Medkit, change.change);
                 let entry = PlayerTurnEventEntry::full(event, change.turns);
                 self.player_turn_events.push(entry);
             }
@@ -219,12 +222,11 @@ impl State {
             .expect("No player coord");
         messages.player_moved_to = Some(player_coord);
 
-        let active_meters: Vec<_> =
-            world
-                .entity_components
-                .component_types(player_id)
-                .filter_map(ActiveMeterType::from_component_type)
-                .collect();
+        let active_meters: Vec<_> = world
+            .entity_components
+            .component_types(player_id)
+            .filter_map(ActiveMeterType::from_component_type)
+            .collect();
 
         let passive_meters: Vec<_> = world
             .entity_components
@@ -353,7 +355,12 @@ impl State {
                                 .unwrap();
                             let start_coord = entity_coord + direction.coord();
                             let bullet_id = self.world.id_allocator.allocate();
-                            prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
+                            prototypes::bullet(
+                                bullet_id,
+                                start_coord,
+                                direction,
+                                &mut self.messages,
+                            );
                             common_animations::bullet(bullet_id, &mut self.messages);
                             ammo.value -= 1;
                             self.messages
@@ -370,15 +377,27 @@ impl State {
                     None => return None,
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => {
-                        let mut medkit = self.world.entity_store.medkit_meter.get(&self.player_id).cloned().unwrap();
+                        let mut medkit = self.world
+                            .entity_store
+                            .medkit_meter
+                            .get(&self.player_id)
+                            .cloned()
+                            .unwrap();
                         if medkit.value > 0 {
                             let heal_amount = medkit.value;
                             medkit.value = 0;
-                            self.messages.change(insert::medkit_meter(self.player_id, medkit));
+                            self.messages
+                                .change(insert::medkit_meter(self.player_id, medkit));
 
-                            let mut health = self.world.entity_store.health_meter.get(&self.player_id).cloned().unwrap();
+                            let mut health = self.world
+                                .entity_store
+                                .health_meter
+                                .get(&self.player_id)
+                                .cloned()
+                                .unwrap();
                             health.value = ::std::cmp::min(health.value + heal_amount, health.max);
-                            self.messages.change(insert::health_meter(self.player_id, health));
+                            self.messages
+                                .change(insert::health_meter(self.player_id, health));
                         }
                     }
                 }
@@ -474,8 +493,12 @@ impl State {
                 AnimationStatus::Finished | AnimationStatus::Continuing => (),
             }
         }
-        self.change_context
-            .process(&mut self.world, &mut self.messages, &mut self.swap_messages, &mut self.rng)
+        self.change_context.process(
+            &mut self.world,
+            &mut self.messages,
+            &mut self.swap_messages,
+            &mut self.rng,
+        )
     }
 
     fn process_turn_events(&mut self) -> Option<Event> {
@@ -483,15 +506,19 @@ impl State {
             if entry.remaining == 0 {
                 let change = match entry.event {
                     PlayerTurnEvent::ChangeActiveMeter(typ, change) => {
-                        let mut meter = Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
-                            .expect("Missing meter for player turn event");
-                        meter.value = ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                        let mut meter =
+                            Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                                .expect("Missing meter for player turn event");
+                        meter.value =
+                            ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
                         typ.insert(self.player_id, meter)
                     }
                     PlayerTurnEvent::ChangePassiveMeter(typ, change) => {
-                        let mut meter = Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
-                            .expect("Missing meter for player turn event");
-                        meter.value = ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                        let mut meter =
+                            Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                                .expect("Missing meter for player turn event");
+                        meter.value =
+                            ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
                         typ.insert(self.player_id, meter)
                     }
                 };
@@ -502,7 +529,7 @@ impl State {
             }
         }
 
-      let ret = self.change_context.process(
+        let ret = self.change_context.process(
             &mut self.world,
             &mut self.messages,
             &mut self.swap_messages,

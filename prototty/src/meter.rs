@@ -18,23 +18,27 @@ impl MeterView {
         }
     }
     fn write_active_name(&mut self, typ: ActiveMeterType, identifier: char, is_selected: bool) {
-        let seperator = if is_selected {
-            "*"
-        } else {
-            " "
-        };
+        let seperator = if is_selected { "*" } else { " " };
 
         write!(self.scratch, "{}){}", identifier, seperator).unwrap();
         match typ {
-            ActiveMeterType::Gun => write!(self.scratch, "{:1$}", "Gun", self.name_padding).unwrap(),
-            ActiveMeterType::Medkit => write!(self.scratch, "{:1$}", "Medkit", self.name_padding).unwrap(),
+            ActiveMeterType::Gun => {
+                write!(self.scratch, "{:1$}", "Gun", self.name_padding).unwrap()
+            }
+            ActiveMeterType::Medkit => {
+                write!(self.scratch, "{:1$}", "Medkit", self.name_padding).unwrap()
+            }
         }
     }
     fn write_passive_name(&mut self, typ: PassiveMeterType) {
         write!(self.scratch, "   ").unwrap();
         match typ {
-            PassiveMeterType::Health => write!(self.scratch, "{:1$}", "Health", self.name_padding).unwrap(),
-            PassiveMeterType::Kevlar => write!(self.scratch, "{:1$}", "Kevlar", self.name_padding).unwrap(),
+            PassiveMeterType::Health => {
+                write!(self.scratch, "{:1$}", "Health", self.name_padding).unwrap()
+            }
+            PassiveMeterType::Kevlar => {
+                write!(self.scratch, "{:1$}", "Kevlar", self.name_padding).unwrap()
+            }
         }
     }
     fn write_meter(&mut self, meter: Meter) {
@@ -54,7 +58,13 @@ impl MeterView {
 }
 
 impl View<ActiveMeterInfo> for MeterView {
-    fn view<G: ViewGrid>(&mut self, info: &ActiveMeterInfo, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        info: &ActiveMeterInfo,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         self.scratch.clear();
         self.write_active_name(info.typ, info.identifier.to_char(), info.is_selected);
         self.write_meter(info.meter);
@@ -63,7 +73,13 @@ impl View<ActiveMeterInfo> for MeterView {
 }
 
 impl View<PassiveMeterInfo> for MeterView {
-    fn view<G: ViewGrid>(&mut self, info: &PassiveMeterInfo, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        info: &PassiveMeterInfo,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         self.scratch.clear();
         self.write_passive_name(info.typ);
         self.write_meter(info.meter);
@@ -72,7 +88,13 @@ impl View<PassiveMeterInfo> for MeterView {
 }
 
 impl View<(&'static str, Meter)> for MeterView {
-    fn view<G: ViewGrid>(&mut self, &(title, meter): &(&'static str, Meter), offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        &(title, meter): &(&'static str, Meter),
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         self.scratch.clear();
         write!(self.scratch, "{} ", title).unwrap();
         self.write_meter(meter);

@@ -41,6 +41,8 @@ pub fn populate(
         "#...........................#",
         "#...........................#",
         "#############################",
-        ].into_iter().map(|s| s.to_string()).collect();
+    ].into_iter()
+        .map(|s| s.to_string())
+        .collect();
     static_strings::populate(&strings, config, id_allocator, messages);
 }
