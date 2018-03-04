@@ -73,7 +73,13 @@ impl Frontend {
     }
 }
 
-fn colour_cell<C: ViewCell>(cell: &mut C, fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool, frontend: Frontend) {
+fn colour_cell<C: ViewCell>(
+    cell: &mut C,
+    fg: Option<Rgb24>,
+    bg: Option<Rgb24>,
+    visible: bool,
+    frontend: Frontend,
+) {
     if visible {
         if let Some(fg) = fg {
             cell.set_foreground_colour(fg);
@@ -100,7 +106,12 @@ fn colour_cell<C: ViewCell>(cell: &mut C, fg: Option<Rgb24>, bg: Option<Rgb24>, 
     }
 }
 
-fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C, visibility: Visibility, frontend: Frontend) {
+fn view_tile<C: ViewCell>(
+    tile_info: TileInfo,
+    cell: &mut C,
+    visibility: Visibility,
+    frontend: Frontend,
+) {
     let visible = match visibility {
         Visibility::Visible => true,
         Visibility::Remembered => false,
@@ -112,19 +123,43 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C, visibility: Visibil
             colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
         }
         Tile::Wall => {
-            colour_cell(cell, Some(colours::BLACK), Some(colours::GREY), visible, frontend);
+            colour_cell(
+                cell,
+                Some(colours::BLACK),
+                Some(colours::GREY),
+                visible,
+                frontend,
+            );
             cell.set_character('#');
         }
         Tile::CavernWall => {
-            colour_cell(cell, Some(colours::BLACK), Some(Rgb24::new(120, 60, 6)), visible, frontend);
+            colour_cell(
+                cell,
+                Some(colours::BLACK),
+                Some(Rgb24::new(120, 60, 6)),
+                visible,
+                frontend,
+            );
             cell.set_character('#');
         }
         Tile::Door => {
-            colour_cell(cell, Some(colours::WHITE), Some(Rgb24::new(124, 14, 0)), visible, frontend);
+            colour_cell(
+                cell,
+                Some(colours::WHITE),
+                Some(Rgb24::new(124, 14, 0)),
+                visible,
+                frontend,
+            );
             cell.set_character('+');
         }
         Tile::Floor => {
-            colour_cell(cell, Some(Rgb24::new(127, 127, 127)), Some(Rgb24::new(63, 63, 63)), visible, frontend);
+            colour_cell(
+                cell,
+                Some(Rgb24::new(127, 127, 127)),
+                Some(Rgb24::new(63, 63, 63)),
+                visible,
+                frontend,
+            );
             cell.set_character('.');
         }
         Tile::Punch(direction) => {

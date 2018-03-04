@@ -25,7 +25,6 @@ impl ChangeContext {
         swap_messages: &mut MessageQueuesSwap,
         rng: &mut R,
     ) -> Option<Event> {
-
         world.count += 1;
 
         loop {

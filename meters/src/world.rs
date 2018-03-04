@@ -35,7 +35,8 @@ impl World {
     }
 
     pub fn commit(&mut self, change: EntityChange) {
-        self.spatial_hash.update(&self.entity_store, &change, self.count);
+        self.spatial_hash
+            .update(&self.entity_store, &change, self.count);
         self.entity_components.update(&change);
         self.entity_store.commit(change);
     }

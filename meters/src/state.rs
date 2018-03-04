@@ -55,7 +55,7 @@ impl<'a> Iterator for VisibilityIter<'a> {
             } else {
                 Visibility::Remembered
             };
-            return Some((cell.tiles.iter(), coord, visibility))
+            return Some((cell.tiles.iter(), coord, visibility));
         }
         None
     }
