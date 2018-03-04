@@ -25,6 +25,29 @@ enum TurnState {
     Npcs,
 }
 
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+enum PlayerTurnEvent {
+    ChangeActiveMeter(ActiveMeterType, i32),
+    ChangePassiveMeter(PassiveMeterType, i32),
+}
+
+#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+struct PlayerTurnEventEntry {
+    event: PlayerTurnEvent,
+    remaining: u32,
+    reset: u32,
+}
+
+impl PlayerTurnEventEntry {
+    fn full(event: PlayerTurnEvent, reset: u32) -> Self {
+        Self {
+            event,
+            remaining: reset,
+            reset,
+        }
+    }
+}
+
 pub struct ActiveMeterInfoIter<'a> {
     entity_store: &'a EntityStore,
     entity_id: EntityId,
@@ -85,6 +108,7 @@ pub struct State {
     selected_meter: Option<ActiveMeterType>,
     levels: Vec<TerrainInfo>,
     level_index: usize,
+    player_turn_events: Vec<PlayerTurnEventEntry>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -101,6 +125,7 @@ pub struct SaveState {
     passive_meters: Vec<PassiveMeterType>,
     levels: Vec<TerrainInfo>,
     level_index: usize,
+    player_turn_events: Vec<PlayerTurnEventEntry>,
 }
 
 impl State {
@@ -128,6 +153,23 @@ impl State {
             }
 
             next_world.commit(change);
+        }
+
+        if self.level_index == 1 {
+            next_world.commit(insert::kevlar_meter(next_player_id, Meter::full(6)));
+            next_world.commit(insert::medkit_meter(next_player_id, Meter::empty(5)));
+            self.passive_meters.push(PassiveMeterType::Kevlar);
+            self.active_meters.push(ActiveMeterType::Medkit);
+            if let Some(change) = PassiveMeterType::Kevlar.periodic_change() {
+                let event = PlayerTurnEvent::ChangePassiveMeter(PassiveMeterType::Kevlar, change.change);
+                let entry = PlayerTurnEventEntry::full(event, change.turns);
+                self.player_turn_events.push(entry);
+            }
+            if let Some(change) = ActiveMeterType::Medkit.periodic_change() {
+                let event = PlayerTurnEvent::ChangeActiveMeter(ActiveMeterType::Medkit, change.change);
+                let entry = PlayerTurnEventEntry::full(event, change.turns);
+                self.player_turn_events.push(entry);
+            }
         }
 
         let player_coord = *next_world
@@ -232,6 +274,24 @@ impl State {
             .filter_map(PassiveMeterType::from_component_type)
             .collect();
 
+        let mut player_turn_events = Vec::new();
+
+        for typ in active_meters.iter().cloned() {
+            if let Some(change) = typ.periodic_change() {
+                let event = PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
+                let entry = PlayerTurnEventEntry::full(event, change.turns);
+                player_turn_events.push(entry);
+            }
+        }
+
+        for typ in passive_meters.iter().cloned() {
+            if let Some(change) = typ.periodic_change() {
+                let event = PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
+                let entry = PlayerTurnEventEntry::full(event, change.turns);
+                player_turn_events.push(entry);
+            }
+        }
+
         Self {
             player_id,
             rng,
@@ -248,6 +308,7 @@ impl State {
             selected_meter: None,
             levels,
             level_index,
+            player_turn_events,
         }
     }
 
@@ -267,6 +328,7 @@ impl State {
             passive_meters: self.passive_meters.clone(),
             levels: self.levels.clone(),
             level_index: self.level_index,
+            player_turn_events: self.player_turn_events.clone(),
         }
     }
 
@@ -307,39 +369,63 @@ impl State {
 
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
-            Input::Direction(direction) => match self.selected_meter {
-                None => {
-                    let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
-                    let next = current + direction.coord();
-                    self.messages
-                        .changes
-                        .push(insert::coord(self.player_id, next));
-                }
-                Some(ActiveMeterType::Gun) => {
-                    let mut ammo = self.world
-                        .entity_store
-                        .gun_meter
-                        .get(&self.player_id)
-                        .cloned()
-                        .unwrap();
-
-                    if ammo.value > 0 {
-                        let entity_coord = self.world
+            Input::Direction(direction) => {
+                match self.selected_meter {
+                    None => {
+                        let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+                        let next = current + direction.coord();
+                        self.messages
+                            .changes
+                            .push(insert::coord(self.player_id, next));
+                    }
+                    Some(ActiveMeterType::Gun) => {
+                        let mut ammo = self.world
                             .entity_store
-                            .coord
+                            .gun_meter
                             .get(&self.player_id)
                             .cloned()
                             .unwrap();
-                        let start_coord = entity_coord + direction.coord();
-                        let bullet_id = self.world.id_allocator.allocate();
-                        prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
-                        common_animations::bullet(bullet_id, &mut self.messages);
-                        ammo.value -= 1;
-                        self.messages
-                            .change(insert::gun_meter(self.player_id, ammo));
+
+                        if ammo.value > 0 {
+                            let entity_coord = self.world
+                                .entity_store
+                                .coord
+                                .get(&self.player_id)
+                                .cloned()
+                                .unwrap();
+                            let start_coord = entity_coord + direction.coord();
+                            let bullet_id = self.world.id_allocator.allocate();
+                            prototypes::bullet(bullet_id, start_coord, direction, &mut self.messages);
+                            common_animations::bullet(bullet_id, &mut self.messages);
+                            ammo.value -= 1;
+                            self.messages
+                                .change(insert::gun_meter(self.player_id, ammo));
+                        }
+                    }
+                    Some(ActiveMeterType::Medkit) => return None,
+                }
+
+                self.selected_meter = None;
+            }
+            Input::Enter => {
+                match self.selected_meter {
+                    None => return None,
+                    Some(ActiveMeterType::Gun) => return None,
+                    Some(ActiveMeterType::Medkit) => {
+                        let mut medkit = self.world.entity_store.medkit_meter.get(&self.player_id).cloned().unwrap();
+                        if medkit.value > 0 {
+                            let heal_amount = medkit.value;
+                            medkit.value = 0;
+                            self.messages.change(insert::medkit_meter(self.player_id, medkit));
+
+                            let mut health = self.world.entity_store.health_meter.get(&self.player_id).cloned().unwrap();
+                            health.value = ::std::cmp::min(health.value + heal_amount, health.max);
+                            self.messages.change(insert::health_meter(self.player_id, health));
+                        }
                     }
                 }
-            },
+                self.selected_meter = None;
+            }
             Input::ActiveMeterSelect(identifier) => {
                 if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
                     self.selected_meter = Some(meter_type);
@@ -368,6 +454,7 @@ impl State {
             &mut self.world,
             &mut self.messages,
             &mut self.swap_messages,
+            &mut self.rng,
         );
 
         self.world.count += 1;
@@ -402,6 +489,7 @@ impl State {
                 &mut self.world,
                 &mut self.messages,
                 &mut self.swap_messages,
+                &mut self.rng,
             ) {
                 return Some(meta);
             }
@@ -429,7 +517,43 @@ impl State {
             }
         }
         self.change_context
-            .process(&mut self.world, &mut self.messages, &mut self.swap_messages)
+            .process(&mut self.world, &mut self.messages, &mut self.swap_messages, &mut self.rng)
+    }
+
+    fn process_turn_events(&mut self) -> Option<Event> {
+        for entry in self.player_turn_events.iter_mut() {
+            if entry.remaining == 0 {
+                let change = match entry.event {
+                    PlayerTurnEvent::ChangeActiveMeter(typ, change) => {
+                        let mut meter = Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                            .expect("Missing meter for player turn event");
+                        meter.value = ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                        typ.insert(self.player_id, meter)
+                    }
+                    PlayerTurnEvent::ChangePassiveMeter(typ, change) => {
+                        let mut meter = Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                            .expect("Missing meter for player turn event");
+                        meter.value = ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                        typ.insert(self.player_id, meter)
+                    }
+                };
+                self.messages.changes.push(change);
+                entry.remaining = entry.reset;
+            } else {
+                entry.remaining -= 1;
+            }
+        }
+
+      let ret = self.change_context.process(
+            &mut self.world,
+            &mut self.messages,
+            &mut self.swap_messages,
+            &mut self.rng,
+        );
+
+        self.world.count += 1;
+
+        ret
     }
 
     pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ExternalEvent>
@@ -445,7 +569,13 @@ impl State {
                         None
                     }
                 }
-                TurnState::Npcs => self.all_npc_turns(),
+                TurnState::Npcs => {
+                    if let Some(event) = self.all_npc_turns() {
+                        Some(event)
+                    } else {
+                        self.process_turn_events()
+                    }
+                }
             }
         } else {
             self.animation_tick(period)
@@ -477,6 +607,7 @@ impl From<SaveState> for State {
             passive_meters,
             levels,
             level_index,
+            player_turn_events,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -511,6 +642,7 @@ impl From<SaveState> for State {
             selected_meter: None,
             levels,
             level_index,
+            player_turn_events,
         }
     }
 }

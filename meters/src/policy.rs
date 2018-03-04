@@ -1,8 +1,10 @@
+use rand::Rng;
 use entity_store::*;
 use tile_info;
 use direction::CardinalDirection;
 use common_animations;
 use message_queues::PushMessages;
+use meter::Meter;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -29,15 +31,28 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     true
 }
 
-pub fn check<M>(
+pub fn kevlar_blocks_attack<R: Rng>(entity_id: EntityId, entity_store: &EntityStore, rng: &mut R) -> Option<Meter> {
+    if let Some(kevlar) = entity_store.kevlar_meter.get(&entity_id).cloned() {
+        if kevlar.value > 0 {
+            if rng.gen() {
+                return Some(kevlar)
+            }
+        }
+    }
+    None
+}
+
+pub fn check<M, R>(
     change: &EntityChange,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
     id_allocator: &mut EntityIdAllocator,
     messages: &mut M,
+    rng: &mut R,
 ) -> bool
 where
     M: PushMessages,
+    R: Rng,
 {
     use self::EntityChange::*;
     use self::ComponentValue::*;
@@ -94,9 +109,18 @@ where
                     common_animations::punch(punch_id, coord, direction, messages);
 
                     let player_id = entity_store.player.iter().next().unwrap();
-                    let mut health = entity_store.health_meter.get(&player_id).cloned().unwrap();
-                    health.value -= 1;
-                    messages.change(insert::health_meter(*player_id, health));
+
+                    let mut health = entity_store.health_meter.get(player_id).cloned().unwrap();
+
+                    let change = if let Some(mut kevlar) = kevlar_blocks_attack(*player_id, entity_store, rng) {
+                        kevlar.value -= 1;
+                        insert::kevlar_meter(*player_id, kevlar)
+                    } else {
+                        health.value -= 1;
+                        insert::health_meter(*player_id, health)
+                    };
+
+                    messages.change(change);
 
                     return false;
                 };

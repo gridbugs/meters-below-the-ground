@@ -27,12 +27,14 @@ impl MeterView {
         write!(self.scratch, "{}){}", identifier, seperator).unwrap();
         match typ {
             ActiveMeterType::Gun => write!(self.scratch, "{:1$}", "Gun", self.name_padding).unwrap(),
+            ActiveMeterType::Medkit => write!(self.scratch, "{:1$}", "Medkit", self.name_padding).unwrap(),
         }
     }
     fn write_passive_name(&mut self, typ: PassiveMeterType) {
         write!(self.scratch, "   ").unwrap();
         match typ {
             PassiveMeterType::Health => write!(self.scratch, "{:1$}", "Health", self.name_padding).unwrap(),
+            PassiveMeterType::Kevlar => write!(self.scratch, "{:1$}", "Kevlar", self.name_padding).unwrap(),
         }
     }
     fn write_meter(&mut self, meter: Meter) {

@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use rand::Rng;
 use entity_store::*;
 use message_queues::*;
 use event::*;
@@ -17,11 +18,12 @@ impl ChangeContext {
         }
     }
 
-    pub fn process(
+    pub fn process<R: Rng>(
         &mut self,
         world: &mut World,
         messages: &mut MessageQueues,
         swap_messages: &mut MessageQueuesSwap,
+        rng: &mut R,
     ) -> Option<Event> {
         loop {
             for id in messages.removed_entities.drain(..) {
@@ -48,6 +50,7 @@ impl ChangeContext {
                     &world.spatial_hash,
                     &mut world.id_allocator,
                     messages,
+                    rng,
                 ) {
                     continue;
                 }

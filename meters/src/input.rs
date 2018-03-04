@@ -2,6 +2,7 @@ use direction::CardinalDirection;
 
 pub enum Input {
     Direction(CardinalDirection),
+    Enter,
     ActiveMeterSelect(ActiveMeterIdentifier),
     MeterDeselect,
     Wait,
