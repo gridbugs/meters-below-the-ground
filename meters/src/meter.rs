@@ -1,6 +1,14 @@
 use entity_store::*;
 use input::ActiveMeterIdentifier;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum MeterType {
+    Gun,
+    Medkit,
+    Health,
+    Kevlar,
+}
+
 pub struct PeriodicChange {
     pub turns: u32,
     pub change: i32,
@@ -33,6 +41,12 @@ impl ActiveMeterType {
         match self {
             ActiveMeterType::Gun => insert::gun_meter(id, meter),
             ActiveMeterType::Medkit => insert::medkit_meter(id, meter),
+        }
+    }
+    pub fn typ(self) -> MeterType {
+        match self {
+            ActiveMeterType::Gun => MeterType::Gun,
+            ActiveMeterType::Medkit => MeterType::Medkit,
         }
     }
 }
@@ -70,6 +84,12 @@ impl PassiveMeterType {
         match self {
             PassiveMeterType::Health => insert::health_meter(id, meter),
             PassiveMeterType::Kevlar => insert::kevlar_meter(id, meter),
+        }
+    }
+    pub fn typ(self) -> MeterType {
+        match self {
+            PassiveMeterType::Health => MeterType::Health,
+            PassiveMeterType::Kevlar => MeterType::Kevlar,
         }
     }
 }

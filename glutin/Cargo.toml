@@ -6,6 +6,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.4"
 meters_prototty = { path = "../prototty" }
-prototty = "0.18"
-prototty_glutin = "0.18"
-prototty_file_storage = "0.18"
+prototty = "0.19"
+prototty_glutin = "0.19"
+prototty_file_storage = "0.19"

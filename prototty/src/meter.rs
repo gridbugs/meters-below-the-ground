@@ -3,6 +3,16 @@ use prototty::*;
 use prototty_common::*;
 use meters::meter::*;
 
+fn meter_text_info(typ: MeterType) -> TextInfo {
+    let colour = match typ {
+        MeterType::Gun => colours::BRIGHT_BLUE,
+        MeterType::Medkit => colours::CYAN,
+        MeterType::Health => colours::BRIGHT_RED,
+        MeterType::Kevlar => colours::BRIGHT_YELLOW,
+    };
+    TextInfo { foreground_colour: Some(colour), .. Default::default() }
+}
+
 pub struct MeterView {
     name_padding: usize,
     meter_width: usize,
@@ -68,7 +78,8 @@ impl View<ActiveMeterInfo> for MeterView {
         self.scratch.clear();
         self.write_active_name(info.typ, info.identifier.to_char(), info.is_selected);
         self.write_meter(info.meter);
-        StringView.view(&self.scratch, offset, depth, grid);
+        let info = meter_text_info(info.typ.typ());
+        TextInfoStringView.view(&(info, &self.scratch), offset, depth, grid);
     }
 }
 
@@ -83,7 +94,8 @@ impl View<PassiveMeterInfo> for MeterView {
         self.scratch.clear();
         self.write_passive_name(info.typ);
         self.write_meter(info.meter);
-        StringView.view(&self.scratch, offset, depth, grid);
+        let info = meter_text_info(info.typ.typ());
+        TextInfoStringView.view(&(info, &self.scratch), offset, depth, grid);
     }
 }
 
