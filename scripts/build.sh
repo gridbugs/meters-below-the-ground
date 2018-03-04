@@ -26,8 +26,11 @@ case $TRAVIS_OS_NAME in
             $BUILD_PY --root-path=$PROJECT_ROOT --build-path=$BUILD_DIR --upload-path=$WEB_UPLOAD_DIR \
                 --os=unknown --frontend=wasm --crate-path=$WASM_CRATE
         fi
-        $BUILD_PY_COMMON --os=linux --frontend=unix --crate-path=$UNIX_CRATE
-        $BUILD_PY_COMMON --os=linux --frontend=glutin --crate-path=$GLUTIN_CRATE
+        if [[ "$TRAVIS_RUST_VERSION" != "beta" ]]; then
+            # These can take a long time, and it's important that beta succeeds and uploads the wasm build artifact
+            $BUILD_PY_COMMON --os=linux --frontend=unix --crate-path=$UNIX_CRATE
+            $BUILD_PY_COMMON --os=linux --frontend=glutin --crate-path=$GLUTIN_CRATE
+        fi
         ;;
     osx)
         $BUILD_PY_COMMON --os=macos --frontend=unix --crate-path=$UNIX_CRATE
