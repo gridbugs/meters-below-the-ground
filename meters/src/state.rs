@@ -24,13 +24,15 @@ use grid_2d::*;
 use grid_2d;
 use direction::DirectionBitmap;
 
-#[derive(Default, Debug, Clone)]
+const NUM_LEVELS: usize = 6;
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 struct VisibilityCell {
     tiles: Vec<TileInfo>,
     last_updated: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct VisibilityGrid(Grid<VisibilityCell>);
 
 pub struct VisibilityIter<'a> {
@@ -222,6 +224,8 @@ pub struct SaveState {
     levels: Vec<TerrainInfo>,
     level_index: usize,
     player_turn_events: Vec<PlayerTurnEventEntry>,
+    visibility_grid: VisibilityGrid,
+    goal_state: Option<GoalState>,
 }
 
 impl State {
@@ -292,22 +296,31 @@ impl State {
     pub fn new(rng_seed: usize) -> Self {
         let mut rng = StdRng::from_seed(&[rng_seed]);
 
-        let common_terrain = TerrainInfo {
-            typ: TerrainType::Dungeon,
-            config: Default::default(),
+        let mut levels = Vec::new();
+
+        for _ in 0..(NUM_LEVELS - 1) {
+            let config = TerrainConfig {
+                final_level: false,
+                goal_type: choose_goal_type(&mut rng),
+            };
+            let info = TerrainInfo {
+                typ: TerrainType::Dungeon,
+                config,
+            };
+            levels.push(info);
+        }
+
+        let final_config = TerrainConfig {
+            final_level: true,
+            goal_type: GoalType::Escape,
         };
 
-        let final_terrain = TerrainInfo {
+        let final_info = TerrainInfo {
             typ: TerrainType::Dungeon,
-            config: TerrainConfig { final_level: true },
+            config: final_config,
         };
 
-        let levels = vec![
-            common_terrain.clone(),
-            common_terrain.clone(),
-            common_terrain.clone(),
-            final_terrain,
-        ];
+        levels.push(final_info);
 
         let level_index = 0;
 
@@ -393,6 +406,8 @@ impl State {
             levels: self.levels.clone(),
             level_index: self.level_index,
             player_turn_events: self.player_turn_events.clone(),
+            visibility_grid: self.visibility_grid.clone(),
+            goal_state: self.world.goal_state.clone(),
         }
     }
 
@@ -439,8 +454,15 @@ impl State {
         &self.world.spatial_hash
     }
 
-    pub fn goal_type(&self) -> GoalType {
-        GoalType::Escape
+    pub fn goal_info(&self) -> Option<(GoalType, bool)> {
+        self.world.goal_state.as_ref().map(|s| (s.typ(), s.is_complete(&self.world.entity_store)))
+    }
+
+    pub fn with_goal_meters<F>(&self, f: F)
+    where
+        F: FnMut(GoalMeterInfo),
+    {
+        self.world.goal_state.as_ref().map(|s| s.with_goal_meters(&self.world.entity_store, f));
     }
 
     pub fn overall_progress_meter(&self) -> Meter {
@@ -714,6 +736,8 @@ impl From<SaveState> for State {
             levels,
             level_index,
             player_turn_events,
+            visibility_grid,
+            goal_state,
         }: SaveState,
     ) -> Self {
         let mut entity_store = EntityStore::new();
@@ -733,6 +757,7 @@ impl From<SaveState> for State {
                 entity_components,
                 id_allocator,
                 count,
+                goal_state,
             },
             player_id,
             rng: StdRng::from_seed(&[next_rng_seed]),
@@ -750,7 +775,7 @@ impl From<SaveState> for State {
             level_index,
             player_turn_events,
             shadowcast: ShadowcastContext::new(),
-            visibility_grid: VisibilityGrid::new(size),
+            visibility_grid,
         }
     }
 }

@@ -93,10 +93,20 @@ pub fn punch<M: PushMessages>(
 pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id));
-    messages.change(insert::hit_points(id, 2));
+    messages.change(insert::health_meter(id, Meter::full(2)));
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Larvae, NPC_DEPTH),
+    ));
+}
+
+pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id));
+    messages.change(insert::health_meter(id, Meter::full(10)));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::Queen, NPC_DEPTH),
     ));
 }
 

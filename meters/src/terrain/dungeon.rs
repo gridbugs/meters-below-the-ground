@@ -6,6 +6,8 @@ use entity_store::EntityIdAllocator;
 use super::*;
 use prototypes;
 
+const NUM_LARVAE: usize = 0;
+
 pub fn size() -> Size {
     Size::new(29, 29)
 }
@@ -410,12 +412,18 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
     largest
 }
 
+pub enum DungeonPopulateResult {
+    GoalState(GoalState),
+    NoGoalState,
+    Retry,
+}
+
 pub fn populate<R: Rng>(
     config: TerrainConfig,
     id_allocator: &mut EntityIdAllocator,
     messages: &mut MessageQueues,
     rng: &mut R,
-) -> bool {
+) -> DungeonPopulateResult {
     let mut grid: Grid<Cell> = Grid::new_default(size());
 
     place_caverns(&mut grid, rng);
@@ -437,12 +445,37 @@ pub fn populate<R: Rng>(
         .filter(|coord| room_centres.contains(coord))
         .collect::<Vec<_>>();
 
+    let mut non_room_centres_in_largest_space = largest_space
+        .iter()
+        .cloned()
+        .filter(|coord| !room_centres.contains(coord))
+        .collect::<Vec<_>>();
+
+    for _ in 0..NUM_LARVAE {
+        if let Some(coord) = non_room_centres_in_largest_space.pop() {
+            prototypes::larvae(id_allocator.allocate(), coord, messages);
+        }
+    }
+
     if room_centres_in_largest_space.len() < 2 {
-        return false;
+        return DungeonPopulateResult::Retry;
     }
 
     let player_coord = room_centres_in_largest_space[0];
     let stairs_coord = room_centres_in_largest_space[1];
+
+    let result = match config.goal_type {
+        GoalType::KillBoss => {
+            if room_centres_in_largest_space.len() < 3 {
+                return DungeonPopulateResult::Retry;
+            }
+            let queen_coord = room_centres_in_largest_space[2];
+            let queen_id = id_allocator.allocate();
+            prototypes::queen(queen_id, queen_coord, messages);
+            DungeonPopulateResult::GoalState(GoalState::KillBoss(queen_id))
+        }
+        _ => DungeonPopulateResult::NoGoalState,
+    };
 
     for (coord, &cell) in grid.enumerate() {
         match cell {
@@ -474,5 +507,5 @@ pub fn populate<R: Rng>(
         prototypes::stairs(id_allocator.allocate(), stairs_coord, messages);
     }
 
-    true
+    result
 }

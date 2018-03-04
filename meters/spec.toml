@@ -9,7 +9,6 @@ player = { storage = 'btree' }
 door_opener = { storage = 'btree' }
 tile_info = { type = '::tile_info::TileInfo', storage = 'vector' }
 npc = { storage = 'btree' }
-hit_points = { type = 'i32', storage = 'hash' }
 punch = { storage = 'hash' }
 stairs = { storage = 'btree' }
 exit = { storage = 'btree' }

@@ -1,6 +1,5 @@
 use rand::Rng;
 use entity_store::*;
-use tile_info;
 use direction::CardinalDirection;
 use common_animations;
 use message_queues::PushMessages;
@@ -70,13 +69,15 @@ where
 
                 if let Some(npc_id) = dest_npc {
                     if entity_store.punch.contains(&id) {
-                        if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
-                            messages.change(insert::hit_points(*npc_id, hit_points - 1));
+                        if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
+                            health.value -= 1;
+                            messages.change(insert::health_meter(*npc_id, health));
                         }
                     }
                     if entity_store.bullet.contains(&id) {
-                        if let Some(hit_points) = entity_store.hit_points.get(&npc_id) {
-                            messages.change(insert::hit_points(*npc_id, hit_points - 1));
+                        if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
+                            health.value -= 1;
+                            messages.change(insert::health_meter(*npc_id, health));
                         }
                         messages.remove(id);
                         return false;
@@ -150,22 +151,13 @@ where
                 }
             }
         }
-        &Insert(id, HitPoints(hit_points)) => {
-            if hit_points == 0 {
-                messages.remove(id);
-            } else if hit_points == 1 {
-                if let Some(tile_info) = entity_store.tile_info.get(&id) {
-                    let tile_info = tile_info::TileInfo {
-                        damaged: true,
-                        ..*tile_info
-                    };
-                    messages.change(insert::tile_info(id, tile_info));
-                }
-            }
-        }
         &Insert(id, HealthMeter(health)) => {
-            if entity_store.player.contains(&id) && health.value == 0 {
-                messages.lose();
+            if health.value == 0 {
+                if entity_store.player.contains(&id) {
+                    messages.lose();
+                } else {
+                    messages.remove(id);
+                }
             }
         }
         _ => (),

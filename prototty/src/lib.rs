@@ -50,6 +50,8 @@ const ACTIVE_METER_Y: i32 = 0;
 const NUM_ACTIVE_METERS: i32 = 10;
 const NUM_PASSIVE_METERS: i32 = 10;
 
+const GOAL_METER_BOTTOM_Y: i32 = 28;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
     Unix,
@@ -97,12 +99,8 @@ fn colour_cell<C: ViewCell>(
     } else {
         let d = frontend.non_visible_divisor();
         let m = frontend.min_channel();
-        let b = |c| {
-            c / d
-        };
-        let f = |c| {
-            ::std::cmp::max(c / d, m)
-        };
+        let b = |c| c / d;
+        let f = |c| ::std::cmp::max(c / d, m);
         if let Some(Rgb24 { red, green, blue }) = fg {
             cell.set_foreground_colour(Rgb24 {
                 red: f(red),
@@ -132,6 +130,9 @@ fn view_tile<C: ViewCell>(
     };
     match tile_info.tile {
         Tile::Player => {
+            if !visible {
+                return;
+            }
             cell.set_bold(true);
             cell.set_character('@');
             colour_cell(cell, Some(Rgb24::new(0, 255, 255)), None, visible, frontend);
@@ -177,6 +178,9 @@ fn view_tile<C: ViewCell>(
             cell.set_character('.');
         }
         Tile::Punch(direction) => {
+            if !visible {
+                return;
+            }
             let ch = match direction {
                 North => '↑',
                 South => '↓',
@@ -188,9 +192,20 @@ fn view_tile<C: ViewCell>(
             cell.set_bold(false);
         }
         Tile::Larvae => {
+            if !visible {
+                return;
+            }
             colour_cell(cell, Some(colours::BRIGHT_GREEN), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('l');
+        }
+        Tile::Queen => {
+            if !visible {
+                return;
+            }
+            colour_cell(cell, Some(colours::BRIGHT_MAGENTA), None, visible, frontend);
+            cell.set_bold(true);
+            cell.set_character('Q');
         }
         Tile::Stairs => {
             colour_cell(cell, Some(colours::BRIGHT_YELLOW), None, visible, frontend);
@@ -203,6 +218,9 @@ fn view_tile<C: ViewCell>(
             cell.set_character('Ω');
         }
         Tile::Bullet => {
+            if !visible {
+                return;
+            }
             colour_cell(cell, Some(colours::RED), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('•');
@@ -324,7 +342,8 @@ impl<S: Storage> View<App<S>> for AppView {
                     .view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
-                self.goal_view.view(&app.state.goal_type(), offset, depth, grid);
+                self.goal_view
+                    .view(&app.state.goal_info(), offset, depth, grid);
 
                 for (tiles, coord, visibility) in app.state.visible_cells() {
                     for tile_info in tiles {
@@ -364,6 +383,18 @@ impl<S: Storage> View<App<S>> for AppView {
                         grid,
                     );
                 }
+
+                let mut from_bottom = 0;
+                app.state.with_goal_meters(|meter_info| {
+                    let y = GOAL_METER_BOTTOM_Y - from_bottom;
+                    self.meter_view.view(
+                        &meter_info,
+                        Coord::new(GAME_WIDTH as i32 + 1, y),
+                        depth,
+                        grid,
+                    );
+                    from_bottom += 1;
+                });
 
                 let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
                 const OVERALL_PROGRESS_TITLE: &'static str = "Metres Below the Ground";

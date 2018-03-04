@@ -12,4 +12,5 @@ pub enum Tile {
     Exit,
     Bullet,
     Larvae,
+    Queen,
 }

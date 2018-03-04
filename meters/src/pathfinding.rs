@@ -9,7 +9,7 @@ struct SpatialHashSolidOrOccupiedCellGrid<'a>(&'a SpatialHashTable);
 
 impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
-        self.0.get(coord).map(|cell| cell.solid_count > 0)
+        self.0.get(coord).map(|cell| cell.solid_count > 0 && cell.door_count == 0)
     }
 }
 
@@ -17,7 +17,7 @@ impl<'a> SolidGrid for SpatialHashSolidOrOccupiedCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
         self.0
             .get(coord)
-            .map(|cell| cell.solid_count > 0 || !cell.npc_set.is_empty())
+            .map(|cell| (cell.solid_count > 0 && cell.door_count == 0) || !cell.npc_set.is_empty())
     }
 }
 
@@ -65,10 +65,15 @@ impl PathfindingContext {
             .cloned()
             .expect("Entity missing coord");
 
-        let cell = self.distance_map
+        let cell = if let Some(cell) =self.distance_map
             .get(coord)
             .cell()
-            .expect("No distance cell for coord");
+        {
+            cell
+        } else {
+            // no path to player
+            return;
+        };
 
         let current_cost = cell.cost();
 

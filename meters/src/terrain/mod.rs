@@ -2,6 +2,7 @@ use rand::Rng;
 use grid_2d::*;
 use entity_store::EntityIdAllocator;
 use message_queues::*;
+use goal::*;
 
 mod dungeon;
 mod static_strings;
@@ -30,16 +31,24 @@ impl TerrainInfo {
         id_allocator: &mut EntityIdAllocator,
         messages: &mut MessageQueues,
         rng: &mut R,
-    ) {
+    ) -> Option<GoalState> {
         match &self.typ {
             &TerrainType::StaticStrings(ref strings) => {
                 static_strings::populate(strings, self.config, id_allocator, messages);
+                None
             }
             &TerrainType::Empty => {
                 empty::populate(self.config, id_allocator, messages);
+                None
             }
             &TerrainType::Dungeon => {
-                while !dungeon::populate(self.config, id_allocator, messages, rng) {}
+                loop {
+                    match dungeon::populate(self.config, id_allocator, messages, rng) {
+                        dungeon::DungeonPopulateResult::Retry => (),
+                        dungeon::DungeonPopulateResult::NoGoalState => return None,
+                        dungeon::DungeonPopulateResult::GoalState(goal_state) => return Some(goal_state),
+                    }
+                }
             }
         }
     }
@@ -48,12 +57,7 @@ impl TerrainInfo {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct TerrainConfig {
     pub final_level: bool,
-}
-
-impl Default for TerrainConfig {
-    fn default() -> Self {
-        Self { final_level: false }
-    }
+    pub goal_type: GoalType,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

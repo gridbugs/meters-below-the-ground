@@ -2,6 +2,7 @@ use std::fmt::Write;
 use prototty::*;
 use prototty_common::*;
 use meters::meter::*;
+use meters::goal::*;
 
 fn meter_text_info(typ: MeterType) -> TextInfo {
     let colour = match typ {
@@ -10,7 +11,20 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
         MeterType::Health => colours::BRIGHT_RED,
         MeterType::Kevlar => colours::BRIGHT_YELLOW,
     };
-    TextInfo { foreground_colour: Some(colour), .. Default::default() }
+    TextInfo {
+        foreground_colour: Some(colour),
+        ..Default::default()
+    }
+}
+
+fn goal_meter_text_info(typ: GoalMeterType) -> TextInfo {
+    let colour = match typ {
+        GoalMeterType::BossHealth => colours::BRIGHT_MAGENTA,
+    };
+    TextInfo {
+        foreground_colour: Some(colour),
+        ..Default::default()
+    }
 }
 
 pub struct MeterView {
@@ -48,6 +62,14 @@ impl MeterView {
             }
             PassiveMeterType::Kevlar => {
                 write!(self.scratch, "{:1$}", "Kevlar", self.name_padding).unwrap()
+            }
+        }
+    }
+    fn write_goal_name(&mut self, typ: GoalMeterType) {
+        write!(self.scratch, "   ").unwrap();
+        match typ {
+            GoalMeterType::BossHealth => {
+                write!(self.scratch, "{:1$}", "Boss", self.name_padding).unwrap()
             }
         }
     }
@@ -95,6 +117,22 @@ impl View<PassiveMeterInfo> for MeterView {
         self.write_passive_name(info.typ);
         self.write_meter(info.meter);
         let info = meter_text_info(info.typ.typ());
+        TextInfoStringView.view(&(info, &self.scratch), offset, depth, grid);
+    }
+}
+
+impl View<GoalMeterInfo> for MeterView {
+    fn view<G: ViewGrid>(
+        &mut self,
+        info: &GoalMeterInfo,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
+        self.scratch.clear();
+        self.write_goal_name(info.typ);
+        self.write_meter(info.meter);
+        let info = goal_meter_text_info(info.typ);
         TextInfoStringView.view(&(info, &self.scratch), offset, depth, grid);
     }
 }
