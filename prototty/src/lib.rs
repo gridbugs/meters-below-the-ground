@@ -73,7 +73,7 @@ impl Frontend {
     }
     fn min_channel(self) -> u8 {
         match self {
-            Frontend::Glutin => 20,
+            Frontend::Glutin => 0,
             Frontend::Unix => 40,
             Frontend::Wasm => 20,
         }
