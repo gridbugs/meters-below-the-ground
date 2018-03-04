@@ -135,7 +135,7 @@ impl State {
 
     fn switch_levels(&mut self) {
         self.level_index += 1;
-        let mut next_world = World::new(&self.levels[self.level_index], &mut self.messages);
+        let mut next_world = World::new(&self.levels[self.level_index], &mut self.messages, &mut self.rng);
 
         let next_player_id = *next_world
             .entity_store
@@ -185,62 +185,20 @@ impl State {
     }
 
     pub fn new(rng_seed: usize) -> Self {
-        let rng = StdRng::from_seed(&[rng_seed]);
-
-        let terrain = TerrainType::StaticStrings(
-            vec![
-                "##############################",
-                "#............................#",
-                "#.@.<........................#",
-                "#......l.....................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "#............................#",
-                "##############################",
-            ].into_iter()
-                .map(|s| s.to_string())
-                .collect(),
-        );
-
-        let first_terrain = TerrainInfo {
-            typ: terrain,
-            config: Default::default(),
-        };
+        let mut rng = StdRng::from_seed(&[rng_seed]);
 
         let common_terrain = TerrainInfo {
-            typ: TerrainType::Empty,
+            typ: TerrainType::Dungeon,
             config: Default::default(),
         };
 
         let final_terrain = TerrainInfo {
-            typ: TerrainType::Empty,
+            typ: TerrainType::Dungeon,
             config: TerrainConfig { final_level: true },
         };
 
         let levels = vec![
-            first_terrain,
+            common_terrain.clone(),
             common_terrain.clone(),
             common_terrain.clone(),
             final_terrain,
@@ -250,7 +208,7 @@ impl State {
 
         let mut messages = MessageQueues::new();
 
-        let world = World::new(&levels[level_index], &mut messages);
+        let world = World::new(&levels[level_index], &mut messages, &mut rng);
 
         let player_id = *world.entity_store.player.iter().next().expect("No player");
 

@@ -33,6 +33,7 @@ impl Prototype {
 pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::player(id));
+    messages.change(insert::door_opener(id));
     messages.change(insert::collider(id));
     messages.change(insert::tile_info(
         id,
@@ -54,6 +55,19 @@ pub fn wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
     messages.change(insert::solid(id));
+}
+
+pub fn cavern_wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(id, TileInfo::new(Tile::CavernWall, WALL_DEPTH)));
+    messages.change(insert::solid(id));
+}
+
+pub fn door<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::tile_info(id, TileInfo::new(Tile::Door, WALL_DEPTH)));
+    messages.change(insert::solid(id));
+    messages.change(insert::door(id));
 }
 
 pub fn punch<M: PushMessages>(

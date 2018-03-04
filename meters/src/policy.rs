@@ -17,7 +17,8 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
         match change {
             &Insert(id, Coord(coord)) => {
                 if let Some(sh_cell) = spatial_hash.get(coord) {
-                    let solid_cell = sh_cell.solid_count > 0 || sh_cell.npc_set.len() > 0;
+                    let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
+                    let solid_cell = (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
                     if solid_cell && entity_store.collider.contains(&id) {
                         return false;
                     }
@@ -76,7 +77,9 @@ where
                     }
                 }
 
-                let solid_cell = sh_cell.solid_count > 0 || sh_cell.npc_set.len() > 0;
+                let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
+
+                let solid_cell = (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
 
                 if solid_cell && entity_store.collider.contains(&id) {
                     return false;

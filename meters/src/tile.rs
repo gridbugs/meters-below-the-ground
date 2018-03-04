@@ -4,6 +4,8 @@ use direction::CardinalDirection;
 pub enum Tile {
     Player,
     Wall,
+    CavernWall,
+    Door,
     Floor,
     Punch(CardinalDirection),
     Stairs,

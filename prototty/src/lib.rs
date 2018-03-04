@@ -32,7 +32,7 @@ const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
 
 const GAME_OVER_MS: u64 = 1000;
-const GAME_WIDTH: u32 = 30;
+const GAME_WIDTH: u32 = 29;
 
 const TITLE_WIDTH: u32 = 24;
 const TITLE_HEIGHT: u32 = 6;
@@ -75,8 +75,18 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
         }
         Tile::Wall => {
             cell.set_foreground_colour(colours::BLACK);
-            cell.set_background_colour(colours::WHITE);
+            cell.set_background_colour(colours::GREY);
             cell.set_character('#');
+        }
+        Tile::CavernWall => {
+            cell.set_foreground_colour(colours::BLACK);
+            cell.set_background_colour(Rgb24::new(120, 60, 6));
+            cell.set_character('#');
+        }
+        Tile::Door => {
+            cell.set_background_colour(Rgb24::new(124, 14, 0));
+            cell.set_foreground_colour(colours::WHITE);
+            cell.set_character('+');
         }
         Tile::Floor => {
             cell.set_foreground_colour(Rgb24::new(127, 127, 127));

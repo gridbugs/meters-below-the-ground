@@ -6,6 +6,7 @@ coord = { type = '::grid_2d::Coord', storage = 'vector' }
 solid = { storage = 'vector' }
 collider = { storage = 'vector' }
 player = { storage = 'btree' }
+door_opener = { storage = 'btree' }
 tile_info = { type = '::tile_info::TileInfo', storage = 'vector' }
 npc = { storage = 'btree' }
 hit_points = { type = 'i32', storage = 'hash' }
@@ -14,6 +15,7 @@ stairs = { storage = 'btree' }
 exit = { storage = 'btree' }
 slide_direction = { type = '::direction::CardinalDirection', storage = 'hash' }
 bullet = { storage = 'hash' }
+door = { storage = 'hash' }
 health_meter = { type = '::meter::Meter', storage = 'hash' }
 gun_meter = { type = '::meter::Meter', storage = 'hash' }
 kevlar_meter = { type = '::meter::Meter', storage = 'hash' }
@@ -21,6 +23,7 @@ medkit_meter = { type = '::meter::Meter', storage = 'hash' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }
+door_count = { component = 'door', aggregate = 'count' }
 player_count = { component = 'player', aggregate = 'count' }
 npc_set = { component = 'npc', aggregate = 'set' }
 stairs_count = { component = 'stairs', aggregate = 'count' }
