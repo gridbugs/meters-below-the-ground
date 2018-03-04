@@ -20,11 +20,14 @@ health_meter = { type = '::meter::Meter', storage = 'hash' }
 gun_meter = { type = '::meter::Meter', storage = 'hash' }
 kevlar_meter = { type = '::meter::Meter', storage = 'hash' }
 medkit_meter = { type = '::meter::Meter', storage = 'hash' }
+opacity = { type = 'u8', storage = 'vector' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }
 door_count = { component = 'door', aggregate = 'count' }
 player_count = { component = 'player', aggregate = 'count' }
 npc_set = { component = 'npc', aggregate = 'set' }
+tile_set = { component = 'tile_info', aggregate = 'set' }
 stairs_count = { component = 'stairs', aggregate = 'count' }
 exit_count = { component = 'exit', aggregate = 'count' }
+opacity_total = { component = 'opacity', aggregate = 'total' }

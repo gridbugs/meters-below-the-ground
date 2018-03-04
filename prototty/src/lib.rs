@@ -64,32 +64,67 @@ impl Frontend {
             _ => true,
         }
     }
+    fn non_visible_divisor(self) -> u8 {
+        match self {
+            Frontend::Glutin => 24,
+            Frontend::Unix => 4,
+            Frontend::Wasm => 3,
+        }
+    }
 }
 
-fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
+fn colour_cell<C: ViewCell>(cell: &mut C, fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool, frontend: Frontend) {
+    if visible {
+        if let Some(fg) = fg {
+            cell.set_foreground_colour(fg);
+        }
+        if let Some(bg) = bg {
+            cell.set_background_colour(bg);
+        }
+    } else {
+        let d = frontend.non_visible_divisor();
+        if let Some(Rgb24 { red, green, blue }) = fg {
+            cell.set_foreground_colour(Rgb24 {
+                red: red / d,
+                green: green / d,
+                blue: blue / d,
+            });
+        }
+        if let Some(Rgb24 { red, green, blue }) = bg {
+            cell.set_background_colour(Rgb24 {
+                red: red / d,
+                green: green / d,
+                blue: blue / d,
+            });
+        }
+    }
+}
+
+fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C, visibility: Visibility, frontend: Frontend) {
+    let visible = match visibility {
+        Visibility::Visible => true,
+        Visibility::Remembered => false,
+    };
     match tile_info.tile {
         Tile::Player => {
             cell.set_bold(true);
             cell.set_character('@');
-            cell.set_foreground_colour(colours::WHITE);
+            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
         }
         Tile::Wall => {
-            cell.set_foreground_colour(colours::BLACK);
-            cell.set_background_colour(colours::GREY);
+            colour_cell(cell, Some(colours::BLACK), Some(colours::GREY), visible, frontend);
             cell.set_character('#');
         }
         Tile::CavernWall => {
-            cell.set_foreground_colour(colours::BLACK);
-            cell.set_background_colour(Rgb24::new(120, 60, 6));
+            colour_cell(cell, Some(colours::BLACK), Some(Rgb24::new(120, 60, 6)), visible, frontend);
             cell.set_character('#');
         }
         Tile::Door => {
-            cell.set_background_colour(Rgb24::new(124, 14, 0));
-            cell.set_foreground_colour(colours::WHITE);
+            colour_cell(cell, Some(colours::WHITE), Some(Rgb24::new(124, 14, 0)), visible, frontend);
             cell.set_character('+');
         }
         Tile::Floor => {
-            cell.set_foreground_colour(Rgb24::new(127, 127, 127));
+            colour_cell(cell, Some(Rgb24::new(127, 127, 127)), Some(Rgb24::new(63, 63, 63)), visible, frontend);
             cell.set_character('.');
         }
         Tile::Punch(direction) => {
@@ -100,26 +135,26 @@ fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C) {
                 West => '←',
             };
             cell.set_character(ch);
-            cell.set_foreground_colour(colours::CYAN);
+            colour_cell(cell, Some(colours::CYAN), None, visible, frontend);
             cell.set_bold(false);
         }
         Tile::Larvae => {
-            cell.set_foreground_colour(colours::BRIGHT_GREEN);
+            colour_cell(cell, Some(colours::BRIGHT_GREEN), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('l');
         }
         Tile::Stairs => {
-            cell.set_foreground_colour(colours::WHITE);
+            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('<');
         }
         Tile::Exit => {
-            cell.set_foreground_colour(colours::WHITE);
+            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('Ω');
         }
         Tile::Bullet => {
-            cell.set_foreground_colour(colours::WHITE);
+            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('•');
         }
@@ -242,14 +277,13 @@ impl<S: Storage> View<App<S>> for AppView {
             AppState::Game => {
                 self.goal_view.view(&app.state.goal(), offset, depth, grid);
 
-                let entity_store = app.state.entity_store();
-                for (id, tile_info) in entity_store.tile_info.iter() {
-                    if let Some(coord) = entity_store.coord.get(&id) {
+                for (tiles, coord, visibility) in app.state.visible_cells() {
+                    for tile_info in tiles {
                         if let Some(cell) = grid.get_mut(
                             offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
                             tile_info.depth + depth,
                         ) {
-                            view_tile(*tile_info, cell);
+                            view_tile(*tile_info, cell, visibility, app.frontend);
                         }
                     }
                 }

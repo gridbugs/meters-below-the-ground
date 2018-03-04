@@ -11,6 +11,7 @@ enum_primitive = "0.1"
 entity_store_helper = "0.11"
 grid_2d = "0.7"
 grid_search = "0.12"
+shadowcast = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 

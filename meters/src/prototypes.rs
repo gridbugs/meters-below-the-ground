@@ -55,6 +55,7 @@ pub fn wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::tile_info(id, TileInfo::new(Tile::Wall, WALL_DEPTH)));
     messages.change(insert::solid(id));
+    messages.change(insert::opacity(id, 1));
 }
 
 pub fn cavern_wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -64,6 +65,7 @@ pub fn cavern_wall<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M
         TileInfo::new(Tile::CavernWall, WALL_DEPTH),
     ));
     messages.change(insert::solid(id));
+    messages.change(insert::opacity(id, 1));
 }
 
 pub fn door<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -71,6 +73,7 @@ pub fn door<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::tile_info(id, TileInfo::new(Tile::Door, WALL_DEPTH)));
     messages.change(insert::solid(id));
     messages.change(insert::door(id));
+    messages.change(insert::opacity(id, 1));
 }
 
 pub fn punch<M: PushMessages>(

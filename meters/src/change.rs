@@ -25,6 +25,9 @@ impl ChangeContext {
         swap_messages: &mut MessageQueuesSwap,
         rng: &mut R,
     ) -> Option<Event> {
+
+        world.count += 1;
+
         loop {
             for id in messages.removed_entities.drain(..) {
                 for change in world.entity_components.remove_entity(id) {

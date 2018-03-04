@@ -18,6 +18,103 @@ use meter::*;
 use goal::*;
 use common_animations;
 use prototypes;
+use shadowcast::{self, ShadowcastContext};
+use tile_info::*;
+use grid_2d::*;
+use grid_2d;
+use direction::DirectionBitmap;
+
+#[derive(Default, Debug, Clone)]
+struct VisibilityCell {
+    tiles: Vec<TileInfo>,
+    last_updated: u64,
+}
+
+#[derive(Debug, Clone)]
+struct VisibilityGrid(Grid<VisibilityCell>);
+
+pub struct VisibilityIter<'a> {
+    iter: grid_2d::CoordEnumerate<'a, VisibilityCell>,
+    time: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Visibility {
+    Visible,
+    Remembered,
+}
+
+impl<'a> Iterator for VisibilityIter<'a> {
+    type Item = (slice::Iter<'a, TileInfo>, Coord, Visibility);
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((coord, cell)) = self.iter.next() {
+            let visibility = if cell.last_updated == 0 {
+                continue;
+            } else if cell.last_updated == self.time {
+                Visibility::Visible
+            } else {
+                Visibility::Remembered
+            };
+            return Some((cell.tiles.iter(), coord, visibility))
+        }
+        None
+    }
+}
+
+impl VisibilityGrid {
+    fn new(size: Size) -> Self {
+        VisibilityGrid(Grid::new_default(size))
+    }
+    fn iter(&self, time: u64) -> VisibilityIter {
+        VisibilityIter {
+            iter: self.0.enumerate(),
+            time,
+        }
+    }
+    fn clear(&mut self) {
+        for cell in self.0.iter_mut() {
+            cell.last_updated = 0;
+            cell.tiles.clear();
+        }
+    }
+}
+
+struct VisibilityRefs<'a> {
+    grid: &'a mut VisibilityGrid,
+    world: &'a World,
+}
+
+impl<'a> shadowcast::OutputGrid for VisibilityRefs<'a> {
+    fn see(&mut self, coord: Coord, _: DirectionBitmap, time: u64) {
+        if let Some(cell) = self.grid.0.get_mut(coord) {
+            if let Some(sh_cell) = self.world.spatial_hash.get(coord) {
+                if sh_cell.last_updated > cell.last_updated {
+                    cell.tiles.clear();
+                    for id in sh_cell.tile_set.iter() {
+                        if let Some(&tile_info) = self.world.entity_store.tile_info.get(&id) {
+                            cell.tiles.push(tile_info);
+                        }
+                    }
+                }
+                cell.last_updated = time;
+            }
+        }
+    }
+}
+
+impl shadowcast::InputGrid for SpatialHashTable {
+    type Opacity = u8;
+    type Visibility = u8;
+    fn size(&self) -> Size {
+        SpatialHashTable::size(self)
+    }
+    fn get_opacity(&self, coord: Coord) -> Option<Self::Opacity> {
+        self.get(coord).map(|cell| cell.opacity_total)
+    }
+    fn initial_visibility() -> Self::Visibility {
+        1
+    }
+}
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 enum TurnState {
@@ -106,6 +203,8 @@ pub struct State {
     levels: Vec<TerrainInfo>,
     level_index: usize,
     player_turn_events: Vec<PlayerTurnEventEntry>,
+    shadowcast: ShadowcastContext<u8>,
+    visibility_grid: VisibilityGrid,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -185,6 +284,9 @@ impl State {
         self.player_id = next_player_id;
         self.world = next_world;
         self.turn = TurnState::Player;
+
+        self.visibility_grid.clear();
+        self.update_visibility();
     }
 
     pub fn new(rng_seed: usize) -> Self {
@@ -259,6 +361,7 @@ impl State {
             messages,
             swap_messages: MessageQueuesSwap::new(),
             pathfinding: PathfindingContext::new(world.size()),
+            visibility_grid: VisibilityGrid::new(world.size()),
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
             change_context: ChangeContext::new(),
@@ -269,6 +372,7 @@ impl State {
             levels,
             level_index,
             player_turn_events,
+            shadowcast: ShadowcastContext::new(),
         }
     }
 
@@ -290,6 +394,25 @@ impl State {
             level_index: self.level_index,
             player_turn_events: self.player_turn_events.clone(),
         }
+    }
+
+    pub fn visible_cells(&self) -> VisibilityIter {
+        self.visibility_grid.iter(self.world.count)
+    }
+
+    fn update_visibility(&mut self) {
+        let &player_coord = self.world.entity_store.coord.get(&self.player_id).unwrap();
+        let mut output_grid = VisibilityRefs {
+            grid: &mut self.visibility_grid,
+            world: &self.world,
+        };
+        self.shadowcast.observe(
+            player_coord,
+            &self.world.spatial_hash,
+            128,
+            self.world.count,
+            &mut output_grid,
+        );
     }
 
     pub fn player_active_meter_info(&self) -> ActiveMeterInfoIter {
@@ -434,8 +557,6 @@ impl State {
             &mut self.rng,
         );
 
-        self.world.count += 1;
-
         ret
     }
 
@@ -536,8 +657,6 @@ impl State {
             &mut self.rng,
         );
 
-        self.world.count += 1;
-
         ret
     }
 
@@ -565,6 +684,8 @@ impl State {
         } else {
             self.animation_tick(period)
         };
+
+        self.update_visibility();
 
         match event {
             Some(Event::External(external_event)) => Some(external_event),
@@ -628,6 +749,8 @@ impl From<SaveState> for State {
             levels,
             level_index,
             player_turn_events,
+            shadowcast: ShadowcastContext::new(),
+            visibility_grid: VisibilityGrid::new(size),
         }
     }
 }

@@ -22,7 +22,7 @@ impl World {
             spatial_hash: SpatialHashTable::new(size),
             entity_components: EntityComponentTable::new(),
             id_allocator: EntityIdAllocator::new(),
-            count: 0,
+            count: 1,
         };
 
         terrain.populate(&mut world.id_allocator, messages, rng);
@@ -35,7 +35,7 @@ impl World {
     }
 
     pub fn commit(&mut self, change: EntityChange) {
-        self.spatial_hash.update(&self.entity_store, &change, 0);
+        self.spatial_hash.update(&self.entity_store, &change, self.count);
         self.entity_components.update(&change);
         self.entity_store.commit(change);
     }
