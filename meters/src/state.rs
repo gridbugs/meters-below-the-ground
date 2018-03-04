@@ -439,8 +439,8 @@ impl State {
         &self.world.spatial_hash
     }
 
-    pub fn goal(&self) -> Goal {
-        Goal::Escape
+    pub fn goal_type(&self) -> GoalType {
+        GoalType::Escape
     }
 
     pub fn overall_progress_meter(&self) -> Meter {

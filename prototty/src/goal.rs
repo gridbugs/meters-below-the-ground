@@ -15,11 +15,11 @@ impl GoalView {
     }
 }
 
-impl View<Goal> for GoalView {
-    fn view<G: ViewGrid>(&mut self, &goal: &Goal, offset: Coord, depth: i32, grid: &mut G) {
+impl View<GoalType> for GoalView {
+    fn view<G: ViewGrid>(&mut self, &goal: &GoalType, offset: Coord, depth: i32, grid: &mut G) {
         self.scratch.clear();
         match goal {
-            Goal::Escape => write!(self.scratch, "Escape!").unwrap(),
+            GoalType::Escape => write!(self.scratch, "Escape!").unwrap(),
         }
         StringView.view(&self.scratch, offset, depth, grid);
     }

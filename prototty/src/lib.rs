@@ -71,6 +71,13 @@ impl Frontend {
             Frontend::Wasm => 3,
         }
     }
+    fn min_channel(self) -> u8 {
+        match self {
+            Frontend::Glutin => 20,
+            Frontend::Unix => 40,
+            Frontend::Wasm => 20,
+        }
+    }
 }
 
 fn colour_cell<C: ViewCell>(
@@ -89,18 +96,25 @@ fn colour_cell<C: ViewCell>(
         }
     } else {
         let d = frontend.non_visible_divisor();
+        let m = frontend.min_channel();
+        let b = |c| {
+            c / d
+        };
+        let f = |c| {
+            ::std::cmp::max(c / d, m)
+        };
         if let Some(Rgb24 { red, green, blue }) = fg {
             cell.set_foreground_colour(Rgb24 {
-                red: red / d,
-                green: green / d,
-                blue: blue / d,
+                red: f(red),
+                green: f(green),
+                blue: f(blue),
             });
         }
         if let Some(Rgb24 { red, green, blue }) = bg {
             cell.set_background_colour(Rgb24 {
-                red: red / d,
-                green: green / d,
-                blue: blue / d,
+                red: b(red),
+                green: b(green),
+                blue: b(blue),
             });
         }
     }
@@ -120,13 +134,13 @@ fn view_tile<C: ViewCell>(
         Tile::Player => {
             cell.set_bold(true);
             cell.set_character('@');
-            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
+            colour_cell(cell, Some(Rgb24::new(0, 255, 255)), None, visible, frontend);
         }
         Tile::Wall => {
             colour_cell(
                 cell,
-                Some(colours::BLACK),
-                Some(colours::GREY),
+                Some(Rgb24::new(80, 80, 80)),
+                Some(Rgb24::new(220, 220, 220)),
                 visible,
                 frontend,
             );
@@ -135,8 +149,8 @@ fn view_tile<C: ViewCell>(
         Tile::CavernWall => {
             colour_cell(
                 cell,
-                Some(colours::BLACK),
-                Some(Rgb24::new(120, 60, 6)),
+                Some(Rgb24::new(15, 25, 0)),
+                Some(Rgb24::new(60, 90, 0)),
                 visible,
                 frontend,
             );
@@ -145,8 +159,8 @@ fn view_tile<C: ViewCell>(
         Tile::Door => {
             colour_cell(
                 cell,
-                Some(colours::WHITE),
-                Some(Rgb24::new(124, 14, 0)),
+                Some(Rgb24::new(32, 7, 0)),
+                Some(Rgb24::new(184, 34, 3)),
                 visible,
                 frontend,
             );
@@ -155,8 +169,8 @@ fn view_tile<C: ViewCell>(
         Tile::Floor => {
             colour_cell(
                 cell,
-                Some(Rgb24::new(127, 127, 127)),
-                Some(Rgb24::new(63, 63, 63)),
+                Some(Rgb24::new(220, 220, 220)),
+                Some(Rgb24::new(10, 10, 10)),
                 visible,
                 frontend,
             );
@@ -170,7 +184,7 @@ fn view_tile<C: ViewCell>(
                 West => '←',
             };
             cell.set_character(ch);
-            colour_cell(cell, Some(colours::CYAN), None, visible, frontend);
+            colour_cell(cell, Some(Rgb24::new(0, 255, 255)), None, visible, frontend);
             cell.set_bold(false);
         }
         Tile::Larvae => {
@@ -179,17 +193,17 @@ fn view_tile<C: ViewCell>(
             cell.set_character('l');
         }
         Tile::Stairs => {
-            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
+            colour_cell(cell, Some(colours::BRIGHT_YELLOW), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('<');
         }
         Tile::Exit => {
-            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
+            colour_cell(cell, Some(colours::BRIGHT_YELLOW), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('Ω');
         }
         Tile::Bullet => {
-            colour_cell(cell, Some(colours::WHITE), None, visible, frontend);
+            colour_cell(cell, Some(colours::RED), None, visible, frontend);
             cell.set_bold(true);
             cell.set_character('•');
         }
@@ -310,7 +324,7 @@ impl<S: Storage> View<App<S>> for AppView {
                     .view(&app.main_menu, offset, depth, grid);
             }
             AppState::Game => {
-                self.goal_view.view(&app.state.goal(), offset, depth, grid);
+                self.goal_view.view(&app.state.goal_type(), offset, depth, grid);
 
                 for (tiles, coord, visibility) in app.state.visible_cells() {
                     for tile_info in tiles {
