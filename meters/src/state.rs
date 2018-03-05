@@ -8,7 +8,7 @@ use input::*;
 use policy;
 use animation::*;
 use rand::{SeedableRng, StdRng};
-use pathfinding::PathfindingContext;
+use pathfinding::*;
 use message_queues::*;
 use terrain::*;
 use world::World;
@@ -657,7 +657,7 @@ impl State {
                 let coord = self.world.entity_store.coord.get(&id).unwrap();
                 let visibility = self.visibility_grid.get(*coord).unwrap();
                 if visibility.last_updated == self.world.count {
-                    self.messages.change(insert::npc(id, ACTIVE_NPC));
+                    self.messages.change(insert::npc(id, NpcInfo { active: true, .. *info }));
                     true
                 } else {
                     false
@@ -676,6 +676,9 @@ impl State {
                 id,
                 &self.world.entity_store,
                 &self.world.spatial_hash,
+                PathfindingConfig {
+                    open_doors: false,
+                },
                 &mut self.messages,
             );
             if let Some(meta) = self.change_context.process(

@@ -26,7 +26,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '@',
             TextInfo::default()
                 .bold()
-                .foreground_colour(Rgb24::new(0, 255, 255)),
+                .foreground_colour(Rgb24::new(255, 255, 0)),
         ),
         Tile::Wall => (
             '#',

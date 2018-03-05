@@ -102,7 +102,7 @@ pub fn punch<M: PushMessages>(
 
 pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, INACTIVE_NPC));
+    messages.change(insert::npc(id, Default::default()));
     messages.change(insert::health_meter(id, Meter::full(2)));
     messages.change(insert::tile_info(
         id,
@@ -112,7 +112,10 @@ pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, INACTIVE_NPC));
+    messages.change(insert::npc(id, NpcInfo {
+        boss,
+        active: boss,
+    }));
     messages.change(insert::health_meter(id, Meter::full(10)));
     messages.change(insert::tile_info(
         id,

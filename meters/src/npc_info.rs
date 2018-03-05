@@ -1,7 +1,5 @@
-pub const ACTIVE_NPC: NpcInfo = NpcInfo { active: true };
-pub const INACTIVE_NPC: NpcInfo = NpcInfo { active: false };
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct NpcInfo {
     pub active: bool,
+    pub boss: bool,
 }
