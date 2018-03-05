@@ -81,6 +81,13 @@ where
                         messages.remove(id);
                         return false;
                     }
+                    if entity_store.rail_gun_shot.contains(&id) {
+                        if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
+                            health.value -= 1;
+                            messages.change(insert::health_meter(*npc_id, health));
+                            common_animations::rail_gun_damage_flash(*npc_id, messages);
+                        }
+                    }
                 }
 
                 let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
@@ -157,6 +164,12 @@ where
                                     messages.change(insert::gun_meter(id, ammo));
                                     messages.remove(*pickup_id);
 
+                                }
+                                Pickup::RailGunAmmo => {
+                                    let mut ammo = *entity_store.rail_gun_meter.get(&id).unwrap();
+                                    ammo.value = ammo.max;
+                                    messages.change(insert::rail_gun_meter(id, ammo));
+                                    messages.remove(*pickup_id);
                                 }
                                 Pickup::Health => {
                                     let mut health = *entity_store.health_meter.get(&id).unwrap();

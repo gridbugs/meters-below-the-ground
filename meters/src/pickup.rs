@@ -2,4 +2,5 @@
 pub enum Pickup {
     Health,
     Ammo,
+    RailGunAmmo,
 }

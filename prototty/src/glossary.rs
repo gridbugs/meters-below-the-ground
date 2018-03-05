@@ -36,7 +36,8 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         Tile::Stairs => write!(stage, "{} {}", ch, "Stairs"),
         Tile::Exit => write!(stage, "{} {}", ch, "Exit"),
         Tile::HealthPickup => write!(stage, "{} {}", ch, "Meds"),
-        Tile::AmmoPickup => write!(stage, "{} {}", ch, "Ammo"),
+        Tile::AmmoPickup => write!(stage, "{} {}", ch, "Quadgun Ammo"),
+        Tile::RailGunAmmoPickup => write!(stage, "{} {}", ch, "Railgun Ammo"),
         Tile::Wall |
         Tile::CavernWall |
         Tile::Door |

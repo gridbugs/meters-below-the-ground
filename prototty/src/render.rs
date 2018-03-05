@@ -15,7 +15,8 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::Stairs
         | Tile::Exit
         | Tile::AmmoPickup
-        | Tile::HealthPickup => true,
+        | Tile::HealthPickup
+        | Tile::RailGunAmmoPickup=> true,
     }
 }
 
@@ -43,7 +44,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '+',
             TextInfo::default()
                 .foreground_colour(Rgb24::new(255, 255, 255))
-                .background_colour(Rgb24::new(20, 20, 255)),
+                .background_colour(Rgb24::new(0, 0, 127)),
         ),
         Tile::Floor => (
             '.',
@@ -117,8 +118,13 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             TextInfo::default()
                 .bold()
                 .foreground_colour(Rgb24::new(0, 255, 255)),
+        ),
+        Tile::RailGunAmmoPickup => (
+            'ɸ',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(0, 255, 255)),
         )
-
     };
 
     if tile_info.damage_flash {

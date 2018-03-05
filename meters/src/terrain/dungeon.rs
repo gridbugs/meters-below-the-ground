@@ -456,6 +456,12 @@ pub fn populate<R: Rng>(
             *grid.get(coord).unwrap() == Cell::Floor
     }).collect::<Vec<_>>();
 
+    for _ in 0..2 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::rail_gun_ammo_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
     for _ in 0..4 {
         if let Some(coord) = floor_coords.pop() {
             prototypes::health_pickup(id_allocator.allocate(), coord, messages);

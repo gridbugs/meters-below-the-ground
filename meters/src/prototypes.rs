@@ -50,7 +50,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
     messages.change(insert::health_meter(id, Meter::full(8)));
     messages.change(insert::gun_meter(id, Meter::full(10)));
-    messages.change(insert::rail_gun_meter(id, Meter::full(10)));
+    messages.change(insert::rail_gun_meter(id, Meter::full(5)));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -166,8 +166,8 @@ pub fn rail_gun_shot<M: PushMessages>(
     direction: CardinalDirection,
     messages: &mut M,
 ) {
-    messages.change(insert::coord(id, coord));
     messages.change(insert::rail_gun_shot(id));
+    messages.change(insert::coord(id, coord));
     let tile = match direction {
         CardinalDirection::North |
             CardinalDirection::South => Tile::RailGunShotVertical,
@@ -203,5 +203,18 @@ pub fn ammo_pickup<M: PushMessages>(
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::AmmoPickup, PICKUP_DEPTH),
+    ));
+}
+
+pub fn rail_gun_ammo_pickup<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::RailGunAmmo));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::RailGunAmmoPickup, PICKUP_DEPTH),
     ));
 }

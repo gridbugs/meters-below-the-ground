@@ -52,3 +52,11 @@ pub fn damage_flash<M: PushMessages>(id: EntityId, messages: &mut M) {
         messages,
     );
 }
+
+pub fn rail_gun_damage_flash<M: PushMessages>(id: EntityId, messages: &mut M) {
+    start_animation(
+        AnimationState::DamageFlash(id, Duration::from_millis(timing::DAMAGE_FLASH_MILLIS + timing::RAIL_GUN_SHOT_MILLIS)),
+        None,
+        messages,
+    );
+}

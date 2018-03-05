@@ -17,4 +17,5 @@ pub enum Tile {
     Queen,
     HealthPickup,
     AmmoPickup,
+    RailGunAmmoPickup,
 }
