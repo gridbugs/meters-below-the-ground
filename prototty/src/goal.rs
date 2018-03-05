@@ -16,13 +16,21 @@ impl GoalView {
 }
 
 impl View<Option<(GoalType, bool)>> for GoalView {
-    fn view<G: ViewGrid>(&mut self, &goal: &Option<(GoalType, bool)>, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        &goal: &Option<(GoalType, bool)>,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         if let Some(&(goal, complete)) = goal.as_ref() {
             self.scratch.clear();
             match goal {
                 GoalType::Escape => write!(self.scratch, "Escape!").unwrap(),
                 GoalType::KillBoss => write!(self.scratch, "Kill the boss!").unwrap(),
-                GoalType::KillEggs => write!(self.scratch, "Kill the eggs before they hatch!").unwrap(),
+                GoalType::KillEggs => {
+                    write!(self.scratch, "Kill the eggs before they hatch!").unwrap()
+                }
             }
             if complete {
                 write!(self.scratch, " Complete!").unwrap();
@@ -31,4 +39,3 @@ impl View<Option<(GoalType, bool)>> for GoalView {
         }
     }
 }
-

@@ -1,6 +1,6 @@
 use tile::Tile;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TileInfo {
     pub tile: Tile,
     pub depth: i32,

@@ -122,13 +122,7 @@ impl View<PassiveMeterInfo> for MeterView {
 }
 
 impl View<GoalMeterInfo> for MeterView {
-    fn view<G: ViewGrid>(
-        &mut self,
-        info: &GoalMeterInfo,
-        offset: Coord,
-        depth: i32,
-        grid: &mut G,
-    ) {
+    fn view<G: ViewGrid>(&mut self, info: &GoalMeterInfo, offset: Coord, depth: i32, grid: &mut G) {
         self.scratch.clear();
         self.write_goal_name(info.typ);
         self.write_meter(info.meter);

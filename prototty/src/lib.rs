@@ -6,11 +6,11 @@ extern crate prototty;
 extern crate prototty_common;
 extern crate rand;
 
+use std::collections::BTreeSet;
 use std::time::Duration;
 use rand::{Rng, SeedableRng, StdRng};
 use direction::CardinalDirection;
 use meters::state::*;
-use meters::tile::Tile;
 use meters::tile_info::TileInfo;
 use prototty::*;
 use prototty::Input as ProtottyInput;
@@ -28,6 +28,11 @@ use self::meter::*;
 mod goal;
 use self::goal::*;
 
+mod glossary;
+use self::glossary::*;
+
+mod render;
+
 const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
 
@@ -42,7 +47,7 @@ const GAME_TOP_PADDING: i32 = 2;
 const METER_NAME_PADDING: usize = 9;
 const METER_WIDTH: usize = 10;
 
-const OVERALL_PROGRESS_Y: i32 = 33;
+const OVERALL_PROGRESS_Y: i32 = 32;
 const OVERALL_PROGRESS_METER_NAME_PADDING: usize = 21;
 const OVERALL_PROGRESS_METER_WIDTH: usize = 29;
 
@@ -51,6 +56,8 @@ const NUM_ACTIVE_METERS: i32 = 10;
 const NUM_PASSIVE_METERS: i32 = 10;
 
 const GOAL_METER_BOTTOM_Y: i32 = 28;
+
+const GLOSSARY_TOP_Y: i32 = 34;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Frontend {
@@ -128,103 +135,14 @@ fn view_tile<C: ViewCell>(
         Visibility::Visible => true,
         Visibility::Remembered => false,
     };
-    match tile_info.tile {
-        Tile::Player => {
-            if !visible {
-                return;
-            }
-            cell.set_bold(true);
-            cell.set_character('@');
-            colour_cell(cell, Some(Rgb24::new(0, 255, 255)), None, visible, frontend);
-        }
-        Tile::Wall => {
-            colour_cell(
-                cell,
-                Some(Rgb24::new(80, 80, 80)),
-                Some(Rgb24::new(220, 220, 220)),
-                visible,
-                frontend,
-            );
-            cell.set_character('#');
-        }
-        Tile::CavernWall => {
-            colour_cell(
-                cell,
-                Some(Rgb24::new(15, 25, 0)),
-                Some(Rgb24::new(60, 90, 0)),
-                visible,
-                frontend,
-            );
-            cell.set_character('#');
-        }
-        Tile::Door => {
-            colour_cell(
-                cell,
-                Some(Rgb24::new(32, 7, 0)),
-                Some(Rgb24::new(184, 34, 3)),
-                visible,
-                frontend,
-            );
-            cell.set_character('+');
-        }
-        Tile::Floor => {
-            colour_cell(
-                cell,
-                Some(Rgb24::new(220, 220, 220)),
-                Some(Rgb24::new(10, 10, 10)),
-                visible,
-                frontend,
-            );
-            cell.set_character('.');
-        }
-        Tile::Punch(direction) => {
-            if !visible {
-                return;
-            }
-            let ch = match direction {
-                North => '↑',
-                South => '↓',
-                East => '→',
-                West => '←',
-            };
-            cell.set_character(ch);
-            colour_cell(cell, Some(Rgb24::new(0, 255, 255)), None, visible, frontend);
-            cell.set_bold(false);
-        }
-        Tile::Larvae => {
-            if !visible {
-                return;
-            }
-            colour_cell(cell, Some(colours::BRIGHT_GREEN), None, visible, frontend);
-            cell.set_bold(true);
-            cell.set_character('l');
-        }
-        Tile::Queen => {
-            if !visible {
-                return;
-            }
-            colour_cell(cell, Some(colours::BRIGHT_MAGENTA), None, visible, frontend);
-            cell.set_bold(true);
-            cell.set_character('Q');
-        }
-        Tile::Stairs => {
-            colour_cell(cell, Some(colours::BRIGHT_YELLOW), None, visible, frontend);
-            cell.set_bold(true);
-            cell.set_character('<');
-        }
-        Tile::Exit => {
-            colour_cell(cell, Some(colours::BRIGHT_YELLOW), None, visible, frontend);
-            cell.set_bold(true);
-            cell.set_character('Ω');
-        }
-        Tile::Bullet => {
-            if !visible {
-                return;
-            }
-            colour_cell(cell, Some(colours::RED), None, visible, frontend);
-            cell.set_bold(true);
-            cell.set_character('•');
-        }
+    if !visible && !render::render_when_non_visible(tile_info.tile) {
+        return;
+    }
+    let (ch, info) = render::tile_text(tile_info);
+    cell.set_character(ch);
+    colour_cell(cell, info.foreground_colour, info.background_colour, visible, frontend);
+    if info.bold {
+        cell.set_bold(true);
     }
 }
 
@@ -281,6 +199,8 @@ pub struct AppView {
     meter_view: MeterView,
     overall_progress_view: MeterView,
     goal_view: GoalView,
+    glossary_view: GlossaryView,
+    glossary: BTreeSet<TileInfo>,
 }
 
 impl View<MenuInstance<MainMenuChoice>> for TitleScreenView {
@@ -314,6 +234,8 @@ impl AppView {
                 OVERALL_PROGRESS_METER_WIDTH,
             ),
             goal_view: GoalView::new(),
+            glossary_view: GlossaryView::new(),
+            glossary: BTreeSet::new(),
         }
     }
     pub fn set_size(&mut self, size: Size) {
@@ -345,6 +267,7 @@ impl<S: Storage> View<App<S>> for AppView {
                 self.goal_view
                     .view(&app.state.goal_info(), offset, depth, grid);
 
+                self.glossary.clear();
                 for (tiles, coord, visibility) in app.state.visible_cells() {
                     for tile_info in tiles {
                         if let Some(cell) = grid.get_mut(
@@ -352,6 +275,9 @@ impl<S: Storage> View<App<S>> for AppView {
                             tile_info.depth + depth,
                         ) {
                             view_tile(*tile_info, cell, visibility, app.frontend);
+                            if visibility == Visibility::Visible {
+                                self.glossary.insert(*tile_info);
+                            }
                         }
                     }
                 }
@@ -405,6 +331,10 @@ impl<S: Storage> View<App<S>> for AppView {
                     depth,
                     grid,
                 );
+
+                let glossary_offset = offset + Coord::new(0, GLOSSARY_TOP_Y);
+                self.glossary_view
+                    .view(&self.glossary, glossary_offset, depth, grid);
             }
             AppState::GameOver(message) => match message {
                 GameOverMessage::Lose => {
