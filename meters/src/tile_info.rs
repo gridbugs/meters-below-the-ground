@@ -4,7 +4,9 @@ use tile::Tile;
 pub struct TileInfo {
     pub tile: Tile,
     pub depth: i32,
-    pub damaged: bool,
+    pub damage_flash: bool,
+    pub wounded: bool,
+    pub boss: bool,
 }
 
 impl TileInfo {
@@ -12,7 +14,9 @@ impl TileInfo {
         Self {
             tile,
             depth,
-            damaged: false,
+            damage_flash: false,
+            wounded: false,
+            boss: false,
         }
     }
 }

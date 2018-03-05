@@ -16,13 +16,15 @@ use change::ChangeContext;
 use event::*;
 use meter::*;
 use goal::*;
+use npc_info::*;
 use common_animations;
 use prototypes;
+use weapons;
 use shadowcast::{self, ShadowcastContext};
 use tile_info::*;
 use grid_2d::*;
 use grid_2d;
-use direction::DirectionBitmap;
+use direction::*;
 
 const NUM_LEVELS: usize = 6;
 
@@ -78,6 +80,9 @@ impl VisibilityGrid {
             cell.last_updated = 0;
             cell.tiles.clear();
         }
+    }
+    fn get(&self, coord: Coord) -> Option<&VisibilityCell> {
+        self.0.get(coord)
     }
 }
 
@@ -472,46 +477,81 @@ impl State {
         }
     }
 
+    fn use_gun(&mut self) {
+        let mut ammo = self.world
+            .entity_store
+            .gun_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+
+        if ammo.value > 0 {
+            let entity_coord = self.world
+                .entity_store
+                .coord
+                .get(&self.player_id)
+                .cloned()
+                .unwrap();
+
+            for direction in CardinalDirections {
+                let start_coord = entity_coord + direction.coord();
+                let bullet_id = self.world.id_allocator.allocate();
+                prototypes::bullet(
+                    bullet_id,
+                    start_coord,
+                    direction,
+                    weapons::GUN_BULLET_RANGE,
+                    &mut self.messages,
+                    );
+
+                common_animations::bullet(bullet_id, &mut self.messages);
+            }
+            ammo.value -= 1;
+            self.messages
+                .change(insert::gun_meter(self.player_id, ammo));
+        }
+    }
+
+    fn use_medkit(&mut self) {
+        let mut medkit = self.world
+            .entity_store
+            .medkit_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+        if medkit.value > 0 {
+            let heal_amount = medkit.value;
+            medkit.value = 0;
+            self.messages
+                .change(insert::medkit_meter(self.player_id, medkit));
+
+            let mut health = self.world
+                .entity_store
+                .health_meter
+                .get(&self.player_id)
+                .cloned()
+                .unwrap();
+            health.value = ::std::cmp::min(health.value + heal_amount, health.max);
+            self.messages
+                .change(insert::health_meter(self.player_id, health));
+        }
+
+    }
+
+    fn walk(&mut self, direction: CardinalDirection) {
+        let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+        let next = current + direction.coord();
+        self.messages
+            .changes
+            .push(insert::coord(self.player_id, next));
+    }
+
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
             Input::Direction(direction) => {
                 match self.selected_meter {
-                    None => {
-                        let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
-                        let next = current + direction.coord();
-                        self.messages
-                            .changes
-                            .push(insert::coord(self.player_id, next));
-                    }
-                    Some(ActiveMeterType::Gun) => {
-                        let mut ammo = self.world
-                            .entity_store
-                            .gun_meter
-                            .get(&self.player_id)
-                            .cloned()
-                            .unwrap();
-
-                        if ammo.value > 0 {
-                            let entity_coord = self.world
-                                .entity_store
-                                .coord
-                                .get(&self.player_id)
-                                .cloned()
-                                .unwrap();
-                            let start_coord = entity_coord + direction.coord();
-                            let bullet_id = self.world.id_allocator.allocate();
-                            prototypes::bullet(
-                                bullet_id,
-                                start_coord,
-                                direction,
-                                &mut self.messages,
-                            );
-                            common_animations::bullet(bullet_id, &mut self.messages);
-                            ammo.value -= 1;
-                            self.messages
-                                .change(insert::gun_meter(self.player_id, ammo));
-                        }
-                    }
+                    None => self.walk(direction),
+                    Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
                 }
 
@@ -521,38 +561,21 @@ impl State {
                 match self.selected_meter {
                     None => return None,
                     Some(ActiveMeterType::Gun) => return None,
-                    Some(ActiveMeterType::Medkit) => {
-                        let mut medkit = self.world
-                            .entity_store
-                            .medkit_meter
-                            .get(&self.player_id)
-                            .cloned()
-                            .unwrap();
-                        if medkit.value > 0 {
-                            let heal_amount = medkit.value;
-                            medkit.value = 0;
-                            self.messages
-                                .change(insert::medkit_meter(self.player_id, medkit));
-
-                            let mut health = self.world
-                                .entity_store
-                                .health_meter
-                                .get(&self.player_id)
-                                .cloned()
-                                .unwrap();
-                            health.value = ::std::cmp::min(health.value + heal_amount, health.max);
-                            self.messages
-                                .change(insert::health_meter(self.player_id, health));
-                        }
-                    }
+                    Some(ActiveMeterType::Medkit) => return None,
                 }
                 self.selected_meter = None;
             }
             Input::ActiveMeterSelect(identifier) => {
                 if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
-                    self.selected_meter = Some(meter_type);
+                    match meter_type {
+                        ActiveMeterType::Gun => self.use_gun(),
+                        ActiveMeterType::Medkit => self.use_medkit(),
+                        _ => {
+                            self.selected_meter = Some(meter_type);
+                            return None;
+                        }
+                    }
                 }
-                return None;
             }
             Input::MeterDeselect => {
                 self.selected_meter = None;
@@ -591,8 +614,22 @@ impl State {
         }
 
         self.npc_order.clear();
-        for &id in self.world.entity_store.npc.iter() {
-            self.npc_order.push(id);
+        for (&id, info) in self.world.entity_store.npc.iter() {
+            let active = if info.active {
+                true
+            } else {
+                let coord = self.world.entity_store.coord.get(&id).unwrap();
+                let visibility = self.visibility_grid.get(*coord).unwrap();
+                if visibility.last_updated == self.world.count {
+                    self.messages.change(insert::npc(id, ACTIVE_NPC));
+                    true
+                } else {
+                    false
+                }
+            };
+            if active {
+                self.npc_order.push(id);
+            }
         }
 
         self.pathfinding

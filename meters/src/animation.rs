@@ -51,6 +51,8 @@ pub enum AnimationState {
         remaining: Duration,
         reset_period: Duration,
     },
+    DamageFlash(EntityId, Duration),
+    RemoveDamageFlash(EntityId, Duration),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -158,6 +160,41 @@ impl Animation {
                             remaining,
                             reset_period,
                         },
+                        self.channel,
+                    ));
+
+                    AnimationStatus::continuing(self.channel)
+                }
+            }
+            AnimationState::DamageFlash(id, remaining) => {
+                if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+
+                    tile_info.damage_flash = true;
+                    messages.change(insert::tile_info(id, tile_info));
+
+                    messages.animate(Animation::new(
+                        AnimationState::RemoveDamageFlash(id, remaining),
+                        self.channel,
+                    ));
+                    AnimationStatus::continuing(self.channel)
+                } else {
+                    AnimationStatus::Finished
+                }
+            }
+            AnimationState::RemoveDamageFlash(id, remaining) => {
+                if period > remaining {
+
+                    if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+                        tile_info.damage_flash = false;
+                        messages.change(insert::tile_info(id, tile_info));
+                    }
+
+                    AnimationStatus::Finished
+                } else {
+                    let remaining = remaining - period;
+
+                    messages.animate(Animation::new(
+                        AnimationState::DamageFlash(id, remaining),
                         self.channel,
                     ));
 

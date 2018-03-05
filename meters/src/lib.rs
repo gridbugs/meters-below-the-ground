@@ -30,6 +30,9 @@ mod common_animations;
 mod animation;
 mod pathfinding;
 mod event;
+mod pickup;
+mod npc_info;
+mod weapons;
 
 pub mod goal;
 pub mod input;

@@ -6,8 +6,6 @@ use entity_store::EntityIdAllocator;
 use super::*;
 use prototypes;
 
-const NUM_LARVAE: usize = 0;
-
 pub fn size() -> Size {
     Size::new(29, 29)
 }
@@ -445,24 +443,37 @@ pub fn populate<R: Rng>(
         .filter(|coord| room_centres.contains(coord))
         .collect::<Vec<_>>();
 
-    let mut non_room_centres_in_largest_space = largest_space
-        .iter()
-        .cloned()
-        .filter(|coord| !room_centres.contains(coord))
-        .collect::<Vec<_>>();
-
-    for _ in 0..NUM_LARVAE {
-        if let Some(coord) = non_room_centres_in_largest_space.pop() {
-            prototypes::larvae(id_allocator.allocate(), coord, messages);
-        }
-    }
-
     if room_centres_in_largest_space.len() < 2 {
         return DungeonPopulateResult::Retry;
     }
 
     let player_coord = room_centres_in_largest_space[0];
     let stairs_coord = room_centres_in_largest_space[1];
+
+    let mut floor_coords = largest_space.iter().cloned().filter(|&coord| {
+        coord != player_coord &&
+            coord != stairs_coord &&
+            *grid.get(coord).unwrap() == Cell::Floor
+    }).collect::<Vec<_>>();
+
+    for _ in 0..4 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::health_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
+    for _ in 0..4 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::ammo_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
+    for _ in 0..16 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::larvae(id_allocator.allocate(), coord, messages);
+        }
+    }
+
 
     let result = match config.goal_type {
         GoalType::KillBoss => {
@@ -471,7 +482,7 @@ pub fn populate<R: Rng>(
             }
             let queen_coord = room_centres_in_largest_space[2];
             let queen_id = id_allocator.allocate();
-            prototypes::queen(queen_id, queen_coord, messages);
+            prototypes::queen(queen_id, queen_coord, true, messages);
             DungeonPopulateResult::GoalState(GoalState::KillBoss(queen_id))
         }
         _ => DungeonPopulateResult::NoGoalState,

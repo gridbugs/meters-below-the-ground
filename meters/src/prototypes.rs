@@ -5,14 +5,17 @@ use tile::Tile;
 use tile_info::TileInfo;
 use message_queues::PushMessages;
 use meter::Meter;
+use pickup::Pickup;
+use npc_info::*;
 
-const FLOOR_DEPTH: i32 = 1;
-const WALL_DEPTH: i32 = 2;
-const STAIRS_DEPTH: i32 = 3;
-const BULLET_DEPTH: i32 = 4;
-const NPC_DEPTH: i32 = 5;
-const PLAYER_DEPTH: i32 = 6;
-const ANIMATION_DEPTH: i32 = 7;
+const FLOOR_DEPTH: i32      = 1;
+const WALL_DEPTH: i32       = 2;
+const STAIRS_DEPTH: i32     = 3;
+const PICKUP_DEPTH: i32     = 4;
+const BULLET_DEPTH: i32     = 5;
+const NPC_DEPTH: i32        = 6;
+const PLAYER_DEPTH: i32     = 7;
+const ANIMATION_DEPTH: i32  = 8;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
@@ -92,7 +95,7 @@ pub fn punch<M: PushMessages>(
 
 pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id));
+    messages.change(insert::npc(id, INACTIVE_NPC));
     messages.change(insert::health_meter(id, Meter::full(2)));
     messages.change(insert::tile_info(
         id,
@@ -100,13 +103,19 @@ pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
 }
 
-pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id));
+    messages.change(insert::npc(id, INACTIVE_NPC));
     messages.change(insert::health_meter(id, Meter::full(10)));
     messages.change(insert::tile_info(
         id,
-        TileInfo::new(Tile::Queen, NPC_DEPTH),
+        TileInfo {
+            tile: Tile::Queen,
+            depth: NPC_DEPTH,
+            damage_flash: false,
+            wounded: false,
+            boss,
+        }
     ));
 }
 
@@ -132,13 +141,40 @@ pub fn bullet<M: PushMessages>(
     id: EntityId,
     coord: Coord,
     direction: CardinalDirection,
+    range: u32,
     messages: &mut M,
 ) {
     messages.change(insert::slide_direction(id, direction));
-    messages.change(insert::bullet(id));
+    messages.change(insert::bullet(id, range));
     messages.change(insert::coord(id, coord));
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Bullet, BULLET_DEPTH),
+    ));
+}
+
+pub fn health_pickup<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::Health));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::HealthPickup, PICKUP_DEPTH),
+    ));
+}
+
+pub fn ammo_pickup<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::Ammo));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::AmmoPickup, PICKUP_DEPTH),
     ));
 }

@@ -73,20 +73,6 @@ impl Frontend {
             _ => true,
         }
     }
-    fn non_visible_divisor(self) -> u8 {
-        match self {
-            Frontend::Glutin => 24,
-            Frontend::Unix => 4,
-            Frontend::Wasm => 3,
-        }
-    }
-    fn min_channel(self) -> u8 {
-        match self {
-            Frontend::Glutin => 0,
-            Frontend::Unix => 40,
-            Frontend::Wasm => 20,
-        }
-    }
 }
 
 fn colour_cell<C: ViewCell>(
@@ -94,7 +80,6 @@ fn colour_cell<C: ViewCell>(
     fg: Option<Rgb24>,
     bg: Option<Rgb24>,
     visible: bool,
-    frontend: Frontend,
 ) {
     if visible {
         if let Some(fg) = fg {
@@ -104,10 +89,8 @@ fn colour_cell<C: ViewCell>(
             cell.set_background_colour(bg);
         }
     } else {
-        let d = frontend.non_visible_divisor();
-        let m = frontend.min_channel();
-        let b = |c| c / d;
-        let f = |c| ::std::cmp::max(c / d, m);
+        let b = |c| c / 8;
+        let f = |c| c / 2;
         if let Some(Rgb24 { red, green, blue }) = fg {
             cell.set_foreground_colour(Rgb24 {
                 red: f(red),
@@ -129,7 +112,6 @@ fn view_tile<C: ViewCell>(
     tile_info: TileInfo,
     cell: &mut C,
     visibility: Visibility,
-    frontend: Frontend,
 ) {
     let visible = match visibility {
         Visibility::Visible => true,
@@ -140,7 +122,7 @@ fn view_tile<C: ViewCell>(
     }
     let (ch, info) = render::tile_text(tile_info);
     cell.set_character(ch);
-    colour_cell(cell, info.foreground_colour, info.background_colour, visible, frontend);
+    colour_cell(cell, info.foreground_colour, info.background_colour, visible);
     if info.bold {
         cell.set_bold(true);
     }
@@ -274,7 +256,7 @@ impl<S: Storage> View<App<S>> for AppView {
                             offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
                             tile_info.depth + depth,
                         ) {
-                            view_tile(*tile_info, cell, visibility, app.frontend);
+                            view_tile(*tile_info, cell, visibility);
                             if visibility == Visibility::Visible || render::render_when_non_visible(tile_info.tile) {
                                 self.glossary.insert(*tile_info);
                             }

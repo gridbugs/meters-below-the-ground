@@ -13,4 +13,6 @@ pub enum Tile {
     Bullet,
     Larvae,
     Queen,
+    HealthPickup,
+    AmmoPickup,
 }

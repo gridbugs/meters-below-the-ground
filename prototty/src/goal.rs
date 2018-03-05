@@ -33,7 +33,7 @@ impl View<Option<(GoalType, bool)>> for GoalView {
                 }
             }
             if complete {
-                write!(self.scratch, " Complete!").unwrap();
+                write!(self.scratch, " (COMPLETE)").unwrap();
             }
             StringView.view(&self.scratch, offset, depth, grid);
         }

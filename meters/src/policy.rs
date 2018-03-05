@@ -4,17 +4,16 @@ use direction::CardinalDirection;
 use common_animations;
 use message_queues::PushMessages;
 use meter::Meter;
+use pickup::Pickup;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
 ) -> bool {
-    use self::ComponentValue::*;
-    use self::EntityChange::*;
     for change in changes {
         match change {
-            &Insert(id, Coord(coord)) => {
+            &EntityChange::Insert(id, ComponentValue::Coord(coord)) => {
                 if let Some(sh_cell) = spatial_hash.get(coord) {
                     let door_cell =
                         sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
@@ -25,8 +24,8 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                     }
                 }
             }
-            &Insert(..) => {}
-            &Remove(..) => {}
+            &EntityChange::Insert(..) => {}
+            &EntityChange::Remove(..) => {}
         }
     }
 
@@ -60,10 +59,8 @@ where
     M: PushMessages,
     R: Rng,
 {
-    use self::EntityChange::*;
-    use self::ComponentValue::*;
     match change {
-        &Insert(id, Coord(coord)) => {
+        &EntityChange::Insert(id, ComponentValue::Coord(coord)) => {
             if let Some(sh_cell) = spatial_hash.get(coord) {
                 let dest_npc = sh_cell.npc_set.iter().next();
 
@@ -72,12 +69,14 @@ where
                         if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
                             health.value -= 1;
                             messages.change(insert::health_meter(*npc_id, health));
+                            common_animations::damage_flash(*npc_id, messages);
                         }
                     }
-                    if entity_store.bullet.contains(&id) {
+                    if entity_store.bullet.contains_key(&id) {
                         if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
                             health.value -= 1;
                             messages.change(insert::health_meter(*npc_id, health));
+                            common_animations::damage_flash(*npc_id, messages);
                         }
                         messages.remove(id);
                         return false;
@@ -93,12 +92,15 @@ where
                     return false;
                 }
 
-                if sh_cell.solid_count > 0 && entity_store.bullet.contains(&id) {
-                    messages.remove(id);
-                    return false;
+                if let Some(&range) = entity_store.bullet.get(&id) {
+                    if sh_cell.solid_count > 0 || range == 0 {
+                        messages.remove(id);
+                        return false;
+                    }
+                    messages.change(insert::bullet(id, range - 1));
                 }
 
-                let is_npc = entity_store.npc.contains(&id);
+                let is_npc = entity_store.npc.contains_key(&id);
 
                 if is_npc && dest_npc.is_some() {
                     // npcs can't move through one another
@@ -146,17 +148,49 @@ where
                     } else if sh_cell.exit_count > 0 {
                         messages.win();
                     } else {
+                        if let Some(pickup_id) = sh_cell.pickup_set.iter().next() {
+                            let &pickup = entity_store.pickup.get(pickup_id).unwrap();
+                            match pickup {
+                                Pickup::Ammo => {
+                                    let mut ammo = *entity_store.gun_meter.get(&id).unwrap();
+                                    ammo.value = ammo.max;
+                                    messages.change(insert::gun_meter(id, ammo));
+                                    messages.remove(*pickup_id);
+
+                                }
+                                Pickup::Health => {
+                                    let mut health = *entity_store.health_meter.get(&id).unwrap();
+                                    health.value = health.max;
+                                    messages.change(insert::health_meter(id, health));
+                                    messages.remove(*pickup_id);
+                                }
+                            }
+                        }
                         messages.move_player(coord);
                     }
                 }
             }
         }
-        &Insert(id, HealthMeter(health)) => {
-            if health.value == 0 {
+        &EntityChange::Insert(id, ComponentValue::HealthMeter(health)) => {
+            if health.value == 1 {
+                if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+                    tile_info.wounded = true;
+                    messages.change(insert::tile_info(id, tile_info));
+                }
+            } else if health.value == 0 {
                 if entity_store.player.contains(&id) {
                     messages.lose();
                 } else {
                     messages.remove(id);
+                }
+            } else {
+                if let Some(health) = entity_store.health_meter.get(&id) {
+                    if health.value == 1 {
+                        if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+                            tile_info.wounded = false;
+                            messages.change(insert::tile_info(id, tile_info));
+                        }
+                    }
                 }
             }
         }

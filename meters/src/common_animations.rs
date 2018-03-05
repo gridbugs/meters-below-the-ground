@@ -29,3 +29,11 @@ pub fn bullet<M: PushMessages>(id: EntityId, messages: &mut M) {
         messages,
     );
 }
+
+pub fn damage_flash<M: PushMessages>(id: EntityId, messages: &mut M) {
+    start_animation(
+        AnimationState::DamageFlash(id, Duration::from_millis(timing::DAMAGE_FLASH_MILLIS)),
+        None,
+        messages,
+    );
+}

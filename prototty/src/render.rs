@@ -7,12 +7,19 @@ use direction::CardinalDirection;
 pub fn render_when_non_visible(tile: Tile) -> bool {
     match tile {
         Tile::Player | Tile::Punch(_) | Tile::Larvae | Tile::Queen | Tile::Bullet => false,
-        Tile::Wall | Tile::CavernWall | Tile::Door | Tile::Floor | Tile::Stairs | Tile::Exit => true,
+        Tile::Wall
+        | Tile::CavernWall
+        | Tile::Door
+        | Tile::Floor
+        | Tile::Stairs
+        | Tile::Exit
+        | Tile::AmmoPickup
+        | Tile::HealthPickup => true,
     }
 }
 
 pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
-    match tile_info.tile {
+    let (ch, mut text_info) = match tile_info.tile {
         Tile::Player => (
             '@',
             TextInfo::default()
@@ -22,8 +29,8 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
         Tile::Wall => (
             '#',
             TextInfo::default()
-                .foreground_colour(Rgb24::new(80, 80, 80))
-                .background_colour(Rgb24::new(220, 220, 220)),
+                .foreground_colour(Rgb24::new(0, 0, 0))
+                .background_colour(Rgb24::new(255, 255, 255)),
         ),
         Tile::CavernWall => (
             '#',
@@ -34,8 +41,8 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
         Tile::Door => (
             '+',
             TextInfo::default()
-                .foreground_colour(Rgb24::new(32, 7, 0))
-                .background_colour(Rgb24::new(184, 34, 3)),
+                .foreground_colour(Rgb24::new(255, 255, 255))
+                .background_colour(Rgb24::new(31, 31, 31)),
         ),
         Tile::Floor => (
             '.',
@@ -52,15 +59,16 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             };
             (
                 ch,
-                TextInfo::default().foreground_colour(Rgb24::new(0, 255, 255)),
+                TextInfo::default().bold().foreground_colour(Rgb24::new(255, 0, 0)),
             )
         }
-        Tile::Larvae => (
+        Tile::Larvae => {
+            (
             'l',
             TextInfo::default()
                 .bold()
                 .foreground_colour(colours::BRIGHT_GREEN),
-        ),
+        )}
         Tile::Queen => (
             'Q',
             TextInfo::default()
@@ -85,7 +93,25 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                 .bold()
                 .foreground_colour(Rgb24::new(0, 255, 255)),
         ),
+        Tile::HealthPickup => (
+            '♥',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 30, 30)),
+        ),
+        Tile::AmmoPickup => (
+            '‼',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(150, 200, 50)),
+        ),
+    };
+
+    if tile_info.damage_flash {
+        text_info.foreground_colour = Some(Rgb24::new(255, 0, 0));
+    } else if tile_info.wounded {
+        text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
     }
+
+    (ch, text_info)
 }
-
-
