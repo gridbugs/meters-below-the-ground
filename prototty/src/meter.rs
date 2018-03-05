@@ -6,10 +6,11 @@ use meters::goal::*;
 
 fn meter_text_info(typ: MeterType) -> TextInfo {
     let colour = match typ {
-        MeterType::Gun => colours::BRIGHT_BLUE,
-        MeterType::Medkit => colours::CYAN,
+        MeterType::Gun => Rgb24::new(255, 127, 0),
+        MeterType::Medkit => colours::GREEN,
         MeterType::Health => colours::BRIGHT_RED,
         MeterType::Kevlar => colours::BRIGHT_YELLOW,
+        MeterType::RailGun => colours::CYAN,
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -47,10 +48,13 @@ impl MeterView {
         write!(self.scratch, "{}){}", identifier, seperator).unwrap();
         match typ {
             ActiveMeterType::Gun => {
-                write!(self.scratch, "{:1$}", "Gun", self.name_padding).unwrap()
+                write!(self.scratch, "{:1$}", "Quadgun", self.name_padding).unwrap()
             }
             ActiveMeterType::Medkit => {
                 write!(self.scratch, "{:1$}", "Medkit", self.name_padding).unwrap()
+            }
+            ActiveMeterType::RailGun => {
+                write!(self.scratch, "{:1$}", "Railgun", self.name_padding).unwrap()
             }
         }
     }

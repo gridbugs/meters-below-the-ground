@@ -11,6 +11,8 @@ pub enum Tile {
     Stairs,
     Exit,
     Bullet,
+    RailGunShotHorizontal,
+    RailGunShotVertical,
     Larvae,
     Queen,
     HealthPickup,

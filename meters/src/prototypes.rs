@@ -14,12 +14,14 @@ const STAIRS_DEPTH: i32     = 3;
 const PICKUP_DEPTH: i32     = 4;
 const BULLET_DEPTH: i32     = 5;
 const NPC_DEPTH: i32        = 6;
-const PLAYER_DEPTH: i32     = 7;
-const ANIMATION_DEPTH: i32  = 8;
+const RAIL_GUN_SHOT_DEPTH: i32 = 7;
+const PLAYER_DEPTH: i32     = 8;
+const ANIMATION_DEPTH: i32  = 9;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
     Punch(EntityId, Coord, CardinalDirection),
+    RailGunShot(EntityId, Coord, CardinalDirection),
 }
 
 impl Prototype {
@@ -27,6 +29,10 @@ impl Prototype {
         match self {
             Prototype::Punch(id, coord, direction) => {
                 punch(id, coord, direction, messages);
+                id
+            }
+            Prototype::RailGunShot(id, coord, direction) => {
+                rail_gun_shot(id, coord, direction, messages);
                 id
             }
         }
@@ -44,6 +50,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
     messages.change(insert::health_meter(id, Meter::full(8)));
     messages.change(insert::gun_meter(id, Meter::full(10)));
+    messages.change(insert::rail_gun_meter(id, Meter::full(10)));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -150,6 +157,26 @@ pub fn bullet<M: PushMessages>(
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::Bullet, BULLET_DEPTH),
+    ));
+}
+
+pub fn rail_gun_shot<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    direction: CardinalDirection,
+    messages: &mut M,
+) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::rail_gun_shot(id));
+    let tile = match direction {
+        CardinalDirection::North |
+            CardinalDirection::South => Tile::RailGunShotVertical,
+        CardinalDirection::East |
+            CardinalDirection::West => Tile::RailGunShotHorizontal,
+    };
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(tile, RAIL_GUN_SHOT_DEPTH),
     ));
 }
 

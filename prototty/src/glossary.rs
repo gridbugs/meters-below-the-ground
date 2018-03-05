@@ -37,12 +37,14 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         Tile::Exit => write!(stage, "{} {}", ch, "Exit"),
         Tile::HealthPickup => write!(stage, "{} {}", ch, "Meds"),
         Tile::AmmoPickup => write!(stage, "{} {}", ch, "Ammo"),
-        Tile::Wall => return false,
-        Tile::CavernWall => return false,
-        Tile::Door => return false,
-        Tile::Floor => return false,
-        Tile::Punch(_) => return false,
-        Tile::Bullet => return false,
+        Tile::Wall |
+        Tile::CavernWall |
+        Tile::Door |
+        Tile::Floor |
+        Tile::Punch(_) |
+        Tile::Bullet |
+        Tile::RailGunShotHorizontal |
+        Tile::RailGunShotVertical => return false,
     }.unwrap();
 
     true

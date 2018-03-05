@@ -477,6 +477,47 @@ impl State {
         }
     }
 
+    fn use_rail_gun(&mut self, direction: CardinalDirection) {
+        let mut ammo = self.world
+            .entity_store
+            .rail_gun_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+
+        if ammo.value > 0 {
+            let entity_coord = self.world
+                .entity_store
+                .coord
+                .get(&self.player_id)
+                .cloned()
+                .unwrap();
+
+            let start_coord = entity_coord + direction.coord();
+
+            let mut coord = start_coord;
+            loop {
+                if let Some(cell) = self.world.spatial_hash.get(coord) {
+                    if cell.solid_count > 0 {
+                        break;
+                    }
+                } else {
+                    break;
+                };
+
+                let shot_id = self.world.id_allocator.allocate();
+                common_animations::rail_gun_shot(shot_id, coord, direction, &mut self.messages);
+
+                coord += direction.coord();
+            }
+
+            ammo.value -= 1;
+            self.messages
+                .change(insert::rail_gun_meter(self.player_id, ammo));
+        }
+
+    }
+
     fn use_gun(&mut self) {
         let mut ammo = self.world
             .entity_store
@@ -553,16 +594,11 @@ impl State {
                     None => self.walk(direction),
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
+                    Some(ActiveMeterType::RailGun) => {
+                        self.use_rail_gun(direction);
+                    }
                 }
 
-                self.selected_meter = None;
-            }
-            Input::Enter => {
-                match self.selected_meter {
-                    None => return None,
-                    Some(ActiveMeterType::Gun) => return None,
-                    Some(ActiveMeterType::Medkit) => return None,
-                }
                 self.selected_meter = None;
             }
             Input::ActiveMeterSelect(identifier) => {
@@ -570,7 +606,7 @@ impl State {
                     match meter_type {
                         ActiveMeterType::Gun => self.use_gun(),
                         ActiveMeterType::Medkit => self.use_medkit(),
-                        _ => {
+                        ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
                             return None;
                         }

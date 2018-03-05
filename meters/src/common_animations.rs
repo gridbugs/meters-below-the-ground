@@ -22,6 +22,21 @@ pub fn punch<M: PushMessages>(
     );
 }
 
+pub fn rail_gun_shot<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    direction: CardinalDirection,
+    messages: &mut M,
+) {
+    let shot = Prototype::RailGunShot(id, coord, direction);
+    temporary_at_coord(
+        coord,
+        shot,
+        Duration::from_millis(timing::RAIL_GUN_SHOT_MILLIS),
+        messages,
+    );
+}
+
 pub fn bullet<M: PushMessages>(id: EntityId, messages: &mut M) {
     slide(
         id,

@@ -27,7 +27,11 @@ fn main() {
 
     let storage = FileStorage::next_to_exe(USER_DIR, true).expect("Failed to find user dir");
 
-    let mut app = App::new(Frontend::Glutin, storage, rand::thread_rng().gen());
+    let seed = rand::thread_rng().gen();
+
+    println!("seed: {}", seed);
+
+    let mut app = App::new(Frontend::Glutin, storage, seed);
 
     let mut input_buffer = Vec::with_capacity(64);
 

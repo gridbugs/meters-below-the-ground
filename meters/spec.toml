@@ -14,9 +14,11 @@ stairs = { storage = 'btree' }
 exit = { storage = 'btree' }
 slide_direction = { type = '::direction::CardinalDirection', storage = 'hash' }
 bullet = { type = 'u32', storage = 'hash' }
+rail_gun_shot = { storage = 'hash' }
 door = { storage = 'hash' }
 health_meter = { type = '::meter::Meter', storage = 'hash' }
 gun_meter = { type = '::meter::Meter', storage = 'hash' }
+rail_gun_meter = { type = '::meter::Meter', storage = 'hash' }
 kevlar_meter = { type = '::meter::Meter', storage = 'hash' }
 medkit_meter = { type = '::meter::Meter', storage = 'hash' }
 opacity = { type = 'u8', storage = 'vector' }

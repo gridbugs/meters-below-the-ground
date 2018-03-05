@@ -466,7 +466,6 @@ impl<S: Storage> App<S> {
                         ProtottyInput::Down => InputType::Game(MetersInput::Direction(South)),
                         ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
                         ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
-                        prototty_inputs::RETURN => InputType::Game(MetersInput::Enter),
                         ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
                         ProtottyInput::Char(ch @ '0'...'9') => {
                             let identifier = ActiveMeterIdentifier::from_char(ch);

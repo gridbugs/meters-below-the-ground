@@ -4,6 +4,7 @@ use input::ActiveMeterIdentifier;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MeterType {
     Gun,
+    RailGun,
     Medkit,
     Health,
     Kevlar,
@@ -17,6 +18,7 @@ pub struct PeriodicChange {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ActiveMeterType {
     Gun,
+    RailGun,
     Medkit,
 }
 
@@ -25,12 +27,14 @@ impl ActiveMeterType {
         match component_type {
             ComponentType::GunMeter => Some(ActiveMeterType::Gun),
             ComponentType::MedkitMeter => Some(ActiveMeterType::Medkit),
+            ComponentType::RailGunMeter => Some(ActiveMeterType::RailGun),
             _ => None,
         }
     }
     pub fn periodic_change(self) -> Option<PeriodicChange> {
         match self {
             ActiveMeterType::Gun => None,
+            ActiveMeterType::RailGun => None,
             ActiveMeterType::Medkit => Some(PeriodicChange {
                 turns: 8,
                 change: 1,
@@ -40,6 +44,7 @@ impl ActiveMeterType {
     pub fn insert(self, id: EntityId, meter: Meter) -> EntityChange {
         match self {
             ActiveMeterType::Gun => insert::gun_meter(id, meter),
+            ActiveMeterType::RailGun => insert::rail_gun_meter(id, meter),
             ActiveMeterType::Medkit => insert::medkit_meter(id, meter),
         }
     }
@@ -47,6 +52,7 @@ impl ActiveMeterType {
         match self {
             ActiveMeterType::Gun => MeterType::Gun,
             ActiveMeterType::Medkit => MeterType::Medkit,
+            ActiveMeterType::RailGun => MeterType::RailGun,
         }
     }
 }
@@ -56,6 +62,7 @@ impl From<ActiveMeterType> for ComponentType {
         match typ {
             ActiveMeterType::Gun => ComponentType::GunMeter,
             ActiveMeterType::Medkit => ComponentType::MedkitMeter,
+            ActiveMeterType::RailGun => ComponentType::RailGunMeter,
         }
     }
 }
@@ -120,6 +127,7 @@ impl Meter {
         match component {
             ComponentRef::HealthMeter(meter) => Some(*meter),
             ComponentRef::GunMeter(meter) => Some(*meter),
+            ComponentRef::RailGunMeter(meter) => Some(*meter),
             ComponentRef::KevlarMeter(meter) => Some(*meter),
             ComponentRef::MedkitMeter(meter) => Some(*meter),
             _ => None,

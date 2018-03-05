@@ -6,7 +6,8 @@ use direction::CardinalDirection;
 
 pub fn render_when_non_visible(tile: Tile) -> bool {
     match tile {
-        Tile::Player | Tile::Punch(_) | Tile::Larvae | Tile::Queen | Tile::Bullet => false,
+        Tile::Player | Tile::Punch(_) | Tile::Larvae | Tile::Queen | Tile::Bullet | Tile::RailGunShotHorizontal |
+            Tile::RailGunShotVertical => false,
         Tile::Wall
         | Tile::CavernWall
         | Tile::Door
@@ -42,7 +43,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '+',
             TextInfo::default()
                 .foreground_colour(Rgb24::new(255, 255, 255))
-                .background_colour(Rgb24::new(31, 31, 31)),
+                .background_colour(Rgb24::new(20, 20, 255)),
         ),
         Tile::Floor => (
             '.',
@@ -91,7 +92,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '•',
             TextInfo::default()
                 .bold()
-                .foreground_colour(Rgb24::new(0, 255, 255)),
+                .foreground_colour(Rgb24::new(255, 127, 0)),
         ),
         Tile::HealthPickup => (
             '♥',
@@ -105,6 +106,19 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                 .bold()
                 .foreground_colour(Rgb24::new(150, 200, 50)),
         ),
+        Tile::RailGunShotHorizontal => (
+            '═',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(0, 255, 255)),
+        ),
+        Tile::RailGunShotVertical => (
+            '║',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(0, 255, 255)),
+        )
+
     };
 
     if tile_info.damage_flash {
