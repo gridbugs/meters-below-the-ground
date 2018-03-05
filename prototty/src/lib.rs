@@ -275,7 +275,7 @@ impl<S: Storage> View<App<S>> for AppView {
                             tile_info.depth + depth,
                         ) {
                             view_tile(*tile_info, cell, visibility, app.frontend);
-                            if visibility == Visibility::Visible {
+                            if visibility == Visibility::Visible || render::render_when_non_visible(tile_info.tile) {
                                 self.glossary.insert(*tile_info);
                             }
                         }

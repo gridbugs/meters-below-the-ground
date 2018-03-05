@@ -45,7 +45,6 @@ impl View<BTreeSet<TileInfo>> for GlossaryView {
         let mut coord = Coord::new(0, 0);
         for &tile_info in glossary.iter() {
             let (ch, mut info) = render::tile_text(tile_info);
-            info.background_colour = None;
             if write_tile(&mut self.scratch, ch, tile_info) {
                 TextInfoStringView.view(&(info, &self.scratch), offset + coord, depth, grid);
                 self.scratch.clear();
