@@ -5,6 +5,7 @@ use common_animations;
 use message_queues::PushMessages;
 use meter::Meter;
 use pickup::Pickup;
+use direction::*;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -76,12 +77,16 @@ where
                                     .cloned()
                                     .expect("Player missing coord");
 
-                                let delta = coord - player_coord;
-                                let direction = CardinalDirection::from_unit_coord(delta);
+                                for direction in CardinalDirections {
+                                    let coord = player_coord + direction.coord();
 
-                                let punch_id = id_allocator.allocate();
-                                common_animations::punch(punch_id, coord, direction, messages);
-
+                                    if let Some(sh_cell) = spatial_hash.get(coord) {
+                                        if !sh_cell.npc_set.is_empty() {
+                                            let punch_id = id_allocator.allocate();
+                                            common_animations::punch(punch_id, coord, direction, messages);
+                                        }
+                                    }
+                                }
                                 messages.change(insert::stamina_tick(id, -1));
                             }
                         }
