@@ -16,7 +16,8 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::Exit
         | Tile::AmmoPickup
         | Tile::HealthPickup
-        | Tile::RailGunAmmoPickup=> true,
+        | Tile::KevlarPickup
+        | Tile::RailGunAmmoPickup => true,
     }
 }
 
@@ -93,7 +94,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '•',
             TextInfo::default()
                 .bold()
-                .foreground_colour(Rgb24::new(255, 127, 0)),
+                .foreground_colour(Rgb24::new(150, 200, 50)),
         ),
         Tile::HealthPickup => (
             '♥',
@@ -124,7 +125,13 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             TextInfo::default()
                 .bold()
                 .foreground_colour(Rgb24::new(0, 255, 255)),
-        )
+        ),
+        Tile::KevlarPickup => (
+            '♦',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 63, 0)),
+        ),
     };
 
     if tile_info.damage_flash {

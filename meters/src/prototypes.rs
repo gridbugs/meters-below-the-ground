@@ -49,7 +49,8 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
     messages.change(insert::health_meter(id, Meter::full(MeterType::Health.player_max())));
-    messages.change(insert::gun_meter(id, Meter::full(MeterType::Gun.player_max())));
+    messages.change(insert::stamina_meter(id, Meter::new(MeterType::Stamina.player_max() / 2, MeterType::Stamina.player_max())));
+    messages.change(insert::stamina_tick(id, 0));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -218,5 +219,18 @@ pub fn rail_gun_ammo_pickup<M: PushMessages>(
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::RailGunAmmoPickup, PICKUP_DEPTH),
+    ));
+}
+
+pub fn kevlar_pickup<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::Kevlar));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::KevlarPickup, PICKUP_DEPTH),
     ));
 }

@@ -18,4 +18,5 @@ pub enum Tile {
     HealthPickup,
     AmmoPickup,
     RailGunAmmoPickup,
+    KevlarPickup,
 }

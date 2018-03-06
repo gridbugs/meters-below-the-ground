@@ -6,11 +6,12 @@ use meters::goal::*;
 
 fn meter_text_info(typ: MeterType) -> TextInfo {
     let colour = match typ {
-        MeterType::Gun => Rgb24::new(255, 127, 0),
+        MeterType::Gun => Rgb24::new(150, 200, 50),
         MeterType::Medkit => colours::GREEN,
         MeterType::Health => colours::BRIGHT_RED,
-        MeterType::Kevlar => colours::BRIGHT_YELLOW,
-        MeterType::RailGun => colours::CYAN,
+        MeterType::Stamina => colours::BRIGHT_BLUE,
+        MeterType::Kevlar => Rgb24::new(255, 127, 0),
+        MeterType::RailGun => Rgb24::new(0, 255, 255)
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -39,9 +40,9 @@ pub fn meter_name(typ: MeterType) -> &'static str {
         MeterType::Gun => "Quadgun",
         MeterType::Medkit => "Medkit",
         MeterType::Health => "Health",
-        MeterType::Kevlar => "Kevlar",
+        MeterType::Stamina => "Stamina",
+        MeterType::Kevlar => "Armour",
         MeterType::RailGun => "Railgun",
-
     }
 }
 
@@ -75,8 +76,11 @@ impl MeterView {
             PassiveMeterType::Health => {
                 write!(self.scratch, "{:1$}", "Health", self.name_padding).unwrap()
             }
+            PassiveMeterType::Stamina => {
+                write!(self.scratch, "{:1$}", "Stamina", self.name_padding).unwrap()
+            }
             PassiveMeterType::Kevlar => {
-                write!(self.scratch, "{:1$}", "Kevlar", self.name_padding).unwrap()
+                write!(self.scratch, "{:1$}", "Armour", self.name_padding).unwrap()
             }
         }
     }

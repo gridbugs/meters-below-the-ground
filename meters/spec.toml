@@ -21,6 +21,8 @@ gun_meter = { type = '::meter::Meter', storage = 'hash' }
 rail_gun_meter = { type = '::meter::Meter', storage = 'hash' }
 kevlar_meter = { type = '::meter::Meter', storage = 'hash' }
 medkit_meter = { type = '::meter::Meter', storage = 'hash' }
+stamina_meter = { type = '::meter::Meter', storage = 'hash' }
+stamina_tick = { type = 'i32', storage = 'btree' }
 opacity = { type = 'u8', storage = 'vector' }
 pickup = { type = '::pickup::Pickup', storage = 'hash' }
 

@@ -230,6 +230,22 @@ pub struct SaveState {
     visibility_grid: VisibilityGrid,
 }
 
+fn shuffled_unequipped_meters<R: Rng>(world: &World, id: EntityId, rng: &mut R) -> Vec<MeterType> {
+    let mut types = ALL_METER_TYPES
+        .iter()
+        .cloned()
+        .filter(|&typ| {
+            let component_type: ComponentType = typ.into();
+            let type_set = world.entity_components.get(id);
+            if type_set.contains(component_type) {
+            }
+            !type_set.contains(component_type)
+        })
+    .collect::<Vec<_>>();
+    rng.shuffle(&mut types);
+    types
+}
+
 impl State {
     pub fn selected_meter_type(&self) -> Option<ActiveMeterType> {
         self.selected_meter
@@ -245,18 +261,7 @@ impl State {
 
     pub fn upgrade_choices(&mut self) -> Vec<MeterType> {
         const NUM_CHOICES: usize = 3;
-        let mut types = ALL_METER_TYPES
-            .iter()
-            .cloned()
-            .filter(|&typ| {
-                let component_type: ComponentType = typ.into();
-                let type_set = self.world.entity_components.get(self.player_id);
-                if type_set.contains(component_type) {
-                }
-                !type_set.contains(component_type)
-            })
-            .collect::<Vec<_>>();
-        self.rng.shuffle(&mut types);
+        let types = shuffled_unequipped_meters(&self.world, self.player_id, &mut self.rng);
         let num_choices = ::std::cmp::min(NUM_CHOICES, types.len());
         types[0..num_choices].iter().cloned().collect()
     }
@@ -291,7 +296,7 @@ impl State {
             let component_type: ComponentType = upgrade.into();
             let type_set = next_world.entity_components.get(next_player_id);
             if !type_set.contains(component_type) {
-                next_world.commit(EntityChange::Insert(next_player_id, upgrade.player_max_component_value()));
+                next_world.commit(EntityChange::Insert(next_player_id, upgrade.player_component_value()));
                 match upgrade.active_or_passive() {
                     ActiveOrPassive::Active(typ) => {
                         self.active_meters.push(typ);
@@ -363,7 +368,7 @@ impl State {
 
         let mut messages = MessageQueues::new();
 
-        let world = World::new(&levels[level_index], &mut messages, &mut rng);
+        let mut world = World::new(&levels[level_index], &mut messages, &mut rng);
 
         let player_id = *world.entity_store.player.iter().next().expect("No player");
 
@@ -373,6 +378,11 @@ impl State {
             .get(&player_id)
             .expect("No player coord");
         messages.player_moved_to = Some(player_coord);
+
+        let random_meter = shuffled_unequipped_meters(&world, player_id, &mut rng).pop()
+            .expect("Couldn't find random meter to initialise player");
+
+        world.commit(EntityChange::Insert(player_id, random_meter.player_component_value()));
 
         let active_meters: Vec<_> = world
             .entity_components
@@ -762,12 +772,20 @@ impl State {
                         typ.insert(self.player_id, meter)
                     }
                     PlayerTurnEvent::ChangePassiveMeter(typ, change) => {
-                        let mut meter =
-                            Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
-                                .expect("Missing meter for player turn event");
-                        meter.value =
-                            ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
-                        typ.insert(self.player_id, meter)
+                        match typ {
+                            PassiveMeterType::Stamina => {
+                                let stamina_tick = self.world.entity_store.stamina_tick.get(&self.player_id).unwrap();
+                                insert::stamina_tick(self.player_id, stamina_tick + 1)
+                            }
+                            _ => {
+                                let mut meter =
+                                    Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                                    .expect("Missing meter for player turn event");
+                                meter.value =
+                                    ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                                typ.insert(self.player_id, meter)
+                            }
+                        }
                     }
                 };
                 self.messages.changes.push(change);

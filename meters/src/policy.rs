@@ -18,7 +18,7 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                     let door_cell =
                         sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
                     let solid_cell =
-                        (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;
+                        sh_cell.solid_count > 0 && !door_cell;
                     if solid_cell && entity_store.collider.contains(&id) {
                         return false;
                     }
@@ -65,6 +65,29 @@ where
                 let dest_npc = sh_cell.npc_set.iter().next();
 
                 if let Some(npc_id) = dest_npc {
+                    if entity_store.player.contains(&id) {
+                        if let Some(mut stamina) = entity_store.stamina_meter.get(&id).cloned() {
+                            if stamina.value > 0 {
+                                stamina.value -= 1;
+                                messages.change(insert::stamina_meter(id, stamina));
+
+                                let player_coord = entity_store
+                                    .coord
+                                    .get(&id)
+                                    .cloned()
+                                    .expect("Player missing coord");
+
+                                let delta = coord - player_coord;
+                                let direction = CardinalDirection::from_unit_coord(delta);
+
+                                let punch_id = id_allocator.allocate();
+                                common_animations::punch(punch_id, coord, direction, messages);
+
+                                messages.change(insert::stamina_tick(id, -1));
+
+                            }
+                        }
+                    }
                     if entity_store.punch.contains(&id) {
                         if let Some(mut health) = entity_store.health_meter.get(&npc_id).cloned() {
                             health.value -= 1;
@@ -179,6 +202,13 @@ where
                                         messages.remove(*pickup_id);
                                     }
                                 }
+                                Pickup::Kevlar => {
+                                    if let Some(mut kevlar) = entity_store.kevlar_meter.get(&id).cloned() {
+                                        kevlar.value = kevlar.max;
+                                        messages.change(insert::kevlar_meter(id, kevlar));
+                                        messages.remove(*pickup_id);
+                                    }
+                                }
                             }
                         }
                         messages.move_player(coord);
@@ -207,6 +237,14 @@ where
                         }
                     }
                 }
+            }
+        }
+        &EntityChange::Insert(id, ComponentValue::StaminaTick(value)) => {
+            if value >= 1 {
+                let mut stamina = *entity_store.stamina_meter.get(&id).unwrap();
+                stamina.value = ::std::cmp::min(stamina.max, stamina.value + 1);
+                messages.change(insert::stamina_meter(id, stamina));
+                messages.change(insert::stamina_tick(id, 0));
             }
         }
         _ => (),

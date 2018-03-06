@@ -448,7 +448,7 @@ pub fn populate<R: Rng>(
     }
 
     let player_coord = room_centres_in_largest_space[0];
-    let stairs_coord = player_coord + Coord::new(0, -1);//room_centres_in_largest_space[1];
+    let stairs_coord = room_centres_in_largest_space[1];
 
     let mut floor_coords = largest_space.iter().cloned().filter(|&coord| {
         coord != player_coord &&
@@ -456,13 +456,19 @@ pub fn populate<R: Rng>(
             *grid.get(coord).unwrap() == Cell::Floor
     }).collect::<Vec<_>>();
 
-    for _ in 0..2 {
+    for _ in 0..3 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::kevlar_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
+    for _ in 0..3 {
         if let Some(coord) = floor_coords.pop() {
             prototypes::rail_gun_ammo_pickup(id_allocator.allocate(), coord, messages);
         }
     }
 
-    for _ in 0..4 {
+    for _ in 0..6 {
         if let Some(coord) = floor_coords.pop() {
             prototypes::health_pickup(id_allocator.allocate(), coord, messages);
         }
