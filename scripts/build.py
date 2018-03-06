@@ -129,11 +129,11 @@ def build_wasm(args):
     output_dir_path = os.path.join(args.upload_path, APP_NAME)
     os.makedirs(output_dir_path)
     shutil.copytree(
-        os.path.join(args.crate_path, "dist"),
+        os.path.join(crate_path, "dist"),
         os.path.join(output_dir_path, "v%s" % args.version))
 
     shutil.copytree(
-        os.path.join(args.crate_path, "dist"),
+        os.path.join(crate_path, "dist"),
         os.path.join(output_dir_path, "%s" % args.branch))
 
 def main(args):
