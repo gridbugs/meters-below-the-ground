@@ -14,9 +14,9 @@ BINARY_NAMES = { "unix": "%s_unix" % APP_NAME,
                  "glutin": "%s_glutin" % APP_NAME,
                }
 
-OUTPUT_PREFIXES = { "unix": "%s-terminal" % APP_NAME,
-                    "glutin": "%s-opengl" % APP_NAME,
-                  }
+OUTPUT_NAMES = { "unix": "%s-terminal" % APP_NAME,
+                 "glutin": "%s-opengl" % APP_NAME,
+               }
 
 SH_KWARGS = { "_out": "/dev/stdout",
               "_err": "/dev/stderr",
@@ -25,31 +25,37 @@ SH_KWARGS = { "_out": "/dev/stdout",
 
 def make_parser():
   parser = argparse.ArgumentParser()
-  parser.add_argument('--frontend')
+  parser.add_argument('--frontend', action='append')
   parser.add_argument('--build-path')
   parser.add_argument('--upload-path')
-  parser.add_argument('--crate-path')
+  parser.add_argument('--crate-path', action='append')
   parser.add_argument('--root-path')
   parser.add_argument('--os')
   return parser
 
 def build_common(args):
   args.architecture = "x86_64"
-  sh.cargo.build(
-    "--manifest-path", args.manifest_path,
-    "--release",
-    **SH_KWARGS)
-  output_dir_name = "%(prefix)s-%(os)s-%(architecture)s-v%(version)s" % {
-      "prefix": OUTPUT_PREFIXES[args.frontend],
+
+  for manifest_path in args.manifest_path:
+    sh.cargo.build(
+      "--manifest-path", manifest_path,
+      "--release",
+      **SH_KWARGS)
+
+  output_dir_name = "%(app)s-%(os)s-%(architecture)s-v%(version)s" % {
+      "app": APP_NAME,
       "os": args.os,
       "architecture": args.architecture,
       "version": args.version,
   }
   output_dir_path = os.path.join(args.build_path, output_dir_name)
   os.makedirs(output_dir_path)
-  shutil.copy(
-      os.path.join("target", "release", BINARY_NAMES[args.frontend]),
-      os.path.join(output_dir_path, APP_NAME))
+
+  for frontend in args.frontend:
+    shutil.copy(
+        os.path.join("target", "release", BINARY_NAMES[frontend]),
+        os.path.join(output_dir_path, OUTPUT_NAMES[frontend]))
+
   shutil.copy(
       os.path.join(args.root_path, README_NAME),
       os.path.join(output_dir_path, "README.txt"))
@@ -71,8 +77,8 @@ def build_common(args):
         arcname = os.path.join(os.path.basename(subdir), f)
         zip_file.write(os.path.join(subdir, f), arcname)
 
-  revision_zip_name = "%(prefix)s-%(os)s-%(architecture)s-%(branch)s.zip" % {
-      "prefix": OUTPUT_PREFIXES[args.frontend],
+  revision_zip_name = "%(app)s-%(os)s-%(architecture)s-%(branch)s.zip" % {
+      "app": APP_NAME,
       "os": args.os,
       "architecture": args.architecture,
       "branch": args.branch,
@@ -80,9 +86,9 @@ def build_common(args):
 
   shutil.copy(zip_path, os.path.join(args.upload_path, revision_zip_name))
 
-  if args.os == "macos" and args.frontend == "glutin":
+  if args.os == "macos" and "glutin" in args.frontend:
     args.output_dir_path = output_dir_path
-    args.bin_path = os.path.join(output_dir_path, APP_NAME)
+    args.bin_path = os.path.join(output_dir_path, OUTPUT_NAMES["glutin"])
     make_macos_app(args)
 
 def make_macos_app(args):
@@ -115,32 +121,27 @@ def make_macos_app(args):
       os.path.join(args.upload_path, revision_dmg_name))
 
 def build_wasm(args):
-  crate_path = os.path.normpath(args.crate_path)
-  sh.bash(os.path.join(crate_path, "build.sh"), "--with-npm-install",
-    **SH_KWARGS)
+  crate_paths = [os.path.normpath(crate_path) for crate_path in args.crate_path]
+  for crate_path in crate_paths:
+    sh.bash(os.path.join(crate_path, "build.sh"), "--with-npm-install",
+      **SH_KWARGS)
 
-  output_dir_path = os.path.join(args.upload_path, APP_NAME)
-  os.makedirs(output_dir_path)
-  shutil.copytree(
-      os.path.join(args.crate_path, "dist"),
-      os.path.join(output_dir_path, "v%s" % args.version))
+    output_dir_path = os.path.join(args.upload_path, APP_NAME)
+    os.makedirs(output_dir_path)
+    shutil.copytree(
+        os.path.join(args.crate_path, "dist"),
+        os.path.join(output_dir_path, "v%s" % args.version))
 
-  shutil.copytree(
-      os.path.join(args.crate_path, "dist"),
-      os.path.join(output_dir_path, "%s" % args.branch))
-
-
-BUILD_FNS = { "unix": build_common,
-              "glutin": build_common,
-              "wasm": build_wasm,
-            }
+    shutil.copytree(
+        os.path.join(args.crate_path, "dist"),
+        os.path.join(output_dir_path, "%s" % args.branch))
 
 def main(args):
-  args.crate_path = os.path.normpath(args.crate_path)
+  args.crate_path = [os.path.normpath(crate_path) for crate_path in args.crate_path]
   args.build_path = os.path.normpath(args.build_path)
   args.upload_path = os.path.normpath(args.upload_path)
   args.root_path = os.path.normpath(args.root_path)
-  args.manifest_path = os.path.join(args.crate_path, "Cargo.toml")
+  args.manifest_path = [os.path.join(crate_path, "Cargo.toml") for crate_path in args.crate_path]
   args.manifest = toml.load(args.manifest_path)
   args.version = args.manifest["package"]["version"]
 
@@ -148,7 +149,12 @@ def main(args):
     args.branch = os.environ["TRAVIS_BRANCH"]
   except KeyError:
     args.branch = sh.git("rev-parse", "--abbrev-ref", "HEAD").strip()
-  BUILD_FNS[args.frontend](args)
+
+  if "unix" in args.frontend or "glutin" in args.frontend:
+    build_common(args)
+
+  if "wasm" in args.frontend:
+    build_wasm(args)
 
 if __name__ == "__main__":
   parser = make_parser()
