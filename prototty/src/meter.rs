@@ -11,7 +11,7 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
         MeterType::Health => colours::BRIGHT_RED,
         MeterType::Stamina => colours::BRIGHT_BLUE,
         MeterType::Kevlar => Rgb24::new(255, 127, 0),
-        MeterType::RailGun => Rgb24::new(0, 255, 255)
+        MeterType::RailGun => Rgb24::new(0, 255, 255),
     };
     TextInfo {
         foreground_colour: Some(colour),

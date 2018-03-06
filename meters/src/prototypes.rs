@@ -8,15 +8,15 @@ use meter::*;
 use pickup::Pickup;
 use npc_info::*;
 
-const FLOOR_DEPTH: i32      = 1;
-const WALL_DEPTH: i32       = 2;
-const STAIRS_DEPTH: i32     = 3;
-const PICKUP_DEPTH: i32     = 4;
-const BULLET_DEPTH: i32     = 5;
-const NPC_DEPTH: i32        = 6;
+const FLOOR_DEPTH: i32 = 1;
+const WALL_DEPTH: i32 = 2;
+const STAIRS_DEPTH: i32 = 3;
+const PICKUP_DEPTH: i32 = 4;
+const BULLET_DEPTH: i32 = 5;
+const NPC_DEPTH: i32 = 6;
 const RAIL_GUN_SHOT_DEPTH: i32 = 7;
-const PLAYER_DEPTH: i32     = 8;
-const ANIMATION_DEPTH: i32  = 9;
+const PLAYER_DEPTH: i32 = 8;
+const ANIMATION_DEPTH: i32 = 9;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Prototype {
@@ -48,8 +48,17 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         id,
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
-    messages.change(insert::health_meter(id, Meter::full(MeterType::Health.player_max())));
-    messages.change(insert::stamina_meter(id, Meter::new(MeterType::Stamina.player_max() / 2, MeterType::Stamina.player_max())));
+    messages.change(insert::health_meter(
+        id,
+        Meter::full(MeterType::Health.player_max()),
+    ));
+    messages.change(insert::stamina_meter(
+        id,
+        Meter::new(
+            MeterType::Stamina.player_max() / 2,
+            MeterType::Stamina.player_max(),
+        ),
+    ));
     messages.change(insert::stamina_tick(id, 0));
 }
 
@@ -112,10 +121,7 @@ pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss,
-        active: boss,
-    }));
+    messages.change(insert::npc(id, NpcInfo { boss, active: boss }));
     messages.change(insert::health_meter(id, Meter::full(10)));
     messages.change(insert::tile_info(
         id,
@@ -125,7 +131,7 @@ pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: 
             damage_flash: false,
             wounded: false,
             boss,
-        }
+        },
     ));
 }
 
@@ -172,10 +178,8 @@ pub fn rail_gun_shot<M: PushMessages>(
     messages.change(insert::rail_gun_shot(id));
     messages.change(insert::coord(id, coord));
     let tile = match direction {
-        CardinalDirection::North |
-            CardinalDirection::South => Tile::RailGunShotVertical,
-        CardinalDirection::East |
-            CardinalDirection::West => Tile::RailGunShotHorizontal,
+        CardinalDirection::North | CardinalDirection::South => Tile::RailGunShotVertical,
+        CardinalDirection::East | CardinalDirection::West => Tile::RailGunShotHorizontal,
     };
     messages.change(insert::tile_info(
         id,
@@ -183,11 +187,7 @@ pub fn rail_gun_shot<M: PushMessages>(
     ));
 }
 
-pub fn health_pickup<M: PushMessages>(
-    id: EntityId,
-    coord: Coord,
-    messages: &mut M,
-) {
+pub fn health_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::Health));
     messages.change(insert::tile_info(
@@ -196,11 +196,7 @@ pub fn health_pickup<M: PushMessages>(
     ));
 }
 
-pub fn ammo_pickup<M: PushMessages>(
-    id: EntityId,
-    coord: Coord,
-    messages: &mut M,
-) {
+pub fn ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::Ammo));
     messages.change(insert::tile_info(
@@ -209,11 +205,7 @@ pub fn ammo_pickup<M: PushMessages>(
     ));
 }
 
-pub fn rail_gun_ammo_pickup<M: PushMessages>(
-    id: EntityId,
-    coord: Coord,
-    messages: &mut M,
-) {
+pub fn rail_gun_ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::RailGunAmmo));
     messages.change(insert::tile_info(
@@ -222,11 +214,7 @@ pub fn rail_gun_ammo_pickup<M: PushMessages>(
     ));
 }
 
-pub fn kevlar_pickup<M: PushMessages>(
-    id: EntityId,
-    coord: Coord,
-    messages: &mut M,
-) {
+pub fn kevlar_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::Kevlar));
     messages.change(insert::tile_info(

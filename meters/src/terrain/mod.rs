@@ -41,15 +41,15 @@ impl TerrainInfo {
                 empty::populate(self.config, id_allocator, messages);
                 None
             }
-            &TerrainType::Dungeon => {
-                loop {
-                    match dungeon::populate(self.config, id_allocator, messages, rng) {
-                        dungeon::DungeonPopulateResult::Retry => (),
-                        dungeon::DungeonPopulateResult::NoGoalState => return None,
-                        dungeon::DungeonPopulateResult::GoalState(goal_state) => return Some(goal_state),
+            &TerrainType::Dungeon => loop {
+                match dungeon::populate(self.config, id_allocator, messages, rng) {
+                    dungeon::DungeonPopulateResult::Retry => (),
+                    dungeon::DungeonPopulateResult::NoGoalState => return None,
+                    dungeon::DungeonPopulateResult::GoalState(goal_state) => {
+                        return Some(goal_state)
                     }
                 }
-            }
+            },
         }
     }
 }

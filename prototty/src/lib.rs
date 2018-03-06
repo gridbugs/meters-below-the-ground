@@ -1,13 +1,13 @@
 extern crate direction;
 #[macro_use]
 extern crate itertools;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
 extern crate meters;
 extern crate prototty;
 extern crate prototty_common;
 extern crate rand;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use std::collections::BTreeSet;
 use std::time::Duration;
@@ -83,12 +83,7 @@ impl Frontend {
     }
 }
 
-fn colour_cell<C: ViewCell>(
-    cell: &mut C,
-    fg: Option<Rgb24>,
-    bg: Option<Rgb24>,
-    visible: bool,
-) {
+fn colour_cell<C: ViewCell>(cell: &mut C, fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) {
     if visible {
         if let Some(fg) = fg {
             cell.set_foreground_colour(fg);
@@ -116,11 +111,7 @@ fn colour_cell<C: ViewCell>(
     }
 }
 
-fn view_tile<C: ViewCell>(
-    tile_info: TileInfo,
-    cell: &mut C,
-    visibility: Visibility,
-) {
+fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C, visibility: Visibility) {
     let visible = match visibility {
         Visibility::Visible => true,
         Visibility::Remembered => false,
@@ -130,7 +121,12 @@ fn view_tile<C: ViewCell>(
     }
     let (ch, info) = render::tile_text(tile_info);
     cell.set_character(ch);
-    colour_cell(cell, info.foreground_colour, info.background_colour, visible);
+    colour_cell(
+        cell,
+        info.foreground_colour,
+        info.background_colour,
+        visible,
+    );
     if info.bold {
         cell.set_bold(true);
     }
@@ -209,15 +205,17 @@ impl<'a, T: Copy> View<(&'static str, &'a MenuInstance<T>)> for GameMenuView {
         depth: i32,
         grid: &mut G,
     ) {
-        self.title_view
-            .view(title, offset, depth, grid);
+        self.title_view.view(title, offset, depth, grid);
         self.main_menu_view
             .view(menu, offset + Coord::new(0, 2), depth, grid);
     }
 }
 impl<'a, T: Copy> ViewSize<(&'static str, &'a MenuInstance<T>)> for GameMenuView {
     fn size(&mut self, &(title, menu): &(&'static str, &MenuInstance<T>)) -> Size {
-        Size::new(title.chars().count() as u32, menu.menu().entries.len() as u32)
+        Size::new(
+            title.chars().count() as u32,
+            menu.menu().entries.len() as u32,
+        )
     }
 }
 
@@ -268,98 +266,113 @@ impl<S: Storage> View<App<S>> for AppView {
     fn view<G: ViewGrid>(&mut self, app: &App<S>, offset: Coord, depth: i32, grid: &mut G) {
         match app.app_state {
             AppState::MainMenu => {
-                self.title_screen_view
-                    .view(&("Meters Below the Ground", &app.main_menu), offset, depth, grid);
+                self.title_screen_view.view(
+                    &("Meters Below the Ground", &app.main_menu),
+                    offset,
+                    depth,
+                    grid,
+                );
             }
-            AppState::Game => {
-                match app.game_state {
-                    GameState::Level => {
-                        self.goal_view
-                            .view(&app.state.goal_info(), offset, depth, grid);
+            AppState::Game => match app.game_state {
+                GameState::Level => {
+                    self.goal_view
+                        .view(&app.state.goal_info(), offset, depth, grid);
 
-                        self.glossary.clear();
-                        for (tiles, coord, visibility) in app.state.visible_cells() {
-                            for tile_info in tiles {
-                                if let Some(cell) = grid.get_mut(
-                                    offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
-                                    tile_info.depth + depth,
-                                    ) {
-                                    view_tile(*tile_info, cell, visibility);
-                                    if visibility == Visibility::Visible || render::render_when_non_visible(tile_info.tile) {
-                                        self.glossary.insert(*tile_info);
-                                    }
+                    self.glossary.clear();
+                    for (tiles, coord, visibility) in app.state.visible_cells() {
+                        for tile_info in tiles {
+                            if let Some(cell) = grid.get_mut(
+                                offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
+                                tile_info.depth + depth,
+                            ) {
+                                view_tile(*tile_info, cell, visibility);
+                                if visibility == Visibility::Visible
+                                    || render::render_when_non_visible(tile_info.tile)
+                                {
+                                    self.glossary.insert(*tile_info);
                                 }
                             }
                         }
+                    }
 
-                        let mut active_end = 0;
-                        let active_meter_offset =
-                            offset + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y);
-                        for (y, info) in izip!(0..NUM_ACTIVE_METERS, app.state.player_active_meter_info()) {
-                            self.meter_view.view(
-                                &info,
-                                active_meter_offset + Coord::new(0, y),
-                                depth,
-                                grid,
-                                );
-                            active_end += 1;
-                        }
-
-                        let passive_meter_offset = offset
-                            + Coord::new(
-                                GAME_WIDTH as i32 + 1,
-                                GAME_TOP_PADDING + ACTIVE_METER_Y + active_end,
-                                );
-                        for (y, info) in izip!(0..NUM_PASSIVE_METERS, app.state.player_passive_meter_info())
-                        {
-                            self.meter_view.view(
-                                &info,
-                                passive_meter_offset + Coord::new(0, y),
-                                depth,
-                                grid,
-                                );
-                        }
-
-                        let mut from_bottom = 0;
-                        app.state.with_goal_meters(|meter_info| {
-                            let y = GOAL_METER_BOTTOM_Y - from_bottom;
-                            self.meter_view.view(
-                                &meter_info,
-                                Coord::new(GAME_WIDTH as i32 + 1, y),
-                                depth,
-                                grid,
-                                );
-                            from_bottom += 1;
-                        });
-
-                        let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
-                        const OVERALL_PROGRESS_TITLE: &'static str = "Metres Below the Ground";
-                        let overall_progress_meter = app.state.overall_progress_meter();
-                        self.overall_progress_view.view(
-                            &(OVERALL_PROGRESS_TITLE, overall_progress_meter),
-                            overall_progress_offset,
+                    let mut active_end = 0;
+                    let active_meter_offset = offset
+                        + Coord::new(GAME_WIDTH as i32 + 1, GAME_TOP_PADDING + ACTIVE_METER_Y);
+                    for (y, info) in
+                        izip!(0..NUM_ACTIVE_METERS, app.state.player_active_meter_info())
+                    {
+                        self.meter_view.view(
+                            &info,
+                            active_meter_offset + Coord::new(0, y),
                             depth,
                             grid,
-                            );
+                        );
+                        active_end += 1;
+                    }
 
-                        let glossary_offset = offset + Coord::new(0, GLOSSARY_TOP_Y);
-                        self.glossary_view
-                            .view(&self.glossary, glossary_offset, depth, grid);
+                    let passive_meter_offset = offset
+                        + Coord::new(
+                            GAME_WIDTH as i32 + 1,
+                            GAME_TOP_PADDING + ACTIVE_METER_Y + active_end,
+                        );
+                    for (y, info) in
+                        izip!(0..NUM_PASSIVE_METERS, app.state.player_passive_meter_info())
+                    {
+                        self.meter_view.view(
+                            &info,
+                            passive_meter_offset + Coord::new(0, y),
+                            depth,
+                            grid,
+                        );
                     }
-                    GameState::UpgradeMenu => {
-                        if let Some(menu) = app.between_level_menu.as_ref() {
-                            self.between_level_view
-                                .view(&("As you climb the stairs, you find (choose one):", menu), offset, depth, grid);
-                        }
-                    }
-                    GameState::NonUpgradeMenu => {
-                        if let Some(menu) = app.between_level_menu.as_ref() {
-                            self.between_level_view
-                                .view(&("As you climb the stairs, you find...nothing.", menu), offset, depth, grid);
-                        }
+
+                    let mut from_bottom = 0;
+                    app.state.with_goal_meters(|meter_info| {
+                        let y = GOAL_METER_BOTTOM_Y - from_bottom;
+                        self.meter_view.view(
+                            &meter_info,
+                            Coord::new(GAME_WIDTH as i32 + 1, y),
+                            depth,
+                            grid,
+                        );
+                        from_bottom += 1;
+                    });
+
+                    let overall_progress_offset = offset + Coord::new(0, OVERALL_PROGRESS_Y);
+                    const OVERALL_PROGRESS_TITLE: &'static str = "Metres Below the Ground";
+                    let overall_progress_meter = app.state.overall_progress_meter();
+                    self.overall_progress_view.view(
+                        &(OVERALL_PROGRESS_TITLE, overall_progress_meter),
+                        overall_progress_offset,
+                        depth,
+                        grid,
+                    );
+
+                    let glossary_offset = offset + Coord::new(0, GLOSSARY_TOP_Y);
+                    self.glossary_view
+                        .view(&self.glossary, glossary_offset, depth, grid);
+                }
+                GameState::UpgradeMenu => {
+                    if let Some(menu) = app.between_level_menu.as_ref() {
+                        self.between_level_view.view(
+                            &("As you climb the stairs, you find (choose one):", menu),
+                            offset,
+                            depth,
+                            grid,
+                        );
                     }
                 }
-            }
+                GameState::NonUpgradeMenu => {
+                    if let Some(menu) = app.between_level_menu.as_ref() {
+                        self.between_level_view.view(
+                            &("As you climb the stairs, you find...nothing.", menu),
+                            offset,
+                            depth,
+                            grid,
+                        );
+                    }
+                }
+            },
             AppState::GameOver(message) => match message {
                 GameOverMessage::Lose => {
                     StringView.view(&"You Died", offset, depth, grid);
@@ -373,8 +386,8 @@ impl<S: Storage> View<App<S>> for AppView {
 }
 
 fn make_upgrade_menu(upgrades: Vec<MeterType>) -> MenuInstance<BetweenLevelChoice> {
-
-    let items = upgrades.iter()
+    let items = upgrades
+        .iter()
         .map(|&typ| (meter::meter_name(typ), BetweenLevelChoice::Upgrade(typ)))
         .collect::<Vec<_>>();
 
@@ -383,7 +396,7 @@ fn make_upgrade_menu(upgrades: Vec<MeterType>) -> MenuInstance<BetweenLevelChoic
 }
 
 fn make_non_upgrade_menu() -> MenuInstance<BetweenLevelChoice> {
-    let items = vec![ ("Continue", BetweenLevelChoice::Continue) ];
+    let items = vec![("Continue", BetweenLevelChoice::Continue)];
     let menu = Menu::smallest(items);
     MenuInstance::new(menu).unwrap()
 }
@@ -418,11 +431,17 @@ impl<S: Storage> App<S> {
 
         let existing_state: Option<FullSaveState> = storage.load(SAVE_FILE).ok();
 
-        let (in_progress, state, between_level_menu, game_state) = if let Some(state) = existing_state {
-            (true, State::from(state.game), state.between_level_menu, state.game_state)
-        } else {
-            (false, State::new(rng.gen()), None, GameState::Level)
-        };
+        let (in_progress, state, between_level_menu, game_state) =
+            if let Some(state) = existing_state {
+                (
+                    true,
+                    State::from(state.game),
+                    state.between_level_menu,
+                    state.game_state,
+                )
+            } else {
+                (false, State::new(rng.gen()), None, GameState::Level)
+            };
 
         let main_menu = make_main_menu(in_progress, frontend);
 
@@ -531,9 +550,15 @@ impl<S: Storage> App<S> {
                         for input in inputs {
                             let input_type = match input {
                                 ProtottyInput::Up => InputType::Game(MetersInput::Direction(North)),
-                                ProtottyInput::Down => InputType::Game(MetersInput::Direction(South)),
-                                ProtottyInput::Left => InputType::Game(MetersInput::Direction(West)),
-                                ProtottyInput::Right => InputType::Game(MetersInput::Direction(East)),
+                                ProtottyInput::Down => {
+                                    InputType::Game(MetersInput::Direction(South))
+                                }
+                                ProtottyInput::Left => {
+                                    InputType::Game(MetersInput::Direction(West))
+                                }
+                                ProtottyInput::Right => {
+                                    InputType::Game(MetersInput::Direction(East))
+                                }
                                 ProtottyInput::Char(' ') => InputType::Game(MetersInput::Wait),
                                 ProtottyInput::Char(ch @ '0'...'9') => {
                                     let identifier = ActiveMeterIdentifier::from_char(ch);
@@ -568,24 +593,23 @@ impl<S: Storage> App<S> {
                                     self.app_state = AppState::GameOver(GameOverMessage::Win);
                                     self.game_over_duration = Duration::from_millis(GAME_OVER_MS);
                                 }
-                                ExternalEvent::Ascend(status) => {
-                                    match status {
-                                        AscendStatus::IncompleteGoal | AscendStatus::NoGoal => {
+                                ExternalEvent::Ascend(status) => match status {
+                                    AscendStatus::IncompleteGoal | AscendStatus::NoGoal => {
+                                        self.game_state = GameState::NonUpgradeMenu;
+                                        self.between_level_menu = Some(make_non_upgrade_menu());
+                                    }
+                                    AscendStatus::CompleteGoal => {
+                                        let choices = self.state.upgrade_choices();
+                                        if choices.is_empty() {
                                             self.game_state = GameState::NonUpgradeMenu;
                                             self.between_level_menu = Some(make_non_upgrade_menu());
-                                        }
-                                        AscendStatus::CompleteGoal => {
-                                            let choices = self.state.upgrade_choices();
-                                            if choices.is_empty() {
-                                                self.game_state = GameState::NonUpgradeMenu;
-                                                self.between_level_menu = Some(make_non_upgrade_menu());
-                                            } else {
-                                                self.game_state = GameState::UpgradeMenu;
-                                                self.between_level_menu = Some(make_upgrade_menu(choices));
-                                            }
+                                        } else {
+                                            self.game_state = GameState::UpgradeMenu;
+                                            self.between_level_menu =
+                                                Some(make_upgrade_menu(choices));
                                         }
                                     }
-                                }
+                                },
                             }
                         }
                     }

@@ -56,9 +56,7 @@ impl GoalState {
         match self {
             &GoalState::Escape(_) => false,
             &GoalState::KillEggs(_) => false,
-            &GoalState::KillBoss(id) => {
-                !entity_store.health_meter.contains_key(&id)
-            }
+            &GoalState::KillBoss(id) => !entity_store.health_meter.contains_key(&id),
         }
     }
 }

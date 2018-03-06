@@ -17,8 +17,7 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                 if let Some(sh_cell) = spatial_hash.get(coord) {
                     let door_cell =
                         sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
-                    let solid_cell =
-                        sh_cell.solid_count > 0 && !door_cell;
+                    let solid_cell = sh_cell.solid_count > 0 && !door_cell;
                     if solid_cell && entity_store.collider.contains(&id) {
                         return false;
                     }
@@ -84,7 +83,6 @@ where
                                 common_animations::punch(punch_id, coord, direction, messages);
 
                                 messages.change(insert::stamina_tick(id, -1));
-
                             }
                         }
                     }
@@ -182,28 +180,35 @@ where
                             let &pickup = entity_store.pickup.get(pickup_id).unwrap();
                             match pickup {
                                 Pickup::Ammo => {
-                                    if let Some(mut ammo) = entity_store.gun_meter.get(&id).cloned() {
+                                    if let Some(mut ammo) = entity_store.gun_meter.get(&id).cloned()
+                                    {
                                         ammo.value = ammo.max;
                                         messages.change(insert::gun_meter(id, ammo));
                                         messages.remove(*pickup_id);
                                     }
                                 }
                                 Pickup::RailGunAmmo => {
-                                    if let Some(mut ammo) = entity_store.rail_gun_meter.get(&id).cloned() {
+                                    if let Some(mut ammo) =
+                                        entity_store.rail_gun_meter.get(&id).cloned()
+                                    {
                                         ammo.value = ammo.max;
                                         messages.change(insert::rail_gun_meter(id, ammo));
                                         messages.remove(*pickup_id);
                                     }
                                 }
                                 Pickup::Health => {
-                                    if let Some(mut health) = entity_store.health_meter.get(&id).cloned() {
+                                    if let Some(mut health) =
+                                        entity_store.health_meter.get(&id).cloned()
+                                    {
                                         health.value = health.max;
                                         messages.change(insert::health_meter(id, health));
                                         messages.remove(*pickup_id);
                                     }
                                 }
                                 Pickup::Kevlar => {
-                                    if let Some(mut kevlar) = entity_store.kevlar_meter.get(&id).cloned() {
+                                    if let Some(mut kevlar) =
+                                        entity_store.kevlar_meter.get(&id).cloned()
+                                    {
                                         kevlar.value = kevlar.max;
                                         messages.change(insert::kevlar_meter(id, kevlar));
                                         messages.remove(*pickup_id);

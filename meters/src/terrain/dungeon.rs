@@ -450,11 +450,14 @@ pub fn populate<R: Rng>(
     let player_coord = room_centres_in_largest_space[0];
     let stairs_coord = room_centres_in_largest_space[1];
 
-    let mut floor_coords = largest_space.iter().cloned().filter(|&coord| {
-        coord != player_coord &&
-            coord != stairs_coord &&
-            *grid.get(coord).unwrap() == Cell::Floor
-    }).collect::<Vec<_>>();
+    let mut floor_coords = largest_space
+        .iter()
+        .cloned()
+        .filter(|&coord| {
+            coord != player_coord && coord != stairs_coord
+                && *grid.get(coord).unwrap() == Cell::Floor
+        })
+        .collect::<Vec<_>>();
 
     for _ in 0..3 {
         if let Some(coord) = floor_coords.pop() {
@@ -485,7 +488,6 @@ pub fn populate<R: Rng>(
             prototypes::larvae(id_allocator.allocate(), coord, messages);
         }
     }
-
 
     let result = match config.goal_type {
         GoalType::KillBoss => {

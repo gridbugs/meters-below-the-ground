@@ -7,7 +7,7 @@ use entity_store::*;
 use input::*;
 use policy;
 use animation::*;
-use rand::{SeedableRng, StdRng, Rng};
+use rand::{Rng, SeedableRng, StdRng};
 use pathfinding::*;
 use message_queues::*;
 use terrain::*;
@@ -237,11 +237,10 @@ fn shuffled_unequipped_meters<R: Rng>(world: &World, id: EntityId, rng: &mut R) 
         .filter(|&typ| {
             let component_type: ComponentType = typ.into();
             let type_set = world.entity_components.get(id);
-            if type_set.contains(component_type) {
-            }
+            if type_set.contains(component_type) {}
             !type_set.contains(component_type)
         })
-    .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
     rng.shuffle(&mut types);
     types
 }
@@ -296,13 +295,15 @@ impl State {
             let component_type: ComponentType = upgrade.into();
             let type_set = next_world.entity_components.get(next_player_id);
             if !type_set.contains(component_type) {
-                next_world.commit(EntityChange::Insert(next_player_id, upgrade.player_component_value()));
+                next_world.commit(EntityChange::Insert(
+                    next_player_id,
+                    upgrade.player_component_value(),
+                ));
                 match upgrade.active_or_passive() {
                     ActiveOrPassive::Active(typ) => {
                         self.active_meters.push(typ);
                         if let Some(change) = typ.periodic_change() {
-                            let event =
-                                PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
+                            let event = PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
                             let entry = PlayerTurnEventEntry::full(event, change.turns);
                             self.player_turn_events.push(entry);
                         }
@@ -310,8 +311,7 @@ impl State {
                     ActiveOrPassive::Passive(typ) => {
                         self.passive_meters.push(typ);
                         if let Some(change) = typ.periodic_change() {
-                            let event =
-                                PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
+                            let event = PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
                             let entry = PlayerTurnEventEntry::full(event, change.turns);
                             self.player_turn_events.push(entry);
                         }
@@ -379,10 +379,14 @@ impl State {
             .expect("No player coord");
         messages.player_moved_to = Some(player_coord);
 
-        let random_meter = shuffled_unequipped_meters(&world, player_id, &mut rng).pop()
+        let random_meter = shuffled_unequipped_meters(&world, player_id, &mut rng)
+            .pop()
             .expect("Couldn't find random meter to initialise player");
 
-        world.commit(EntityChange::Insert(player_id, random_meter.player_component_value()));
+        world.commit(EntityChange::Insert(
+            player_id,
+            random_meter.player_component_value(),
+        ));
 
         let active_meters: Vec<_> = world
             .entity_components
@@ -499,14 +503,20 @@ impl State {
     }
 
     pub fn goal_info(&self) -> Option<(GoalType, bool)> {
-        self.world.goal_state.as_ref().map(|s| (s.typ(), s.is_complete(&self.world.entity_store)))
+        self.world
+            .goal_state
+            .as_ref()
+            .map(|s| (s.typ(), s.is_complete(&self.world.entity_store)))
     }
 
     pub fn with_goal_meters<F>(&self, f: F)
     where
         F: FnMut(GoalMeterInfo),
     {
-        self.world.goal_state.as_ref().map(|s| s.with_goal_meters(&self.world.entity_store, f));
+        self.world
+            .goal_state
+            .as_ref()
+            .map(|s| s.with_goal_meters(&self.world.entity_store, f));
     }
 
     pub fn overall_progress_meter(&self) -> Meter {
@@ -554,7 +564,6 @@ impl State {
             self.messages
                 .change(insert::rail_gun_meter(self.player_id, ammo));
         }
-
     }
 
     fn use_gun(&mut self) {
@@ -582,7 +591,7 @@ impl State {
                     direction,
                     weapons::GUN_BULLET_RANGE,
                     &mut self.messages,
-                    );
+                );
 
                 common_animations::bullet(bullet_id, &mut self.messages);
             }
@@ -615,7 +624,6 @@ impl State {
             self.messages
                 .change(insert::health_meter(self.player_id, health));
         }
-
     }
 
     fn walk(&mut self, direction: CardinalDirection) {
@@ -696,7 +704,13 @@ impl State {
                 let coord = self.world.entity_store.coord.get(&id).unwrap();
                 let visibility = self.visibility_grid.get(*coord).unwrap();
                 if visibility.last_updated == self.world.count {
-                    self.messages.change(insert::npc(id, NpcInfo { active: true, .. *info }));
+                    self.messages.change(insert::npc(
+                        id,
+                        NpcInfo {
+                            active: true,
+                            ..*info
+                        },
+                    ));
                     true
                 } else {
                     false
@@ -715,9 +729,7 @@ impl State {
                 id,
                 &self.world.entity_store,
                 &self.world.spatial_hash,
-                PathfindingConfig {
-                    open_doors: false,
-                },
+                PathfindingConfig { open_doors: false },
                 &mut self.messages,
             );
             if let Some(meta) = self.change_context.process(
@@ -771,22 +783,28 @@ impl State {
                             ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
                         typ.insert(self.player_id, meter)
                     }
-                    PlayerTurnEvent::ChangePassiveMeter(typ, change) => {
-                        match typ {
-                            PassiveMeterType::Stamina => {
-                                let stamina_tick = self.world.entity_store.stamina_tick.get(&self.player_id).unwrap();
-                                insert::stamina_tick(self.player_id, stamina_tick + 1)
-                            }
-                            _ => {
-                                let mut meter =
-                                    Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
-                                    .expect("Missing meter for player turn event");
-                                meter.value =
-                                    ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
-                                typ.insert(self.player_id, meter)
-                            }
+                    PlayerTurnEvent::ChangePassiveMeter(typ, change) => match typ {
+                        PassiveMeterType::Stamina => {
+                            let stamina_tick = self.world
+                                .entity_store
+                                .stamina_tick
+                                .get(&self.player_id)
+                                .unwrap();
+                            insert::stamina_tick(self.player_id, stamina_tick + 1)
                         }
-                    }
+                        _ => {
+                            let mut meter = Meter::from_entity_store(
+                                self.player_id,
+                                &self.world.entity_store,
+                                typ,
+                            ).expect("Missing meter for player turn event");
+                            meter.value = ::std::cmp::max(
+                                ::std::cmp::min(meter.value + change, meter.max),
+                                0,
+                            );
+                            typ.insert(self.player_id, meter)
+                        }
+                    },
                 };
                 self.messages.changes.push(change);
                 entry.remaining = entry.reset;

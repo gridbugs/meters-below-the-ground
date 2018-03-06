@@ -168,7 +168,6 @@ impl Animation {
             }
             AnimationState::DamageFlash(id, remaining) => {
                 if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
-
                     tile_info.damage_flash = true;
                     messages.change(insert::tile_info(id, tile_info));
 
@@ -183,7 +182,6 @@ impl Animation {
             }
             AnimationState::RemoveDamageFlash(id, remaining) => {
                 if period > remaining {
-
                     if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
                         tile_info.damage_flash = false;
                         messages.change(insert::tile_info(id, tile_info));

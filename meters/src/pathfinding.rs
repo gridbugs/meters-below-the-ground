@@ -19,15 +19,18 @@ struct SpatialHashSolidOrOccupiedCellGrid<'a> {
 
 impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
-        self.grid.get(coord).map(|cell| cell.solid_count > 0 && (self.open_doors || cell.door_count == 0))
+        self.grid
+            .get(coord)
+            .map(|cell| cell.solid_count > 0 && (self.open_doors || cell.door_count == 0))
     }
 }
 
 impl<'a> SolidGrid for SpatialHashSolidOrOccupiedCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
-        self.grid
-            .get(coord)
-            .map(|cell| (cell.solid_count > 0 && (self.open_doors || cell.door_count == 0)) || !cell.npc_set.is_empty())
+        self.grid.get(coord).map(|cell| {
+            (cell.solid_count > 0 && (self.open_doors || cell.door_count == 0))
+                || !cell.npc_set.is_empty()
+        })
     }
 }
 
@@ -74,7 +77,6 @@ impl PathfindingContext {
                 &mut self.distance_map_open_doors,
             )
             .expect("Failed to update player distance map");
-
     }
 
     pub fn act<M>(
@@ -93,10 +95,7 @@ impl PathfindingContext {
             .cloned()
             .expect("Entity missing coord");
 
-        let cell = if let Some(cell) =self.distance_map
-            .get(coord)
-            .cell()
-        {
+        let cell = if let Some(cell) = self.distance_map.get(coord).cell() {
             cell
         } else {
             // no path to player

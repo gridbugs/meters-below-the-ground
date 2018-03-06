@@ -39,21 +39,27 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         Tile::AmmoPickup => write!(stage, "{} {}", ch, "Quadgun Ammo"),
         Tile::RailGunAmmoPickup => write!(stage, "{} {}", ch, "Railgun Ammo"),
         Tile::KevlarPickup => write!(stage, "{} {}", ch, "Armour Shard"),
-        Tile::Wall |
-        Tile::CavernWall |
-        Tile::Door |
-        Tile::Floor |
-        Tile::Punch(_) |
-        Tile::Bullet |
-        Tile::RailGunShotHorizontal |
-        Tile::RailGunShotVertical => return false,
+        Tile::Wall
+        | Tile::CavernWall
+        | Tile::Door
+        | Tile::Floor
+        | Tile::Punch(_)
+        | Tile::Bullet
+        | Tile::RailGunShotHorizontal
+        | Tile::RailGunShotVertical => return false,
     }.unwrap();
 
     true
 }
 
 impl View<BTreeSet<TileInfo>> for GlossaryView {
-    fn view<G: ViewGrid>(&mut self, glossary: &BTreeSet<TileInfo>, offset: Coord, depth: i32, grid: &mut G) {
+    fn view<G: ViewGrid>(
+        &mut self,
+        glossary: &BTreeSet<TileInfo>,
+        offset: Coord,
+        depth: i32,
+        grid: &mut G,
+    ) {
         let mut coord = Coord::new(0, 0);
         for &tile_info in glossary.iter() {
             let (ch, info) = render::tile_text(tile_info);

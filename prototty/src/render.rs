@@ -6,8 +6,13 @@ use direction::CardinalDirection;
 
 pub fn render_when_non_visible(tile: Tile) -> bool {
     match tile {
-        Tile::Player | Tile::Punch(_) | Tile::Larvae | Tile::Queen | Tile::Bullet | Tile::RailGunShotHorizontal |
-            Tile::RailGunShotVertical => false,
+        Tile::Player
+        | Tile::Punch(_)
+        | Tile::Larvae
+        | Tile::Queen
+        | Tile::Bullet
+        | Tile::RailGunShotHorizontal
+        | Tile::RailGunShotVertical => false,
         Tile::Wall
         | Tile::CavernWall
         | Tile::Door
@@ -62,16 +67,17 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             };
             (
                 ch,
-                TextInfo::default().bold().foreground_colour(Rgb24::new(255, 0, 0)),
+                TextInfo::default()
+                    .bold()
+                    .foreground_colour(Rgb24::new(255, 0, 0)),
             )
         }
-        Tile::Larvae => {
-            (
+        Tile::Larvae => (
             'l',
             TextInfo::default()
                 .bold()
                 .foreground_colour(colours::BRIGHT_GREEN),
-        )}
+        ),
         Tile::Queen => (
             'Q',
             TextInfo::default()
