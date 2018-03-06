@@ -5,7 +5,7 @@ use message_queues::*;
 use terrain::*;
 use goal::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct World {
     pub entity_store: EntityStore,
     pub spatial_hash: SpatialHashTable,

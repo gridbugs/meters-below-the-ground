@@ -216,9 +216,7 @@ pub struct State {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SaveState {
-    changes: Vec<EntityChange>,
-    id_allocator: EntityIdAllocator,
-    count: u64,
+    world: World,
     player_id: EntityId,
     next_rng_seed: usize,
     size: Size,
@@ -230,7 +228,6 @@ pub struct SaveState {
     level_index: usize,
     player_turn_events: Vec<PlayerTurnEventEntry>,
     visibility_grid: VisibilityGrid,
-    goal_state: Option<GoalState>,
 }
 
 impl State {
@@ -398,9 +395,7 @@ impl State {
         let mut changes = Vec::with_capacity(1024);
         self.world.entity_store.clone_changes(&mut changes);
         SaveState {
-            changes,
-            id_allocator: self.world.id_allocator.clone(),
-            count: self.world.count,
+            world: self.world.clone(),
             player_id: self.player_id,
             next_rng_seed,
             size: self.world.size(),
@@ -412,7 +407,6 @@ impl State {
             level_index: self.level_index,
             player_turn_events: self.player_turn_events.clone(),
             visibility_grid: self.visibility_grid.clone(),
-            goal_state: self.world.goal_state.clone(),
         }
     }
 
@@ -799,9 +793,7 @@ impl State {
 impl From<SaveState> for State {
     fn from(
         SaveState {
-            mut changes,
-            id_allocator,
-            count,
+            world,
             player_id,
             next_rng_seed,
             size,
@@ -813,28 +805,10 @@ impl From<SaveState> for State {
             level_index,
             player_turn_events,
             visibility_grid,
-            goal_state,
         }: SaveState,
     ) -> Self {
-        let mut entity_store = EntityStore::new();
-        let mut spatial_hash = SpatialHashTable::new(size);
-        let mut entity_components = EntityComponentTable::new();
-
-        for change in changes.drain(..) {
-            spatial_hash.update(&entity_store, &change, 0);
-            entity_components.update(&change);
-            entity_store.commit(change);
-        }
-
         Self {
-            world: World {
-                entity_store,
-                spatial_hash,
-                entity_components,
-                id_allocator,
-                count,
-                goal_state,
-            },
+            world,
             player_id,
             rng: StdRng::from_seed(&[next_rng_seed]),
             turn,
