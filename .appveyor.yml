@@ -7,7 +7,7 @@ environment:
     IN_NAME: meters_glutin
     OUT_NAME: meters
     BIN_PATH: target\release
-    BIN_NAME: meters-opengl-windows-x86_64
+    BIN_NAME: meters-windows-x86_64
 install:
 - cmd: >-
 

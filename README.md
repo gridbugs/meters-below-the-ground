@@ -9,11 +9,10 @@ A roguelike where all mechanics are expressed via progress meters.
 ## Builds
 
 - [Run in browser](https://games.gridbugs.org/meters/master/)
-- [Linux Terminal](https://files.gridbugs.org/meters-terminal-linux-x86_64-master.zip)
-- [Linux OpenGL](https://files.gridbugs.org/meters-opengl-linux-x86_64-master.zip)
-- [MacOS Terminal](https://files.gridbugs.org/meters-terminal-macos-x86_64-master.zip)
-- [MacOS OpenGL](https://files.gridbugs.org/MetersBelowTheGround-master.dmg)
-- [Windows OpenGL](https://files.gridbugs.org/meters-opengl-windows-x86_64-master.zip)
+- [Linux](https://files.gridbugs.org/meters-linux-x86_64-master.zip)
+- [MacOS](https://files.gridbugs.org/meters-macos-x86_64-master.zip)
+- [MacOS (App)](https://files.gridbugs.org/MetersBelowTheGround-master.dmg)
+- [Windows](https://files.gridbugs.org/meters-windows-x86_64-master.zip)
 
 ## Fonts
 
