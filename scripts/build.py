@@ -108,6 +108,7 @@ def make_macos_app(args):
       os.path.join(dmg_dir_path, "LICENSE.txt"))
   sh.git("rev-parse", "HEAD", _err="/dev/stderr",
       _out=os.path.join(dmg_dir_path, "REVISION.txt"))
+  os.symlink("/Applications", os.path.join(dmg_dir_path, "Applications"))
 
   dmg_name = "%s-v%s.dmg" % (MACOS_APP_NAME, args.version)
 
