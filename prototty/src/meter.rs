@@ -34,6 +34,17 @@ pub struct MeterView {
     scratch: String,
 }
 
+pub fn meter_name(typ: MeterType) -> &'static str {
+    match typ {
+        MeterType::Gun => "Quadgun",
+        MeterType::Medkit => "Medkit",
+        MeterType::Health => "Health",
+        MeterType::Kevlar => "Kevlar",
+        MeterType::RailGun => "Railgun",
+
+    }
+}
+
 impl MeterView {
     pub fn new(name_padding: usize, meter_width: usize) -> Self {
         Self {

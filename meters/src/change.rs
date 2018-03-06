@@ -72,7 +72,18 @@ impl ChangeContext {
         match messages.special.take() {
             Some(Special::Lose) => Some(Event::External(ExternalEvent::Lose)),
             Some(Special::Win) => Some(Event::External(ExternalEvent::Win)),
-            Some(Special::NextLevel) => Some(Event::NextLevel),
+            Some(Special::Ascend) => {
+                let status = if let Some(goal) = world.goal_state.as_ref() {
+                    if goal.is_complete(&world.entity_store) {
+                        AscendStatus::CompleteGoal
+                    } else {
+                        AscendStatus::IncompleteGoal
+                    }
+                } else {
+                    AscendStatus::NoGoal
+                };
+                Some(Event::External(ExternalEvent::Ascend(status)))
+            }
             None => None,
         }
     }

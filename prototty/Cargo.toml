@@ -10,3 +10,5 @@ meters = { path = "../meters" }
 prototty = "0.19"
 prototty_common = "0.19"
 direction = "0.14"
+serde = "1.0"
+serde_derive = "1.0"

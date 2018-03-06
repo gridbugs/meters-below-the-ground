@@ -1,6 +1,11 @@
 use entity_store::*;
 use input::ActiveMeterIdentifier;
 
+pub enum ActiveOrPassive {
+    Active(ActiveMeterType),
+    Passive(PassiveMeterType),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MeterType {
     Gun,
@@ -9,6 +14,88 @@ pub enum MeterType {
     Health,
     Kevlar,
 }
+
+impl MeterType {
+    pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
+        match component_type {
+            ComponentType::GunMeter => Some(MeterType::Gun),
+            ComponentType::MedkitMeter => Some(MeterType::Medkit),
+            ComponentType::RailGunMeter => Some(MeterType::RailGun),
+            ComponentType::HealthMeter => Some(MeterType::Health),
+            ComponentType::KevlarMeter => Some(MeterType::Kevlar),
+            _ => None,
+        }
+    }
+    pub fn active_or_passive(self) -> ActiveOrPassive {
+        match self {
+            MeterType::Gun => ActiveOrPassive::Active(ActiveMeterType::Gun),
+            MeterType::RailGun => ActiveOrPassive::Active(ActiveMeterType::RailGun),
+            MeterType::Medkit => ActiveOrPassive::Active(ActiveMeterType::Medkit),
+            MeterType::Health => ActiveOrPassive::Passive(PassiveMeterType::Health),
+            MeterType::Kevlar => ActiveOrPassive::Passive(PassiveMeterType::Kevlar),
+        }
+    }
+    pub fn player_max(self) -> i32 {
+        match self {
+            MeterType::Gun => 8,
+            MeterType::RailGun => 4,
+            MeterType::Medkit => 10,
+            MeterType::Health => 10,
+            MeterType::Kevlar => 10,
+        }
+    }
+    pub fn player_max_component_value(self) -> ComponentValue {
+        let max = self.player_max();
+        match self {
+            MeterType::Gun => ComponentValue::GunMeter(Meter::empty(max)),
+            MeterType::RailGun => ComponentValue::RailGunMeter(Meter::empty(max)),
+            MeterType::Medkit => ComponentValue::MedkitMeter(Meter::empty(max)),
+            MeterType::Health => ComponentValue::HealthMeter(Meter::full(max)),
+            MeterType::Kevlar => ComponentValue::KevlarMeter(Meter::empty(max)),
+        }
+    }
+    pub fn is_active(self) -> bool {
+        match self {
+            MeterType::Gun => true,
+            MeterType::RailGun => true,
+            MeterType::Medkit => true,
+            MeterType::Health => false,
+            MeterType::Kevlar => false,
+        }
+    }
+    pub fn periodic_change(self) -> Option<PeriodicChange> {
+        match self {
+            MeterType::Gun => None,
+            MeterType::RailGun => None,
+            MeterType::Medkit => Some(PeriodicChange {
+                turns: 8,
+                change: 1,
+            }),
+            MeterType::Health => None,
+            MeterType::Kevlar => None,
+        }
+    }
+}
+
+impl From<MeterType> for ComponentType {
+    fn from(typ: MeterType) -> Self {
+        match typ {
+            MeterType::Gun => ComponentType::GunMeter,
+            MeterType::RailGun => ComponentType::RailGunMeter,
+            MeterType::Medkit => ComponentType::MedkitMeter,
+            MeterType::Health => ComponentType::HealthMeter,
+            MeterType::Kevlar => ComponentType::KevlarMeter,
+        }
+    }
+}
+
+pub const ALL_METER_TYPES: &[MeterType] = &[
+    MeterType::Gun,
+    MeterType::RailGun,
+    MeterType::Medkit,
+    MeterType::Health,
+    MeterType::Kevlar,
+];
 
 pub struct PeriodicChange {
     pub turns: u32,

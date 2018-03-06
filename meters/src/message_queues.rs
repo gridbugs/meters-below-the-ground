@@ -14,7 +14,7 @@ macro_rules! swap_drain {
 pub enum Special {
     Lose,
     Win,
-    NextLevel,
+    Ascend,
 }
 
 #[derive(Clone, Debug)]
@@ -58,9 +58,9 @@ pub trait PushMessages {
     fn change(&mut self, change: EntityChange);
     fn remove(&mut self, entity_id: EntityId);
     fn move_player(&mut self, coord: Coord);
-    fn next_level(&mut self);
     fn lose(&mut self);
     fn win(&mut self);
+    fn ascend(&mut self);
 }
 
 impl PushMessages for MessageQueues {
@@ -76,13 +76,13 @@ impl PushMessages for MessageQueues {
     fn move_player(&mut self, coord: Coord) {
         self.player_moved_to = Some(coord);
     }
-    fn next_level(&mut self) {
-        self.special = Some(Special::NextLevel);
-    }
     fn lose(&mut self) {
         self.special = Some(Special::Lose);
     }
     fn win(&mut self) {
         self.special = Some(Special::Win);
+    }
+    fn ascend(&mut self) {
+        self.special = Some(Special::Ascend);
     }
 }

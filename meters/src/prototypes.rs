@@ -4,7 +4,7 @@ use grid_2d::Coord;
 use tile::Tile;
 use tile_info::TileInfo;
 use message_queues::PushMessages;
-use meter::Meter;
+use meter::*;
 use pickup::Pickup;
 use npc_info::*;
 
@@ -48,9 +48,8 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         id,
         TileInfo::new(Tile::Player, PLAYER_DEPTH),
     ));
-    messages.change(insert::health_meter(id, Meter::full(8)));
-    messages.change(insert::gun_meter(id, Meter::full(10)));
-    messages.change(insert::rail_gun_meter(id, Meter::full(5)));
+    messages.change(insert::health_meter(id, Meter::full(MeterType::Health.player_max())));
+    messages.change(insert::gun_meter(id, Meter::full(MeterType::Gun.player_max())));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {

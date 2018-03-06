@@ -7,7 +7,7 @@ use entity_store::*;
 use input::*;
 use policy;
 use animation::*;
-use rand::{SeedableRng, StdRng};
+use rand::{SeedableRng, StdRng, Rng};
 use pathfinding::*;
 use message_queues::*;
 use terrain::*;
@@ -235,7 +235,33 @@ impl State {
         self.selected_meter
     }
 
-    fn switch_levels(&mut self) {
+    pub fn switch_levels_no_upgrade(&mut self) {
+        self.switch_levels(None);
+    }
+
+    pub fn switch_levels_upgrade(&mut self, upgrade: MeterType) {
+        self.switch_levels(Some(upgrade));
+    }
+
+    pub fn upgrade_choices(&mut self) -> Vec<MeterType> {
+        const NUM_CHOICES: usize = 3;
+        let mut types = ALL_METER_TYPES
+            .iter()
+            .cloned()
+            .filter(|&typ| {
+                let component_type: ComponentType = typ.into();
+                let type_set = self.world.entity_components.get(self.player_id);
+                if type_set.contains(component_type) {
+                }
+                !type_set.contains(component_type)
+            })
+            .collect::<Vec<_>>();
+        self.rng.shuffle(&mut types);
+        let num_choices = ::std::cmp::min(NUM_CHOICES, types.len());
+        types[0..num_choices].iter().cloned().collect()
+    }
+
+    fn switch_levels(&mut self, upgrade: Option<MeterType>) {
         self.level_index += 1;
         let mut next_world = World::new(
             &self.levels[self.level_index],
@@ -261,22 +287,31 @@ impl State {
             next_world.commit(change);
         }
 
-        if self.level_index == 1 {
-            next_world.commit(insert::kevlar_meter(next_player_id, Meter::full(6)));
-            next_world.commit(insert::medkit_meter(next_player_id, Meter::empty(5)));
-            self.passive_meters.push(PassiveMeterType::Kevlar);
-            self.active_meters.push(ActiveMeterType::Medkit);
-            if let Some(change) = PassiveMeterType::Kevlar.periodic_change() {
-                let event =
-                    PlayerTurnEvent::ChangePassiveMeter(PassiveMeterType::Kevlar, change.change);
-                let entry = PlayerTurnEventEntry::full(event, change.turns);
-                self.player_turn_events.push(entry);
-            }
-            if let Some(change) = ActiveMeterType::Medkit.periodic_change() {
-                let event =
-                    PlayerTurnEvent::ChangeActiveMeter(ActiveMeterType::Medkit, change.change);
-                let entry = PlayerTurnEventEntry::full(event, change.turns);
-                self.player_turn_events.push(entry);
+        if let Some(upgrade) = upgrade {
+            let component_type: ComponentType = upgrade.into();
+            let type_set = next_world.entity_components.get(next_player_id);
+            if !type_set.contains(component_type) {
+                next_world.commit(EntityChange::Insert(next_player_id, upgrade.player_max_component_value()));
+                match upgrade.active_or_passive() {
+                    ActiveOrPassive::Active(typ) => {
+                        self.active_meters.push(typ);
+                        if let Some(change) = typ.periodic_change() {
+                            let event =
+                                PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
+                            let entry = PlayerTurnEventEntry::full(event, change.turns);
+                            self.player_turn_events.push(entry);
+                        }
+                    }
+                    ActiveOrPassive::Passive(typ) => {
+                        self.passive_meters.push(typ);
+                        if let Some(change) = typ.periodic_change() {
+                            let event =
+                                PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
+                            let entry = PlayerTurnEventEntry::full(event, change.turns);
+                            self.player_turn_events.push(entry);
+                        }
+                    }
+                }
             }
         }
 
@@ -781,10 +816,6 @@ impl State {
 
         match event {
             Some(Event::External(external_event)) => Some(external_event),
-            Some(Event::NextLevel) => {
-                self.switch_levels();
-                None
-            }
             None => None,
         }
     }

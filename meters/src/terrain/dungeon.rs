@@ -448,7 +448,7 @@ pub fn populate<R: Rng>(
     }
 
     let player_coord = room_centres_in_largest_space[0];
-    let stairs_coord = room_centres_in_largest_space[1];
+    let stairs_coord = player_coord + Coord::new(0, -1);//room_centres_in_largest_space[1];
 
     let mut floor_coords = largest_space.iter().cloned().filter(|&coord| {
         coord != player_coord &&

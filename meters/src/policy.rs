@@ -151,7 +151,7 @@ where
 
                 if is_player {
                     if sh_cell.stairs_count > 0 {
-                        messages.next_level();
+                        messages.ascend();
                     } else if sh_cell.exit_count > 0 {
                         messages.win();
                     } else {
@@ -159,23 +159,25 @@ where
                             let &pickup = entity_store.pickup.get(pickup_id).unwrap();
                             match pickup {
                                 Pickup::Ammo => {
-                                    let mut ammo = *entity_store.gun_meter.get(&id).unwrap();
-                                    ammo.value = ammo.max;
-                                    messages.change(insert::gun_meter(id, ammo));
-                                    messages.remove(*pickup_id);
-
+                                    if let Some(mut ammo) = entity_store.gun_meter.get(&id).cloned() {
+                                        ammo.value = ammo.max;
+                                        messages.change(insert::gun_meter(id, ammo));
+                                        messages.remove(*pickup_id);
+                                    }
                                 }
                                 Pickup::RailGunAmmo => {
-                                    let mut ammo = *entity_store.rail_gun_meter.get(&id).unwrap();
-                                    ammo.value = ammo.max;
-                                    messages.change(insert::rail_gun_meter(id, ammo));
-                                    messages.remove(*pickup_id);
+                                    if let Some(mut ammo) = entity_store.rail_gun_meter.get(&id).cloned() {
+                                        ammo.value = ammo.max;
+                                        messages.change(insert::rail_gun_meter(id, ammo));
+                                        messages.remove(*pickup_id);
+                                    }
                                 }
                                 Pickup::Health => {
-                                    let mut health = *entity_store.health_meter.get(&id).unwrap();
-                                    health.value = health.max;
-                                    messages.change(insert::health_meter(id, health));
-                                    messages.remove(*pickup_id);
+                                    if let Some(mut health) = entity_store.health_meter.get(&id).cloned() {
+                                        health.value = health.max;
+                                        messages.change(insert::health_meter(id, health));
+                                        messages.remove(*pickup_id);
+                                    }
                                 }
                             }
                         }
