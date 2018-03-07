@@ -97,7 +97,12 @@ where
                                     if let Some(sh_cell) = spatial_hash.get(coord) {
                                         if !sh_cell.npc_set.is_empty() {
                                             let punch_id = id_allocator.allocate();
-                                            common_animations::punch(punch_id, coord, direction, messages);
+                                            common_animations::punch(
+                                                punch_id,
+                                                coord,
+                                                direction,
+                                                messages,
+                                            );
                                         }
                                     }
                                 }

@@ -52,12 +52,10 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
     } else {
         if let Some(1) = tile_info.countdown {
             match tile_info.tile {
-                Tile::Egg |
-                    Tile::Chrysalis |
-                    Tile::SuperEgg => {
-                        write!(stage, " (hatching)").unwrap();
-                        return true;
-                    }
+                Tile::Egg | Tile::Chrysalis | Tile::SuperEgg => {
+                    write!(stage, " (hatching)").unwrap();
+                    return true;
+                }
                 _ => (),
             }
         }

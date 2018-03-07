@@ -782,7 +782,6 @@ impl State {
     }
 
     fn all_npc_turns(&mut self) -> Option<Event> {
-
         if let Some(player_coord) = self.messages.player_moved_to.take() {
             self.pathfinding
                 .update_player_map(player_coord, &self.world.spatial_hash);
@@ -824,7 +823,12 @@ impl State {
                         if let Some(&coord) = self.world.entity_store.coord.get(&id) {
                             match transform {
                                 Transform::Chrysalis => {
-                                    prototypes::chrysalis(id, coord, &mut self.messages, &mut self.rng);
+                                    prototypes::chrysalis(
+                                        id,
+                                        coord,
+                                        &mut self.messages,
+                                        &mut self.rng,
+                                    );
                                 }
                                 Transform::Queen => {
                                     prototypes::queen(id, coord, false, &mut self.messages);
@@ -839,13 +843,20 @@ impl State {
                                     self.messages.change(remove::countdown(id));
                                 }
                                 Transform::Larvae => {
-                                    prototypes::larvae(id, coord, &mut self.messages, &mut self.rng);
+                                    prototypes::larvae(
+                                        id,
+                                        coord,
+                                        &mut self.messages,
+                                        &mut self.rng,
+                                    );
                                 }
                             }
                         }
                     }
                 } else {
-                    self.messages.changes.push(insert::countdown(id, countdown - 1));
+                    self.messages
+                        .changes
+                        .push(insert::countdown(id, countdown - 1));
                 }
             }
         }
@@ -876,7 +887,9 @@ impl State {
                 &mut self.rng,
             ) {
                 match meta {
-                    ExternalEvent::Lose | ExternalEvent::Win | ExternalEvent::Ascend(_) => return Some(Event::External(meta)),
+                    ExternalEvent::Lose | ExternalEvent::Win | ExternalEvent::Ascend(_) => {
+                        return Some(Event::External(meta))
+                    }
                     ExternalEvent::Alert(_) => event = Some(Event::External(meta)),
                 }
             }
@@ -917,9 +930,11 @@ impl State {
                 let change = match entry.event {
                     PlayerTurnEvent::ChangeActiveMeter(typ, change) => {
                         let general_typ: MeterType = typ.into();
-                        let mut meter =
-                            Meter::from_entity_store(self.player_id, &self.world.entity_store, general_typ)
-                                .expect("Missing meter for player turn event");
+                        let mut meter = Meter::from_entity_store(
+                            self.player_id,
+                            &self.world.entity_store,
+                            general_typ,
+                        ).expect("Missing meter for player turn event");
                         meter.value =
                             ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
                         let typ: MeterType = typ.into();
@@ -987,9 +1002,7 @@ impl State {
                         self.process_turn_events()
                     }
                 }
-                TurnState::FastNpcs => {
-                    self.fast_npc_turns()
-                }
+                TurnState::FastNpcs => self.fast_npc_turns(),
             }
         } else {
             self.animation_tick(period)

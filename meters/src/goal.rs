@@ -14,10 +14,7 @@ pub enum GoalType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GoalStateArgs {
-    Escape {
-        exit: Coord,
-        player: Coord,
-    },
+    Escape { exit: Coord, player: Coord },
     KillEggs(Vec<EntityId>),
     KillBoss(EntityId),
 }
@@ -36,14 +33,19 @@ impl GoalStateArgs {
         match self {
             GoalStateArgs::Escape { player, exit } => {
                 let mut bfs = BfsContext::new(spatial_hash.size());
-                let mut distance_map = UniformDistanceMap::new(spatial_hash.size(), DirectionsCardinal);
+                let mut distance_map =
+                    UniformDistanceMap::new(spatial_hash.size(), DirectionsCardinal);
                 bfs.populate_uniform_distance_map(
                     &SpatialHashSolidCellGrid(spatial_hash),
                     exit,
                     Default::default(),
                     &mut distance_map,
                 ).expect("Failed to compute distance map");
-                let initial = distance_map.get(player).cell().expect("No path from player to exit").cost() as i32;
+                let initial = distance_map
+                    .get(player)
+                    .cell()
+                    .expect("No path from player to exit")
+                    .cost() as i32;
                 GoalState::Escape {
                     distance_map,
                     initial,
@@ -88,7 +90,10 @@ impl GoalState {
         F: FnMut(GoalMeterInfo),
     {
         match self {
-            &GoalState::Escape { ref distance_map, initial } => {
+            &GoalState::Escape {
+                ref distance_map,
+                initial,
+            } => {
                 let player_id = entity_store.player.iter().next().unwrap();
                 let player_coord = entity_store.coord.get(player_id).unwrap();
                 if let Some(cell) = distance_map.get(*player_coord).cell() {

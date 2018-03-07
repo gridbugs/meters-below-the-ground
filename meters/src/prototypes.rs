@@ -59,10 +59,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         ),
     ));
     messages.change(insert::stamina_tick(id, 0));
-    messages.change(insert::health_meter(
-        id,
-        health,
-    ));
+    messages.change(insert::health_meter(id, health));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -114,12 +111,15 @@ pub fn punch<M: PushMessages>(
 
 pub fn larvae<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: true,
-        active: false,
-        fast: false,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: true,
+            active: false,
+            fast: false,
+        },
+    ));
     let health = Meter::full(2);
     messages.change(insert::tile_info(
         id,
@@ -132,12 +132,15 @@ pub fn larvae<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mu
 
 pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: true,
-        active: false,
-        fast: false,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: true,
+            active: false,
+            fast: false,
+        },
+    ));
     let health = Meter::full(3);
     messages.change(insert::tile_info(
         id,
@@ -148,12 +151,15 @@ pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
 
 pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: true,
-        active: false,
-        fast: true,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: true,
+            active: false,
+            fast: true,
+        },
+    ));
     let health = Meter::full(2);
     messages.change(insert::tile_info(
         id,
@@ -162,14 +168,22 @@ pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::health_meter(id, health));
 }
 
-pub fn chrysalis<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
+pub fn chrysalis<M: PushMessages, R: Rng>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+    rng: &mut R,
+) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: false,
-        active: false,
-        fast: false,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: false,
+            active: false,
+            fast: false,
+        },
+    ));
     let health = Meter::full(1);
     messages.change(insert::tile_info(
         id,
@@ -186,12 +200,15 @@ pub fn chrysalis<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: 
 
 pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: false,
-        active: false,
-        fast: false,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: false,
+            active: false,
+            fast: false,
+        },
+    ));
     let health = Meter::full(3);
     messages.change(insert::tile_info(
         id,
@@ -202,14 +219,22 @@ pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M
     messages.change(insert::transform(id, Transform::Larvae));
 }
 
-pub fn super_egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
+pub fn super_egg<M: PushMessages, R: Rng>(
+    id: EntityId,
+    coord: Coord,
+    messages: &mut M,
+    rng: &mut R,
+) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo {
-        boss: false,
-        mobile: false,
-        active: false,
-        fast: false,
-    }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss: false,
+            mobile: false,
+            active: false,
+            fast: false,
+        },
+    ));
     let health = Meter::full(8);
     messages.change(insert::tile_info(
         id,
@@ -222,7 +247,15 @@ pub fn super_egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: 
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo { boss, active: boss, mobile: true, fast: false }));
+    messages.change(insert::npc(
+        id,
+        NpcInfo {
+            boss,
+            active: boss,
+            mobile: true,
+            fast: false,
+        },
+    ));
     let health = Meter::full(10);
     messages.change(insert::tile_info(
         id,

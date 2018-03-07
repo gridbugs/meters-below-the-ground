@@ -534,15 +534,14 @@ pub fn populate<R: Rng>(
             prototypes::queen(queen_id, queen_coord, true, messages);
             DungeonPopulateResult::GoalStateArgs(GoalStateArgs::KillBoss(queen_id))
         }
-        GoalType::Escape => {
-            DungeonPopulateResult::GoalStateArgs(GoalStateArgs::Escape { exit: stairs_coord, player: player_coord })
-        }
+        GoalType::Escape => DungeonPopulateResult::GoalStateArgs(GoalStateArgs::Escape {
+            exit: stairs_coord,
+            player: player_coord,
+        }),
         GoalType::KillEggs => {
             const NUM_EGGS: usize = 3;
             if floor_coords.len() < NUM_EGGS {
-                for _ in 0..NUM_EGGS {
-
-                }
+                for _ in 0..NUM_EGGS {}
             }
             unimplemented!()
         }

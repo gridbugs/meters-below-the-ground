@@ -283,8 +283,12 @@ impl<S: Storage> View<App<S>> for AppView {
             }
             AppState::Game => match app.game_state {
                 GameState::Level => {
-                    self.goal_view
-                        .view(&app.state.goal_info(), offset + Coord::new(0, GOAL_TEXT_Y), depth, grid);
+                    self.goal_view.view(
+                        &app.state.goal_info(),
+                        offset + Coord::new(0, GOAL_TEXT_Y),
+                        depth,
+                        grid,
+                    );
 
                     self.glossary.clear();
                     for (tiles, coord, visibility) in app.state.visible_cells() {
@@ -361,7 +365,12 @@ impl<S: Storage> View<App<S>> for AppView {
                         .view(&self.glossary, glossary_offset, depth, grid);
 
                     if let Some(alert) = app.alert {
-                        TextInfoStringView.view(&alert_str(alert), offset + Coord::new(0, MESSAGE_TOP_Y), depth, grid);
+                        TextInfoStringView.view(
+                            &alert_str(alert),
+                            offset + Coord::new(0, MESSAGE_TOP_Y),
+                            depth,
+                            grid,
+                        );
                     }
                     StringView.view(HELP, offset + Coord::new(0, HELP_TOP_Y), depth, grid);
                 }
@@ -440,11 +449,25 @@ fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMen
 
 fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
     match alert {
-        Alert::NoStamina => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Stamina!"),
-        Alert::NoAmmo => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Ammo!"),
-        Alert::NoMedkit => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Medkits!"),
+        Alert::NoStamina => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "Out of Stamina!",
+        ),
+        Alert::NoAmmo => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "Out of Ammo!",
+        ),
+        Alert::NoMedkit => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "Out of Medkits!",
+        ),
         Alert::WalkIntoWall => (Default::default(), "That location is impassible."),
-        Alert::ArmourBlock => (TextInfo::default().bold().foreground_colour(Rgb24::new(255, 63, 0)), "Your armour absorbs the damage."),
+        Alert::ArmourBlock => (
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 63, 0)),
+            "Your armour absorbs the damage.",
+        ),
     }
 }
 
