@@ -29,8 +29,6 @@ fn main() {
 
     let seed = rand::thread_rng().gen();
 
-    println!("seed: {}", seed);
-
     let mut app = App::new(Frontend::Glutin, storage, seed);
 
     let mut input_buffer = Vec::with_capacity(64);

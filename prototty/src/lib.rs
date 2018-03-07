@@ -451,6 +451,10 @@ impl<S: Storage> App<S> {
 
         let save_remaining = Duration::from_millis(SAVE_PERIOD_MS);
 
+        if frontend == Frontend::Glutin {
+            println!("RNG Seed: {}", state.rng_seed());
+        }
+
         Self {
             main_menu,
             between_level_menu,
@@ -524,6 +528,11 @@ impl<S: Storage> App<S> {
                             }
                             MainMenuChoice::NewGame => {
                                 self.state = State::new(self.rng.gen());
+
+                                if self.frontend == Frontend::Glutin {
+                                    println!("RNG Seed: {}", self.state.rng_seed());
+                                }
+
                                 self.app_state = AppState::Game;
                                 self.game_state = GameState::Level;
                                 self.in_progress = true;

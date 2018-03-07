@@ -212,6 +212,7 @@ pub struct State {
     player_turn_events: Vec<PlayerTurnEventEntry>,
     shadowcast: ShadowcastContext<u8>,
     visibility_grid: VisibilityGrid,
+    rng_seed: usize,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -437,7 +438,12 @@ impl State {
             level_index,
             player_turn_events,
             shadowcast: ShadowcastContext::new(),
+            rng_seed,
         }
+    }
+
+    pub fn rng_seed(&self) -> usize {
+        self.rng_seed
     }
 
     pub fn save(&self, next_rng_seed: usize) -> SaveState {
@@ -893,6 +899,7 @@ impl From<SaveState> for State {
             player_turn_events,
             shadowcast: ShadowcastContext::new(),
             visibility_grid,
+            rng_seed: next_rng_seed,
         }
     }
 }
