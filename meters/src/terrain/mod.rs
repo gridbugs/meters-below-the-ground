@@ -42,11 +42,12 @@ impl TerrainInfo {
                 None
             }
             &TerrainType::Dungeon => loop {
+                messages.clear();
                 match dungeon::populate(self.config, id_allocator, messages, rng) {
                     dungeon::DungeonPopulateResult::Retry => (),
                     dungeon::DungeonPopulateResult::NoGoalState => return None,
                     dungeon::DungeonPopulateResult::GoalState(goal_state) => {
-                        return Some(goal_state)
+                        break Some(goal_state)
                     }
                 }
             },

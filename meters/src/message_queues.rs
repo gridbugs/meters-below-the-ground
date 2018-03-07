@@ -51,6 +51,13 @@ impl MessageQueues {
             special: None,
         }
     }
+    pub fn clear(&mut self) {
+        self.animations.clear();
+        self.changes.clear();
+        self.removed_entities.clear();
+        self.player_moved_to = None;
+        self.special = None;
+    }
 }
 
 pub trait PushMessages {
