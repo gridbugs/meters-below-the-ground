@@ -22,6 +22,7 @@ use prototty::inputs as prototty_inputs;
 use prototty_common::*;
 use meters::input::Input as MetersInput;
 use meters::input::ActiveMeterIdentifier;
+use meters::alert::*;
 use meters::*;
 
 use self::CardinalDirection::*;
@@ -43,22 +44,28 @@ const SAVE_FILE: &'static str = "save";
 const GAME_OVER_MS: u64 = 1000;
 const GAME_WIDTH: u32 = 29;
 
-const GAME_TOP_PADDING: i32 = 2;
+const GAME_TOP_PADDING: i32 = 5;
 
 const METER_NAME_PADDING: usize = 9;
 const METER_WIDTH: usize = 10;
 
-const OVERALL_PROGRESS_Y: i32 = 32;
+const OVERALL_PROGRESS_Y: i32 = 41;
 const OVERALL_PROGRESS_METER_NAME_PADDING: usize = 21;
 const OVERALL_PROGRESS_METER_WIDTH: usize = 29;
 
-const ACTIVE_METER_Y: i32 = 0;
+const ACTIVE_METER_Y: i32 = 5;
 const NUM_ACTIVE_METERS: i32 = 10;
 const NUM_PASSIVE_METERS: i32 = 10;
 
-const GOAL_METER_BOTTOM_Y: i32 = 28;
+const GOAL_TEXT_Y: i32 = 1;
+const GOAL_METER_BOTTOM_Y: i32 = 29;
 
-const GLOSSARY_TOP_Y: i32 = 34;
+const GLOSSARY_TOP_Y: i32 = 36;
+
+const MESSAGE_TOP_Y: i32 = 3;
+const HELP_TOP_Y: i32 = 43;
+
+const HELP: &'static str = "Move:↑←↑→  Wait:SPACE  Ability:0-9  Menu:ESC";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct FullSaveState {
@@ -260,6 +267,7 @@ pub struct App<S: Storage> {
     storage: S,
     frontend: Frontend,
     save_remaining: Duration,
+    alert: Option<Alert>,
 }
 
 impl<S: Storage> View<App<S>> for AppView {
@@ -276,7 +284,7 @@ impl<S: Storage> View<App<S>> for AppView {
             AppState::Game => match app.game_state {
                 GameState::Level => {
                     self.goal_view
-                        .view(&app.state.goal_info(), offset, depth, grid);
+                        .view(&app.state.goal_info(), offset + Coord::new(0, GOAL_TEXT_Y), depth, grid);
 
                     self.glossary.clear();
                     for (tiles, coord, visibility) in app.state.visible_cells() {
@@ -351,6 +359,11 @@ impl<S: Storage> View<App<S>> for AppView {
                     let glossary_offset = offset + Coord::new(0, GLOSSARY_TOP_Y);
                     self.glossary_view
                         .view(&self.glossary, glossary_offset, depth, grid);
+
+                    if let Some(alert) = app.alert {
+                        TextInfoStringView.view(&alert_str(alert), offset + Coord::new(0, MESSAGE_TOP_Y), depth, grid);
+                    }
+                    StringView.view(HELP, offset + Coord::new(0, HELP_TOP_Y), depth, grid);
                 }
                 GameState::UpgradeMenu => {
                     if let Some(menu) = app.between_level_menu.as_ref() {
@@ -425,6 +438,16 @@ fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMen
     MenuInstance::new(main_menu).unwrap()
 }
 
+fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
+    match alert {
+        Alert::NoStamina => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Stamina!"),
+        Alert::NoAmmo => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Ammo!"),
+        Alert::NoMedkit => (TextInfo::default().bold().foreground_colour(colours::RED), "Out of Medkits!"),
+        Alert::WalkIntoWall => (Default::default(), "That location is impassible."),
+        Alert::ArmourBlock => (TextInfo::default().bold().foreground_colour(Rgb24::new(255, 63, 0)), "Your armour absorbs the damage."),
+    }
+}
+
 impl<S: Storage> App<S> {
     pub fn new(frontend: Frontend, storage: S, seed: usize) -> Self {
         let mut rng = StdRng::from_seed(&[seed]);
@@ -468,6 +491,7 @@ impl<S: Storage> App<S> {
             rng,
             frontend,
             save_remaining,
+            alert: None,
         }
     }
 
@@ -592,6 +616,10 @@ impl<S: Storage> App<S> {
                             }
                         }
 
+                        if !self.input_buffer.is_empty() {
+                            self.alert = None;
+                        }
+
                         if let Some(meta) = self.state.tick(self.input_buffer.drain(..), period) {
                             match meta {
                                 ExternalEvent::Lose => {
@@ -619,6 +647,9 @@ impl<S: Storage> App<S> {
                                         }
                                     }
                                 },
+                                ExternalEvent::Alert(alert) => {
+                                    self.alert = Some(alert);
+                                }
                             }
                         }
                     }

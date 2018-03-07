@@ -40,5 +40,6 @@ pub mod tile;
 pub mod tile_info;
 pub mod state;
 pub mod meter;
+pub mod alert;
 
 pub use event::{AscendStatus, ExternalEvent};

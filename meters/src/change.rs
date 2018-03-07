@@ -84,6 +84,7 @@ impl ChangeContext {
                 };
                 Some(Event::External(ExternalEvent::Ascend(status)))
             }
+            Some(Special::Alert(alert)) => Some(Event::External(ExternalEvent::Alert(alert))),
             None => None,
         }
     }

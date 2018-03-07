@@ -1,3 +1,5 @@
+use alert::*;
+
 pub enum AscendStatus {
     CompleteGoal,
     IncompleteGoal,
@@ -8,6 +10,7 @@ pub enum ExternalEvent {
     Lose,
     Win,
     Ascend(AscendStatus),
+    Alert(Alert),
 }
 
 pub enum Event {

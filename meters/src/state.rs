@@ -25,6 +25,7 @@ use tile_info::*;
 use grid_2d::*;
 use grid_2d;
 use direction::*;
+use alert::*;
 
 const NUM_LEVELS: usize = 6;
 
@@ -538,7 +539,7 @@ impl State {
         }
     }
 
-    fn use_rail_gun(&mut self, direction: CardinalDirection) -> bool {
+    fn use_rail_gun(&mut self, direction: CardinalDirection) -> Result<(), Alert> {
         let mut ammo = self.world
             .entity_store
             .rail_gun_meter
@@ -576,13 +577,13 @@ impl State {
             self.messages
                 .change(insert::rail_gun_meter(self.player_id, ammo));
 
-            return true;
+            Ok(())
         } else {
-            return false;
+            Err(Alert::NoAmmo)
         }
     }
 
-    fn use_gun(&mut self) -> bool {
+    fn use_gun(&mut self) -> Result<(), Alert> {
         let mut ammo = self.world
             .entity_store
             .gun_meter
@@ -614,13 +615,13 @@ impl State {
             ammo.value -= 1;
             self.messages
                 .change(insert::gun_meter(self.player_id, ammo));
-            return true;
+            Ok(())
         } else {
-            return false;
+            Err(Alert::NoAmmo)
         }
     }
 
-    fn use_medkit(&mut self) -> bool {
+    fn use_medkit(&mut self) -> Result<(), Alert> {
         let mut medkit = self.world
             .entity_store
             .medkit_meter
@@ -642,9 +643,9 @@ impl State {
             health.value = ::std::cmp::min(health.value + heal_amount, health.max);
             self.messages
                 .change(insert::health_meter(self.player_id, health));
-            return true;
+            Ok(())
         } else {
-            return false;
+            Err(Alert::NoMedkit)
         }
     }
 
@@ -664,8 +665,9 @@ impl State {
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
                     Some(ActiveMeterType::RailGun) => {
-                        if !self.use_rail_gun(direction) {
-                            return None;
+                        if let Err(alert) = self.use_rail_gun(direction) {
+                            self.selected_meter = None;
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
                         }
                     }
                 }
@@ -675,11 +677,11 @@ impl State {
             Input::ActiveMeterSelect(identifier) => {
                 if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
                     match meter_type {
-                        ActiveMeterType::Gun => if !self.use_gun() {
-                            return None;
+                        ActiveMeterType::Gun => if let Err(alert) = self.use_gun() {
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
                         },
-                        ActiveMeterType::Medkit => if !self.use_medkit() {
-                            return None;
+                        ActiveMeterType::Medkit => if let Err(alert) = self.use_medkit() {
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
                         },
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
@@ -695,13 +697,17 @@ impl State {
             Input::Wait => (),
         }
 
-        if !policy::precheck(
+        if let Err(alert) = policy::precheck(
             &self.messages.changes,
             &self.world.entity_store,
             &self.world.spatial_hash,
         ) {
             self.messages.changes.clear();
-            return None;
+            if let Some(alert) = alert {
+                return Some(Event::External(ExternalEvent::Alert(alert)));
+            } else {
+                return None;
+            }
         }
 
         self.turn = TurnState::Npcs;

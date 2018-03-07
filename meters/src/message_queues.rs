@@ -1,5 +1,6 @@
 use entity_store::*;
 use animation::*;
+use alert::*;
 
 macro_rules! swap_drain {
     ($field:ident, $current:expr, $swap:expr) => {
@@ -15,6 +16,7 @@ pub enum Special {
     Lose,
     Win,
     Ascend,
+    Alert(Alert),
 }
 
 #[derive(Clone, Debug)]
@@ -68,6 +70,7 @@ pub trait PushMessages {
     fn lose(&mut self);
     fn win(&mut self);
     fn ascend(&mut self);
+    fn alert(&mut self, alert: Alert);
 }
 
 impl PushMessages for MessageQueues {
@@ -91,5 +94,8 @@ impl PushMessages for MessageQueues {
     }
     fn ascend(&mut self) {
         self.special = Some(Special::Ascend);
+    }
+    fn alert(&mut self, alert: Alert) {
+        self.special = Some(Special::Alert(alert));
     }
 }

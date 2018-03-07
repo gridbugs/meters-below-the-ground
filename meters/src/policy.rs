@@ -6,12 +6,13 @@ use message_queues::PushMessages;
 use meter::Meter;
 use pickup::Pickup;
 use direction::*;
+use alert::*;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
     entity_store: &EntityStore,
     spatial_hash: &SpatialHashTable,
-) -> bool {
+) -> Result<(), Option<Alert>> {
     for change in changes {
         match change {
             &EntityChange::Insert(id, ComponentValue::Coord(coord)) => {
@@ -20,14 +21,18 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                         sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
                     let solid_cell = sh_cell.solid_count > 0 && !door_cell;
                     if solid_cell && entity_store.collider.contains(&id) {
-                        return false;
+                        return Err(None);
                     }
 
                     if !sh_cell.npc_set.is_empty() {
                         if let Some(stamina) = entity_store.stamina_meter.get(&id) {
-                            return stamina.value > 0;
+                            if stamina.value == 0 {
+                            println!("wat2");
+                                return Err(Some(Alert::NoStamina));
+                            }
                         } else {
-                            return false;
+                            println!("wat");
+                            return Err(Some(Alert::NoStamina));
                         }
                     }
                 }
@@ -37,7 +42,7 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
         }
     }
 
-    true
+    Ok(())
 }
 
 pub fn kevlar_blocks_attack<R: Rng>(
@@ -170,6 +175,7 @@ where
                         kevlar_blocks_attack(*player_id, entity_store, rng)
                     {
                         kevlar.value -= 1;
+                        messages.alert(Alert::ArmourBlock);
                         insert::kevlar_meter(*player_id, kevlar)
                     } else {
                         health.value -= 1;
