@@ -16,6 +16,9 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     for change in changes {
         match change {
             &EntityChange::Insert(id, ComponentValue::Coord(coord)) => {
+                if !entity_store.player.contains(&id) {
+                    continue;
+                }
                 if let Some(sh_cell) = spatial_hash.get(coord) {
                     let door_cell =
                         sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);

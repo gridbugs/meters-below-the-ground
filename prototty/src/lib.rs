@@ -474,10 +474,6 @@ impl<S: Storage> App<S> {
 
         let save_remaining = Duration::from_millis(SAVE_PERIOD_MS);
 
-        if frontend == Frontend::Glutin {
-            println!("RNG Seed: {}", state.rng_seed());
-        }
-
         Self {
             main_menu,
             between_level_menu,

@@ -688,6 +688,8 @@ impl State {
                             return None;
                         }
                     }
+                } else {
+                    return None;
                 }
             }
             Input::MeterDeselect => {

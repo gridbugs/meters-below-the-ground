@@ -22,6 +22,7 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
 fn goal_meter_text_info(typ: GoalMeterType) -> TextInfo {
     let colour = match typ {
         GoalMeterType::BossHealth => colours::BRIGHT_MAGENTA,
+        GoalMeterType::DistanceToExit => colours::WHITE,
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -90,13 +91,16 @@ impl MeterView {
             GoalMeterType::BossHealth => {
                 write!(self.scratch, "{:1$}", "Boss", self.name_padding).unwrap()
             }
+            GoalMeterType::DistanceToExit => {
+                write!(self.scratch, "{:1$}", "Metres", self.name_padding).unwrap()
+            }
         }
     }
     fn write_meter(&mut self, meter: Meter) {
         let value = ::std::cmp::max(meter.value, 0) as usize;
         let max = ::std::cmp::max(meter.max, 0) as usize;
         let filled_meter_width = (self.meter_width * value) / max;
-        let remaining_meter_width = self.meter_width - filled_meter_width;
+        let remaining_meter_width = self.meter_width.saturating_sub(filled_meter_width);
         for _ in 0..filled_meter_width {
             self.scratch.push('█');
         }

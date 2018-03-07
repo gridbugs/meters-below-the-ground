@@ -411,7 +411,7 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
 }
 
 pub enum DungeonPopulateResult {
-    GoalState(GoalState),
+    GoalStateArgs(GoalStateArgs),
     NoGoalState,
     Retry,
 }
@@ -489,19 +489,6 @@ pub fn populate<R: Rng>(
         }
     }
 
-    let result = match config.goal_type {
-        GoalType::KillBoss => {
-            if room_centres_in_largest_space.len() < 3 {
-                return DungeonPopulateResult::Retry;
-            }
-            let queen_coord = room_centres_in_largest_space[2];
-            let queen_id = id_allocator.allocate();
-            prototypes::queen(queen_id, queen_coord, true, messages);
-            DungeonPopulateResult::GoalState(GoalState::KillBoss(queen_id))
-        }
-        _ => DungeonPopulateResult::NoGoalState,
-    };
-
     for (coord, &cell) in grid.enumerate() {
         match cell {
             Cell::RoomWall => {
@@ -532,5 +519,19 @@ pub fn populate<R: Rng>(
         prototypes::stairs(id_allocator.allocate(), stairs_coord, messages);
     }
 
-    result
+    match config.goal_type {
+        GoalType::KillBoss => {
+            if room_centres_in_largest_space.len() < 3 {
+                return DungeonPopulateResult::Retry;
+            }
+            let queen_coord = room_centres_in_largest_space[2];
+            let queen_id = id_allocator.allocate();
+            prototypes::queen(queen_id, queen_coord, true, messages);
+            DungeonPopulateResult::GoalStateArgs(GoalStateArgs::KillBoss(queen_id))
+        }
+        GoalType::Escape => {
+            DungeonPopulateResult::GoalStateArgs(GoalStateArgs::Escape { exit: stairs_coord, player: player_coord })
+        }
+        _ => DungeonPopulateResult::NoGoalState,
+    }
 }

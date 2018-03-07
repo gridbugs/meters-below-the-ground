@@ -198,7 +198,7 @@ impl Meter {
         Meter { max, value: 0 }
     }
     pub fn new(value: i32, max: i32) -> Self {
-        Meter { max, value }
+        Meter { max, value: ::std::cmp::min(value, max) }
     }
     pub fn from_component_ref(component: ComponentRef) -> Option<Self> {
         match component {

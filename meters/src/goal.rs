@@ -2,6 +2,8 @@ use rand::Rng;
 use entity_store::*;
 use grid_2d::Coord;
 use meter::*;
+use grid_search::*;
+use direction::*;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GoalType {
@@ -11,8 +13,54 @@ pub enum GoalType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum GoalStateArgs {
+    Escape {
+        exit: Coord,
+        player: Coord,
+    },
+    KillEggs(Vec<EntityId>),
+    KillBoss(EntityId),
+}
+
+struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
+impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
+    fn is_solid(&self, coord: Coord) -> Option<bool> {
+        self.0
+            .get(coord)
+            .map(|cell| cell.solid_count > 0 && cell.door_count == 0)
+    }
+}
+
+impl GoalStateArgs {
+    pub fn goal_state(self, spatial_hash: &SpatialHashTable) -> GoalState {
+        match self {
+            GoalStateArgs::Escape { player, exit } => {
+                let mut bfs = BfsContext::new(spatial_hash.size());
+                let mut distance_map = UniformDistanceMap::new(spatial_hash.size(), DirectionsCardinal);
+                bfs.populate_uniform_distance_map(
+                    &SpatialHashSolidCellGrid(spatial_hash),
+                    exit,
+                    Default::default(),
+                    &mut distance_map,
+                ).expect("Failed to compute distance map");
+                let initial = distance_map.get(player).cell().expect("No path from player to exit").cost() as i32;
+                GoalState::Escape {
+                    distance_map,
+                    initial,
+                }
+            }
+            GoalStateArgs::KillEggs(coords) => GoalState::KillEggs(coords),
+            GoalStateArgs::KillBoss(id) => GoalState::KillBoss(id),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GoalState {
-    Escape(Coord),
+    Escape {
+        distance_map: UniformDistanceMap<u32, DirectionsCardinal>,
+        initial: i32,
+    },
     KillEggs(Vec<EntityId>),
     KillBoss(EntityId),
 }
@@ -30,7 +78,7 @@ pub fn choose_goal_type<R: Rng>(rng: &mut R) -> GoalType {
 impl GoalState {
     pub fn typ(&self) -> GoalType {
         match self {
-            &GoalState::Escape(_) => GoalType::Escape,
+            &GoalState::Escape { .. } => GoalType::Escape,
             &GoalState::KillEggs(_) => GoalType::KillEggs,
             &GoalState::KillBoss(_) => GoalType::KillBoss,
         }
@@ -40,7 +88,16 @@ impl GoalState {
         F: FnMut(GoalMeterInfo),
     {
         match self {
-            &GoalState::Escape(_) => {}
+            &GoalState::Escape { ref distance_map, initial } => {
+                let player_id = entity_store.player.iter().next().unwrap();
+                let player_coord = entity_store.coord.get(player_id).unwrap();
+                if let Some(cell) = distance_map.get(*player_coord).cell() {
+                    f(GoalMeterInfo {
+                        typ: GoalMeterType::DistanceToExit,
+                        meter: Meter::new(cell.cost() as i32, initial),
+                    })
+                }
+            }
             &GoalState::KillEggs(_) => {}
             &GoalState::KillBoss(id) => {
                 if let Some(health) = entity_store.health_meter.get(&id).cloned() {
@@ -54,7 +111,7 @@ impl GoalState {
     }
     pub fn is_complete(&self, entity_store: &EntityStore) -> bool {
         match self {
-            &GoalState::Escape(_) => false,
+            &GoalState::Escape { .. } => false,
             &GoalState::KillEggs(_) => false,
             &GoalState::KillBoss(id) => !entity_store.health_meter.contains_key(&id),
         }
@@ -64,6 +121,7 @@ impl GoalState {
 #[derive(Clone, Debug, Copy)]
 pub enum GoalMeterType {
     BossHealth,
+    DistanceToExit,
 }
 
 #[derive(Clone, Debug)]

@@ -21,7 +21,7 @@ impl World {
 
         let mut id_allocator = EntityIdAllocator::new();
 
-        let goal_state = terrain.populate(&mut id_allocator, messages, rng);
+        let goal_state_args = terrain.populate(&mut id_allocator, messages, rng);
 
         let mut world = Self {
             entity_store: EntityStore::new(),
@@ -29,12 +29,14 @@ impl World {
             entity_components: EntityComponentTable::new(),
             id_allocator,
             count: 1,
-            goal_state,
+            goal_state: None,
         };
 
         for change in messages.changes.drain(..) {
             world.commit(change);
         }
+
+        world.goal_state = goal_state_args.map(|args| args.goal_state(&world.spatial_hash));
 
         world
     }

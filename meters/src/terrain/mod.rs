@@ -31,7 +31,7 @@ impl TerrainInfo {
         id_allocator: &mut EntityIdAllocator,
         messages: &mut MessageQueues,
         rng: &mut R,
-    ) -> Option<GoalState> {
+    ) -> Option<GoalStateArgs> {
         match &self.typ {
             &TerrainType::StaticStrings(ref strings) => {
                 static_strings::populate(strings, self.config, id_allocator, messages);
@@ -46,8 +46,8 @@ impl TerrainInfo {
                 match dungeon::populate(self.config, id_allocator, messages, rng) {
                     dungeon::DungeonPopulateResult::Retry => (),
                     dungeon::DungeonPopulateResult::NoGoalState => return None,
-                    dungeon::DungeonPopulateResult::GoalState(goal_state) => {
-                        break Some(goal_state)
+                    dungeon::DungeonPopulateResult::GoalStateArgs(goal_state_args) => {
+                        break Some(goal_state_args)
                     }
                 }
             },
