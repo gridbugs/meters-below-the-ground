@@ -538,7 +538,7 @@ impl State {
         }
     }
 
-    fn use_rail_gun(&mut self, direction: CardinalDirection) {
+    fn use_rail_gun(&mut self, direction: CardinalDirection) -> bool {
         let mut ammo = self.world
             .entity_store
             .rail_gun_meter
@@ -575,10 +575,14 @@ impl State {
             ammo.value -= 1;
             self.messages
                 .change(insert::rail_gun_meter(self.player_id, ammo));
+
+            return true;
+        } else {
+            return false;
         }
     }
 
-    fn use_gun(&mut self) {
+    fn use_gun(&mut self) -> bool {
         let mut ammo = self.world
             .entity_store
             .gun_meter
@@ -610,10 +614,13 @@ impl State {
             ammo.value -= 1;
             self.messages
                 .change(insert::gun_meter(self.player_id, ammo));
+            return true;
+        } else {
+            return false;
         }
     }
 
-    fn use_medkit(&mut self) {
+    fn use_medkit(&mut self) -> bool {
         let mut medkit = self.world
             .entity_store
             .medkit_meter
@@ -635,6 +642,9 @@ impl State {
             health.value = ::std::cmp::min(health.value + heal_amount, health.max);
             self.messages
                 .change(insert::health_meter(self.player_id, health));
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -654,7 +664,9 @@ impl State {
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
                     Some(ActiveMeterType::RailGun) => {
-                        self.use_rail_gun(direction);
+                        if !self.use_rail_gun(direction) {
+                            return None;
+                        }
                     }
                 }
 
@@ -663,8 +675,12 @@ impl State {
             Input::ActiveMeterSelect(identifier) => {
                 if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
                     match meter_type {
-                        ActiveMeterType::Gun => self.use_gun(),
-                        ActiveMeterType::Medkit => self.use_medkit(),
+                        ActiveMeterType::Gun => if !self.use_gun() {
+                            return None;
+                        },
+                        ActiveMeterType::Medkit => if !self.use_medkit() {
+                            return None;
+                        },
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
                             return None;

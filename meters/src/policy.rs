@@ -22,6 +22,14 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                     if solid_cell && entity_store.collider.contains(&id) {
                         return false;
                     }
+
+                    if !sh_cell.npc_set.is_empty() {
+                        if let Some(stamina) = entity_store.stamina_meter.get(&id) {
+                            return stamina.value > 0;
+                        } else {
+                            return false;
+                        }
+                    }
                 }
             }
             &EntityChange::Insert(..) => {}
