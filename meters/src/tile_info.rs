@@ -8,6 +8,7 @@ pub struct TileInfo {
     pub damage_flash: bool,
     pub boss: bool,
     pub health_meter: Option<Meter>,
+    pub countdown: Option<i32>,
 }
 
 impl TileInfo {
@@ -18,6 +19,7 @@ impl TileInfo {
             damage_flash: false,
             boss: false,
             health_meter: None,
+            countdown: None,
         }
     }
     pub fn with_health(tile: Tile, depth: i32, health_meter: Meter) -> Self {
@@ -27,6 +29,7 @@ impl TileInfo {
             damage_flash: false,
             boss: false,
             health_meter: Some(health_meter),
+            countdown: None,
         }
     }
 }

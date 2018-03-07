@@ -412,7 +412,6 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
 
 pub enum DungeonPopulateResult {
     GoalStateArgs(GoalStateArgs),
-    NoGoalState,
     Retry,
 }
 
@@ -483,9 +482,15 @@ pub fn populate<R: Rng>(
         }
     }
 
-    for _ in 0..16 {
+    for _ in 0..10 {
         if let Some(coord) = floor_coords.pop() {
-            prototypes::beetoid(id_allocator.allocate(), coord, messages);
+            prototypes::egg(id_allocator.allocate(), coord, messages, rng);
+        }
+    }
+
+    for _ in 0..8 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::egg(id_allocator.allocate(), coord, messages, rng);
         }
     }
 

@@ -1,11 +1,13 @@
 use alert::*;
 
+#[derive(Debug)]
 pub enum AscendStatus {
     CompleteGoal,
     IncompleteGoal,
     NoGoal,
 }
 
+#[derive(Debug)]
 pub enum ExternalEvent {
     Lose,
     Win,
@@ -13,6 +15,7 @@ pub enum ExternalEvent {
     Alert(Alert),
 }
 
+#[derive(Debug)]
 pub enum Event {
     External(ExternalEvent),
 }

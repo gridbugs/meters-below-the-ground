@@ -1,3 +1,4 @@
+use rand::Rng;
 use direction::CardinalDirection;
 use entity_store::*;
 use grid_2d::Coord;
@@ -7,6 +8,7 @@ use message_queues::PushMessages;
 use meter::*;
 use pickup::Pickup;
 use npc_info::*;
+use transform::*;
 
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
@@ -110,7 +112,7 @@ pub fn punch<M: PushMessages>(
     ));
 }
 
-pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn larvae<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id, NpcInfo {
         boss: false,
@@ -124,6 +126,8 @@ pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::with_health(Tile::Larvae, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::countdown(id, 20 + rng.gen::<i32>() % 40));
+    messages.change(insert::transform(id, Transform::Chrysalis));
 }
 
 pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -158,7 +162,7 @@ pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::health_meter(id, health));
 }
 
-pub fn chrysalis<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn chrysalis<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id, NpcInfo {
         boss: false,
@@ -169,12 +173,18 @@ pub fn chrysalis<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) 
     let health = Meter::full(1);
     messages.change(insert::tile_info(
         id,
-        TileInfo::with_health(Tile::Aracnoid, NPC_DEPTH, health),
+        TileInfo::with_health(Tile::Chrysalis, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::countdown(id, 2 + rng.gen::<i32>() % 2));
+    if rng.gen() {
+        messages.change(insert::transform(id, Transform::Aracnoid));
+    } else {
+        messages.change(insert::transform(id, Transform::Beetoid));
+    }
 }
 
-pub fn egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id, NpcInfo {
         boss: false,
@@ -188,9 +198,11 @@ pub fn egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::with_health(Tile::Egg, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::countdown(id, 8 + rng.gen::<i32>() % 30));
+    messages.change(insert::transform(id, Transform::Larvae));
 }
 
-pub fn super_egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+pub fn super_egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::npc(id, NpcInfo {
         boss: false,
@@ -201,9 +213,11 @@ pub fn super_egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) 
     let health = Meter::full(8);
     messages.change(insert::tile_info(
         id,
-        TileInfo::with_health(Tile::Egg, NPC_DEPTH, health),
+        TileInfo::with_health(Tile::SuperEgg, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::countdown(id, 40 + rng.gen::<i32>() % 30));
+    messages.change(insert::transform(id, Transform::Queen));
 }
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
@@ -218,6 +232,7 @@ pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: 
             damage_flash: false,
             boss,
             health_meter: Some(health),
+            countdown: None,
         },
     ));
     messages.change(insert::health_meter(id, health));

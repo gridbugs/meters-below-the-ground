@@ -45,7 +45,6 @@ impl TerrainInfo {
                 messages.clear();
                 match dungeon::populate(self.config, id_allocator, messages, rng) {
                     dungeon::DungeonPopulateResult::Retry => (),
-                    dungeon::DungeonPopulateResult::NoGoalState => return None,
                     dungeon::DungeonPopulateResult::GoalStateArgs(goal_state_args) => {
                         break Some(goal_state_args)
                     }

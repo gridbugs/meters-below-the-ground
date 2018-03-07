@@ -25,6 +25,8 @@ stamina_meter = { type = '::meter::Meter', storage = 'hash' }
 stamina_tick = { type = 'i32', storage = 'btree' }
 opacity = { type = 'u8', storage = 'vector' }
 pickup = { type = '::pickup::Pickup', storage = 'hash' }
+transform = { type = '::transform::Transform', storage = 'hash' }
+countdown = { type = 'i32', storage = 'hash' }
 
 [spatial_hash]
 solid_count = { component = 'solid', aggregate = 'count' }

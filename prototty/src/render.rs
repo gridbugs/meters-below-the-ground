@@ -81,43 +81,43 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             'ê',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::BLUE),
+                .foreground_colour(Rgb24::new(0, 255, 0)),
         ),
         Tile::Larvae => (
             'l',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::BRIGHT_GREEN),
+                .foreground_colour(Rgb24::new(127, 255, 127)),
         ),
         Tile::Chrysalis => (
             'ĉ',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::BRIGHT_BLUE),
+                .foreground_colour(Rgb24::new(0, 255, 255)),
         ),
         Tile::Aracnoid => (
             'a',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::CYAN),
+                .foreground_colour(Rgb24::new(127, 255, 255)),
         ),
         Tile::Beetoid => (
             'b',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::YELLOW),
+                .foreground_colour(Rgb24::new(255, 255, 127)),
         ),
         Tile::SuperEgg => (
             'Ē',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::MAGENTA),
+                .foreground_colour(Rgb24::new(255, 85, 255)),
         ),
         Tile::Queen => (
             'Q',
             TextInfo::default()
                 .bold()
-                .foreground_colour(colours::BRIGHT_MAGENTA),
+                .foreground_colour(Rgb24::new(255, 127, 255)),
         ),
         Tile::Stairs => (
             '<',
@@ -178,12 +178,27 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
     if tile_info.damage_flash {
         text_info.foreground_colour = Some(Rgb24::new(255, 0, 0));
     } else if let Some(health_meter) = tile_info.health_meter {
-        if health_meter.value == 1 {
+        if health_meter.value == 1 && health_meter.max > 1 {
             text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
         } else {
             if tile_info.tile == Tile::Beetoid && health_meter.value == 2 {
                 text_info.foreground_colour = Some(Rgb24::new(190, 50, 0));
             }
+        }
+    }
+
+    if let Some(1) = tile_info.countdown {
+        match tile_info.tile {
+            Tile::Egg => {
+                text_info.background_colour = Some(Rgb24::new(0, 63, 0));
+            }
+            Tile::Chrysalis => {
+                text_info.background_colour = Some(Rgb24::new(0, 63, 63));
+            }
+            Tile::SuperEgg => {
+                text_info.background_colour = Some(Rgb24::new(63, 0, 63));
+            }
+            _ => (),
         }
     }
 

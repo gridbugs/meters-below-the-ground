@@ -49,9 +49,22 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
 
     if tile_info.boss {
         write!(stage, " (boss)").unwrap();
-    } else if let Some(health_meter) = tile_info.health_meter {
-        if tile_info.tile != Tile::Player && health_meter.value < health_meter.max {
-            write!(stage, " ({}hp)", health_meter.value).unwrap();
+    } else {
+        if let Some(1) = tile_info.countdown {
+            match tile_info.tile {
+                Tile::Egg |
+                    Tile::Chrysalis |
+                    Tile::SuperEgg => {
+                        write!(stage, " (hatching)").unwrap();
+                        return true;
+                    }
+                _ => (),
+            }
+        }
+        if let Some(health_meter) = tile_info.health_meter {
+            if tile_info.tile != Tile::Player && health_meter.value < health_meter.max {
+                write!(stage, " ({}hp)", health_meter.value).unwrap();
+            }
         }
     }
 

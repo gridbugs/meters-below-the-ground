@@ -7,6 +7,7 @@ use entity_store::*;
 use input::*;
 use policy;
 use animation::*;
+use transform::*;
 use rand::{Rng, SeedableRng, StdRng};
 use pathfinding::*;
 use message_queues::*;
@@ -809,8 +810,43 @@ impl State {
                     false
                 }
             };
-            if active {
+            if active && info.mobile {
                 self.npc_order.push(id);
+            }
+
+            if let Some(&countdown) = self.world.entity_store.countdown.get(&id) {
+                if let Some(mut tile_info) = self.world.entity_store.tile_info.get(&id).cloned() {
+                    tile_info.countdown = Some(countdown);
+                    self.messages.change(insert::tile_info(id, tile_info));
+                }
+                if countdown == 0 {
+                    if let Some(&transform) = self.world.entity_store.transform.get(&id) {
+                        if let Some(&coord) = self.world.entity_store.coord.get(&id) {
+                            match transform {
+                                Transform::Chrysalis => {
+                                    prototypes::chrysalis(id, coord, &mut self.messages, &mut self.rng);
+                                }
+                                Transform::Queen => {
+                                    prototypes::queen(id, coord, false, &mut self.messages);
+                                    self.messages.change(remove::countdown(id));
+                                }
+                                Transform::Aracnoid => {
+                                    prototypes::aracnoid(id, coord, &mut self.messages);
+                                    self.messages.change(remove::countdown(id));
+                                }
+                                Transform::Beetoid => {
+                                    prototypes::beetoid(id, coord, &mut self.messages);
+                                    self.messages.change(remove::countdown(id));
+                                }
+                                Transform::Larvae => {
+                                    prototypes::larvae(id, coord, &mut self.messages, &mut self.rng);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    self.messages.changes.push(insert::countdown(id, countdown - 1));
+                }
             }
         }
 
@@ -823,6 +859,8 @@ impl State {
         self.pathfinding
             .sort_entities_by_distance_to_player(&self.world.entity_store, &mut self.npc_order);
 
+        let mut event = None;
+
         for &id in self.npc_order.iter() {
             self.pathfinding.act(
                 id,
@@ -831,17 +869,20 @@ impl State {
                 PathfindingConfig { open_doors: false },
                 &mut self.messages,
             );
-            if let Some(meta) = self.change_context.process(
+            if let Some(Event::External(meta)) = self.change_context.process(
                 &mut self.world,
                 &mut self.messages,
                 &mut self.swap_messages,
                 &mut self.rng,
             ) {
-                return Some(meta);
+                match meta {
+                    ExternalEvent::Lose | ExternalEvent::Win | ExternalEvent::Ascend(_) => return Some(Event::External(meta)),
+                    ExternalEvent::Alert(_) => event = Some(Event::External(meta)),
+                }
             }
         }
 
-        None
+        event
     }
 
     fn animation_tick(&mut self, period: Duration) -> Option<Event> {

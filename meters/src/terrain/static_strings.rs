@@ -20,10 +20,6 @@ pub fn populate(
                 '.' => {
                     prototypes::floor(id_allocator.allocate(), coord, messages);
                 }
-                'l' => {
-                    prototypes::larvae(id_allocator.allocate(), coord, messages);
-                    prototypes::floor(id_allocator.allocate(), coord, messages);
-                }
                 '<' => {
                     if config.final_level {
                         prototypes::exit(id_allocator.allocate(), coord, messages);
