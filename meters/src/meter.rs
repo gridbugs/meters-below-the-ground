@@ -16,6 +16,52 @@ pub enum MeterType {
     Kevlar,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ActiveMeterType {
+    Gun,
+    RailGun,
+    Medkit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum PassiveMeterType {
+    Health,
+    Kevlar,
+    Stamina,
+}
+
+impl ActiveMeterType {
+    pub fn typ(self) -> MeterType {
+        self.into()
+    }
+}
+
+impl PassiveMeterType {
+    pub fn typ(self) -> MeterType {
+        self.into()
+    }
+}
+
+impl From<ActiveMeterType> for MeterType {
+    fn from(typ: ActiveMeterType) -> Self {
+        match typ {
+            ActiveMeterType::Gun => MeterType::Gun,
+            ActiveMeterType::RailGun => MeterType::RailGun,
+            ActiveMeterType::Medkit => MeterType::Medkit,
+        }
+    }
+}
+
+impl From<PassiveMeterType> for MeterType {
+    fn from(typ: PassiveMeterType) -> Self {
+        match typ {
+            PassiveMeterType::Health => MeterType::Health,
+            PassiveMeterType::Kevlar => MeterType::Kevlar,
+            PassiveMeterType::Stamina => MeterType::Stamina,
+        }
+    }
+}
+
 impl MeterType {
     pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
         match component_type {
@@ -38,6 +84,19 @@ impl MeterType {
             MeterType::Kevlar => ActiveOrPassive::Passive(PassiveMeterType::Kevlar),
         }
     }
+    pub fn active(self) -> Option<ActiveMeterType> {
+        match self.active_or_passive() {
+            ActiveOrPassive::Active(typ) => Some(typ),
+            ActiveOrPassive::Passive(_) => None,
+        }
+    }
+    pub fn passive(self) -> Option<PassiveMeterType> {
+        match self.active_or_passive() {
+            ActiveOrPassive::Active(_) => None,
+            ActiveOrPassive::Passive(typ) => Some(typ),
+        }
+    }
+
     pub fn player_max(self) -> i32 {
         match self {
             MeterType::Gun => 8,
@@ -70,6 +129,32 @@ impl MeterType {
             MeterType::Kevlar => false,
         }
     }
+    pub fn insert(self, id: EntityId, meter: Meter) -> EntityChange {
+        match self {
+            MeterType::Gun => insert::gun_meter(id, meter),
+            MeterType::RailGun => insert::rail_gun_meter(id, meter),
+            MeterType::Medkit => insert::medkit_meter(id, meter),
+            MeterType::Health => insert::health_meter(id, meter),
+            MeterType::Stamina => insert::stamina_meter(id, meter),
+            MeterType::Kevlar => insert::kevlar_meter(id, meter),
+        }
+    }
+    pub fn periodic_change(self) -> Option<PeriodicChange> {
+        match self {
+            MeterType::Gun => None,
+            MeterType::RailGun => None,
+            MeterType::Medkit => Some(PeriodicChange {
+                turns: 3,
+                change: 1,
+            }),
+            MeterType::Health => None,
+            MeterType::Stamina => Some(PeriodicChange {
+                turns: 0,
+                change: 1,
+            }),
+            MeterType::Kevlar => None,
+        }
+    }
 }
 
 impl From<MeterType> for ComponentType {
@@ -97,110 +182,6 @@ pub const ALL_METER_TYPES: &[MeterType] = &[
 pub struct PeriodicChange {
     pub turns: u32,
     pub change: i32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum ActiveMeterType {
-    Gun,
-    RailGun,
-    Medkit,
-}
-
-impl ActiveMeterType {
-    pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
-        match component_type {
-            ComponentType::GunMeter => Some(ActiveMeterType::Gun),
-            ComponentType::MedkitMeter => Some(ActiveMeterType::Medkit),
-            ComponentType::RailGunMeter => Some(ActiveMeterType::RailGun),
-            _ => None,
-        }
-    }
-    pub fn periodic_change(self) -> Option<PeriodicChange> {
-        match self {
-            ActiveMeterType::Gun => None,
-            ActiveMeterType::RailGun => None,
-            ActiveMeterType::Medkit => Some(PeriodicChange {
-                turns: 3,
-                change: 1,
-            }),
-        }
-    }
-    pub fn insert(self, id: EntityId, meter: Meter) -> EntityChange {
-        match self {
-            ActiveMeterType::Gun => insert::gun_meter(id, meter),
-            ActiveMeterType::RailGun => insert::rail_gun_meter(id, meter),
-            ActiveMeterType::Medkit => insert::medkit_meter(id, meter),
-        }
-    }
-    pub fn typ(self) -> MeterType {
-        match self {
-            ActiveMeterType::Gun => MeterType::Gun,
-            ActiveMeterType::Medkit => MeterType::Medkit,
-            ActiveMeterType::RailGun => MeterType::RailGun,
-        }
-    }
-}
-
-impl From<ActiveMeterType> for ComponentType {
-    fn from(typ: ActiveMeterType) -> Self {
-        match typ {
-            ActiveMeterType::Gun => ComponentType::GunMeter,
-            ActiveMeterType::Medkit => ComponentType::MedkitMeter,
-            ActiveMeterType::RailGun => ComponentType::RailGunMeter,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum PassiveMeterType {
-    Health,
-    Kevlar,
-    Stamina,
-}
-
-impl PassiveMeterType {
-    pub fn from_component_type(component_type: ComponentType) -> Option<Self> {
-        match component_type {
-            ComponentType::HealthMeter => Some(PassiveMeterType::Health),
-            ComponentType::StaminaMeter => Some(PassiveMeterType::Stamina),
-            ComponentType::KevlarMeter => Some(PassiveMeterType::Kevlar),
-            _ => None,
-        }
-    }
-    pub fn periodic_change(self) -> Option<PeriodicChange> {
-        match self {
-            PassiveMeterType::Health => None,
-            PassiveMeterType::Stamina => Some(PeriodicChange {
-                turns: 0,
-                change: 1,
-            }),
-            PassiveMeterType::Kevlar => None,
-        }
-    }
-    pub fn insert(self, id: EntityId, meter: Meter) -> EntityChange {
-        match self {
-            PassiveMeterType::Health => insert::health_meter(id, meter),
-            PassiveMeterType::Stamina => insert::stamina_meter(id, meter),
-            PassiveMeterType::Kevlar => insert::kevlar_meter(id, meter),
-        }
-    }
-    pub fn typ(self) -> MeterType {
-        match self {
-            PassiveMeterType::Health => MeterType::Health,
-            PassiveMeterType::Kevlar => MeterType::Kevlar,
-            PassiveMeterType::Stamina => MeterType::Stamina,
-        }
-    }
-}
-
-impl From<PassiveMeterType> for ComponentType {
-    fn from(typ: PassiveMeterType) -> Self {
-        match typ {
-            PassiveMeterType::Health => ComponentType::HealthMeter,
-            PassiveMeterType::Stamina => ComponentType::StaminaMeter,
-            PassiveMeterType::Kevlar => ComponentType::KevlarMeter,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

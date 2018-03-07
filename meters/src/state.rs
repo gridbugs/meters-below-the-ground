@@ -163,7 +163,8 @@ impl<'a> Iterator for ActiveMeterInfoIter<'a> {
     type Item = ActiveMeterInfo;
     fn next(&mut self) -> Option<Self::Item> {
         self.meter_metadata.next().map(|(index, &typ)| {
-            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
+            let general_typ: MeterType = typ.into();
+            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, general_typ)
                 .expect("Meter identifiers out of sync with game state");
             ActiveMeterInfo {
                 typ,
@@ -185,7 +186,8 @@ impl<'a> Iterator for PassiveMeterInfoIter<'a> {
     type Item = PassiveMeterInfo;
     fn next(&mut self) -> Option<Self::Item> {
         self.meter_metadata.next().map(|&typ| {
-            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, typ)
+            let general_typ: MeterType = typ.into();
+            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, general_typ)
                 .expect("Meter list out of sync with game state");
             PassiveMeterInfo { typ, meter }
         })
@@ -303,7 +305,8 @@ impl State {
                 match upgrade.active_or_passive() {
                     ActiveOrPassive::Active(typ) => {
                         self.active_meters.push(typ);
-                        if let Some(change) = typ.periodic_change() {
+                        let general_typ: MeterType = typ.into();
+                        if let Some(change) = general_typ.periodic_change() {
                             let event = PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
                             let entry = PlayerTurnEventEntry::full(event, change.turns);
                             self.player_turn_events.push(entry);
@@ -311,7 +314,8 @@ impl State {
                     }
                     ActiveOrPassive::Passive(typ) => {
                         self.passive_meters.push(typ);
-                        if let Some(change) = typ.periodic_change() {
+                        let general_typ: MeterType = typ.into();
+                        if let Some(change) = general_typ.periodic_change() {
                             let event = PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
                             let entry = PlayerTurnEventEntry::full(event, change.turns);
                             self.player_turn_events.push(entry);
@@ -392,19 +396,20 @@ impl State {
         let active_meters: Vec<_> = world
             .entity_components
             .component_types(player_id)
-            .filter_map(ActiveMeterType::from_component_type)
+            .filter_map(|typ| MeterType::from_component_type(typ).and_then(|typ| typ.active()))
             .collect();
 
         let passive_meters: Vec<_> = world
             .entity_components
             .component_types(player_id)
-            .filter_map(PassiveMeterType::from_component_type)
+            .filter_map(|typ| MeterType::from_component_type(typ).and_then(|typ| typ.passive()))
             .collect();
 
         let mut player_turn_events = Vec::new();
 
         for typ in active_meters.iter().cloned() {
-            if let Some(change) = typ.periodic_change() {
+            let general_typ: MeterType = typ.into();
+            if let Some(change) = general_typ.periodic_change() {
                 let event = PlayerTurnEvent::ChangeActiveMeter(typ, change.change);
                 let entry = PlayerTurnEventEntry::full(event, change.turns);
                 player_turn_events.push(entry);
@@ -412,7 +417,8 @@ impl State {
         }
 
         for typ in passive_meters.iter().cloned() {
-            if let Some(change) = typ.periodic_change() {
+            let general_typ: MeterType = typ.into();
+            if let Some(change) = general_typ.periodic_change() {
                 let event = PlayerTurnEvent::ChangePassiveMeter(typ, change.change);
                 let entry = PlayerTurnEventEntry::full(event, change.turns);
                 player_turn_events.push(entry);
@@ -782,11 +788,13 @@ impl State {
             if entry.remaining == 0 {
                 let change = match entry.event {
                     PlayerTurnEvent::ChangeActiveMeter(typ, change) => {
+                        let general_typ: MeterType = typ.into();
                         let mut meter =
-                            Meter::from_entity_store(self.player_id, &self.world.entity_store, typ)
+                            Meter::from_entity_store(self.player_id, &self.world.entity_store, general_typ)
                                 .expect("Missing meter for player turn event");
                         meter.value =
                             ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
+                        let typ: MeterType = typ.into();
                         typ.insert(self.player_id, meter)
                     }
                     PlayerTurnEvent::ChangePassiveMeter(typ, change) => match typ {
@@ -799,15 +807,17 @@ impl State {
                             insert::stamina_tick(self.player_id, stamina_tick + 1)
                         }
                         _ => {
+                            let general_typ: MeterType = typ.into();
                             let mut meter = Meter::from_entity_store(
                                 self.player_id,
                                 &self.world.entity_store,
-                                typ,
+                                general_typ,
                             ).expect("Missing meter for player turn event");
                             meter.value = ::std::cmp::max(
                                 ::std::cmp::min(meter.value + change, meter.max),
                                 0,
                             );
+                            let typ: MeterType = typ.into();
                             typ.insert(self.player_id, meter)
                         }
                     },
