@@ -485,7 +485,7 @@ pub fn populate<R: Rng>(
 
     for _ in 0..16 {
         if let Some(coord) = floor_coords.pop() {
-            prototypes::larvae(id_allocator.allocate(), coord, messages);
+            prototypes::beetoid(id_allocator.allocate(), coord, messages);
         }
     }
 
@@ -532,6 +532,14 @@ pub fn populate<R: Rng>(
         GoalType::Escape => {
             DungeonPopulateResult::GoalStateArgs(GoalStateArgs::Escape { exit: stairs_coord, player: player_coord })
         }
-        _ => DungeonPopulateResult::NoGoalState,
+        GoalType::KillEggs => {
+            const NUM_EGGS: usize = 3;
+            if floor_coords.len() < NUM_EGGS {
+                for _ in 0..NUM_EGGS {
+
+                }
+            }
+            unimplemented!()
+        }
     }
 }

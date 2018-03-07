@@ -8,7 +8,12 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
     match tile {
         Tile::Player
         | Tile::Punch(_)
+        | Tile::Egg
         | Tile::Larvae
+        | Tile::Chrysalis
+        | Tile::Aracnoid
+        | Tile::Beetoid
+        | Tile::SuperEgg
         | Tile::Queen
         | Tile::Bullet
         | Tile::RailGunShotHorizontal
@@ -72,11 +77,41 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                     .foreground_colour(Rgb24::new(255, 0, 0)),
             )
         }
+        Tile::Egg => (
+            'ê',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(colours::BLUE),
+        ),
         Tile::Larvae => (
             'l',
             TextInfo::default()
                 .bold()
                 .foreground_colour(colours::BRIGHT_GREEN),
+        ),
+        Tile::Chrysalis => (
+            'ĉ',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(colours::BRIGHT_BLUE),
+        ),
+        Tile::Aracnoid => (
+            'a',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(colours::CYAN),
+        ),
+        Tile::Beetoid => (
+            'b',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(colours::YELLOW),
+        ),
+        Tile::SuperEgg => (
+            'Ē',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(colours::MAGENTA),
         ),
         Tile::Queen => (
             'Q',
@@ -142,8 +177,14 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
 
     if tile_info.damage_flash {
         text_info.foreground_colour = Some(Rgb24::new(255, 0, 0));
-    } else if tile_info.wounded {
-        text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
+    } else if let Some(health_meter) = tile_info.health_meter {
+        if health_meter.value == 1 {
+            text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
+        } else {
+            if tile_info.tile == Tile::Beetoid && health_meter.value == 2 {
+                text_info.foreground_colour = Some(Rgb24::new(190, 50, 0));
+            }
+        }
     }
 
     (ch, text_info)

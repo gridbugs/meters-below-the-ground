@@ -44,13 +44,10 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::player(id));
     messages.change(insert::door_opener(id));
     messages.change(insert::collider(id));
+    let health = Meter::full(MeterType::Health.player_max());
     messages.change(insert::tile_info(
         id,
-        TileInfo::new(Tile::Player, PLAYER_DEPTH),
-    ));
-    messages.change(insert::health_meter(
-        id,
-        Meter::full(MeterType::Health.player_max()),
+        TileInfo::with_health(Tile::Player, PLAYER_DEPTH, health),
     ));
     messages.change(insert::stamina_meter(
         id,
@@ -60,6 +57,10 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         ),
     ));
     messages.change(insert::stamina_tick(id, 0));
+    messages.change(insert::health_meter(
+        id,
+        health,
+    ));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -111,28 +112,115 @@ pub fn punch<M: PushMessages>(
 
 pub fn larvae<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, Default::default()));
-    messages.change(insert::health_meter(id, Meter::full(2)));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: true,
+        active: false,
+        fast: false,
+    }));
+    let health = Meter::full(2);
     messages.change(insert::tile_info(
         id,
-        TileInfo::new(Tile::Larvae, NPC_DEPTH),
+        TileInfo::with_health(Tile::Larvae, NPC_DEPTH, health),
     ));
+    messages.change(insert::health_meter(id, health));
+}
+
+pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: true,
+        active: false,
+        fast: false,
+    }));
+    let health = Meter::full(3);
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::with_health(Tile::Beetoid, NPC_DEPTH, health),
+    ));
+    messages.change(insert::health_meter(id, health));
+}
+
+pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: true,
+        active: false,
+        fast: true,
+    }));
+    let health = Meter::full(2);
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::with_health(Tile::Aracnoid, NPC_DEPTH, health),
+    ));
+    messages.change(insert::health_meter(id, health));
+}
+
+pub fn chrysalis<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: false,
+        active: false,
+        fast: false,
+    }));
+    let health = Meter::full(1);
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::with_health(Tile::Aracnoid, NPC_DEPTH, health),
+    ));
+    messages.change(insert::health_meter(id, health));
+}
+
+pub fn egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: false,
+        active: false,
+        fast: false,
+    }));
+    let health = Meter::full(3);
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::with_health(Tile::Egg, NPC_DEPTH, health),
+    ));
+    messages.change(insert::health_meter(id, health));
+}
+
+pub fn super_egg<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::npc(id, NpcInfo {
+        boss: false,
+        mobile: false,
+        active: false,
+        fast: false,
+    }));
+    let health = Meter::full(8);
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::with_health(Tile::Egg, NPC_DEPTH, health),
+    ));
+    messages.change(insert::health_meter(id, health));
 }
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
     messages.change(insert::coord(id, coord));
-    messages.change(insert::npc(id, NpcInfo { boss, active: boss }));
-    messages.change(insert::health_meter(id, Meter::full(10)));
+    messages.change(insert::npc(id, NpcInfo { boss, active: boss, mobile: true, fast: false }));
+    let health = Meter::full(10);
     messages.change(insert::tile_info(
         id,
         TileInfo {
             tile: Tile::Queen,
             depth: NPC_DEPTH,
             damage_flash: false,
-            wounded: false,
             boss,
+            health_meter: Some(health),
         },
     ));
+    messages.change(insert::health_meter(id, health));
 }
 
 pub fn stairs<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {

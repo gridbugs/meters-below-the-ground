@@ -30,11 +30,9 @@ pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
                     if !sh_cell.npc_set.is_empty() {
                         if let Some(stamina) = entity_store.stamina_meter.get(&id) {
                             if stamina.value == 0 {
-                            println!("wat2");
                                 return Err(Some(Alert::NoStamina));
                             }
                         } else {
-                            println!("wat");
                             return Err(Some(Alert::NoStamina));
                         }
                     }
@@ -244,25 +242,16 @@ where
             }
         }
         &EntityChange::Insert(id, ComponentValue::HealthMeter(health)) => {
-            if health.value == 1 {
-                if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
-                    tile_info.wounded = true;
-                    messages.change(insert::tile_info(id, tile_info));
-                }
-            } else if health.value == 0 {
+            if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+                tile_info.health_meter = Some(health);
+                messages.change(insert::tile_info(id, tile_info));
+            }
+
+            if health.value == 0 {
                 if entity_store.player.contains(&id) {
                     messages.lose();
                 } else {
                     messages.remove(id);
-                }
-            } else {
-                if let Some(health) = entity_store.health_meter.get(&id) {
-                    if health.value == 1 {
-                        if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
-                            tile_info.wounded = false;
-                            messages.change(insert::tile_info(id, tile_info));
-                        }
-                    }
                 }
             }
         }

@@ -128,6 +128,7 @@ impl shadowcast::InputGrid for SpatialHashTable {
 enum TurnState {
     Player,
     Npcs,
+    FastNpcs,
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
@@ -724,16 +725,14 @@ impl State {
         ret
     }
 
-    fn all_npc_turns(&mut self) -> Option<Event> {
+    fn fast_npc_turns(&mut self) -> Option<Event> {
         self.turn = TurnState::Player;
-
-        if let Some(player_coord) = self.messages.player_moved_to.take() {
-            self.pathfinding
-                .update_player_map(player_coord, &self.world.spatial_hash);
-        }
 
         self.npc_order.clear();
         for (&id, info) in self.world.entity_store.npc.iter() {
+            if !info.fast {
+                continue;
+            }
             let active = if info.active {
                 true
             } else {
@@ -755,6 +754,70 @@ impl State {
             if active {
                 self.npc_order.push(id);
             }
+        }
+
+        self.pathfinding
+            .sort_entities_by_distance_to_player(&self.world.entity_store, &mut self.npc_order);
+
+        for &id in self.npc_order.iter() {
+            self.pathfinding.act(
+                id,
+                &self.world.entity_store,
+                &self.world.spatial_hash,
+                PathfindingConfig { open_doors: false },
+                &mut self.messages,
+            );
+            if let Some(meta) = self.change_context.process(
+                &mut self.world,
+                &mut self.messages,
+                &mut self.swap_messages,
+                &mut self.rng,
+            ) {
+                return Some(meta);
+            }
+        }
+
+        None
+    }
+
+    fn all_npc_turns(&mut self) -> Option<Event> {
+
+        if let Some(player_coord) = self.messages.player_moved_to.take() {
+            self.pathfinding
+                .update_player_map(player_coord, &self.world.spatial_hash);
+        }
+
+        let mut at_least_one_fast = false;
+        self.npc_order.clear();
+        for (&id, info) in self.world.entity_store.npc.iter() {
+            at_least_one_fast = at_least_one_fast || info.fast;
+            let active = if info.active {
+                true
+            } else {
+                let coord = self.world.entity_store.coord.get(&id).unwrap();
+                let visibility = self.visibility_grid.get(*coord).unwrap();
+                if visibility.last_updated == self.world.count {
+                    self.messages.change(insert::npc(
+                        id,
+                        NpcInfo {
+                            active: true,
+                            ..*info
+                        },
+                    ));
+                    true
+                } else {
+                    false
+                }
+            };
+            if active {
+                self.npc_order.push(id);
+            }
+        }
+
+        if at_least_one_fast {
+            self.turn = TurnState::FastNpcs;
+        } else {
+            self.turn = TurnState::Player;
         }
 
         self.pathfinding
@@ -882,6 +945,9 @@ impl State {
                     } else {
                         self.process_turn_events()
                     }
+                }
+                TurnState::FastNpcs => {
+                    self.fast_npc_turns()
                 }
             }
         } else {

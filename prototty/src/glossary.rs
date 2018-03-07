@@ -22,17 +22,15 @@ impl GlossaryView {
 }
 
 fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
-    let extra = if tile_info.boss {
-        " (boss)"
-    } else if tile_info.wounded {
-        " (1hp)"
-    } else {
-        ""
-    };
     match tile_info.tile {
-        Tile::Player => write!(stage, "{} {}{}", ch, "Player", extra),
-        Tile::Larvae => write!(stage, "{} {}{}", ch, "Larvae", extra),
-        Tile::Queen => write!(stage, "{} {}{}", ch, "Queen", extra),
+        Tile::Player => write!(stage, "{} {}", ch, "Player"),
+        Tile::Egg => write!(stage, "{} {}", ch, "Egg"),
+        Tile::Larvae => write!(stage, "{} {}", ch, "Larvae"),
+        Tile::Chrysalis => write!(stage, "{} {}", ch, "Chrysalis"),
+        Tile::Aracnoid => write!(stage, "{} {}", ch, "Aracnoid"),
+        Tile::Beetoid => write!(stage, "{} {}", ch, "Beetoid"),
+        Tile::SuperEgg => write!(stage, "{} {}", ch, "Super Egg"),
+        Tile::Queen => write!(stage, "{} {}", ch, "Queen"),
         Tile::Stairs => write!(stage, "{} {}", ch, "Stairs"),
         Tile::Exit => write!(stage, "{} {}", ch, "Exit"),
         Tile::HealthPickup => write!(stage, "{} {}", ch, "Meds"),
@@ -48,6 +46,14 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         | Tile::RailGunShotHorizontal
         | Tile::RailGunShotVertical => return false,
     }.unwrap();
+
+    if tile_info.boss {
+        write!(stage, " (boss)").unwrap();
+    } else if let Some(health_meter) = tile_info.health_meter {
+        if tile_info.tile != Tile::Player && health_meter.value < health_meter.max {
+            write!(stage, " ({}hp)", health_meter.value).unwrap();
+        }
+    }
 
     true
 }

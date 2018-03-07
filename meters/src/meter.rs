@@ -184,7 +184,7 @@ pub struct PeriodicChange {
     pub change: i32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Meter {
     pub max: i32,
     pub value: i32,
