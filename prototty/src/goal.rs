@@ -31,7 +31,7 @@ impl View<Option<(GoalType, bool)>> for GoalView {
                 GoalType::KillEggs => {
                     write!(self.scratch, "Kill the eggs before they hatch!").unwrap()
                 }
-                GoalType::ActivateBeacon => write!(self.scratch, "Activate the distress beacon!").unwrap(),
+                GoalType::ActivateBeacon => write!(self.scratch, "Activate the emergency beacon!").unwrap(),
             }
             if complete {
                 write!(self.scratch, " (COMPLETE)").unwrap();
