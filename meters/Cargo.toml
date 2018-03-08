@@ -4,13 +4,14 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-rand = "0.4"
-itertools = "0.7"
+best = "0.4"
 direction = "0.14"
 enum_primitive = "0.1"
 entity_store_helper = "0.13"
 grid_2d = "0.7"
 grid_search = "0.13"
+itertools = "0.7"
+rand = "0.4"
 shadowcast = "0.2"
 serde = "1.0"
 serde_derive = "1.0"

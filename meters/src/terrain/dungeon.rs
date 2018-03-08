@@ -539,11 +539,16 @@ pub fn populate<R: Rng>(
             player: player_coord,
         }),
         GoalType::KillEggs => {
-            const NUM_EGGS: usize = 3;
-            if floor_coords.len() < NUM_EGGS {
-                for _ in 0..NUM_EGGS {}
+            let num_eggs = 2;
+            let mut ids = Vec::new();
+            for _ in 0..num_eggs {
+                if let Some(coord) = floor_coords.pop() {
+                    let id = id_allocator.allocate();
+                    prototypes::super_egg(id, coord, messages, rng);
+                    ids.push(id);
+                }
             }
-            unimplemented!()
+            DungeonPopulateResult::GoalStateArgs(GoalStateArgs::KillEggs(ids))
         }
     }
 }

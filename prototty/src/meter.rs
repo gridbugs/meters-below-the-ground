@@ -12,6 +12,7 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
         MeterType::Stamina => colours::BRIGHT_BLUE,
         MeterType::Kevlar => Rgb24::new(255, 127, 0),
         MeterType::RailGun => Rgb24::new(0, 255, 255),
+        MeterType::Compass => Rgb24::new(255, 255, 0),
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -21,8 +22,9 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
 
 fn goal_meter_text_info(typ: GoalMeterType) -> TextInfo {
     let colour = match typ {
-        GoalMeterType::BossHealth => colours::BRIGHT_MAGENTA,
+        GoalMeterType::BossHealth => Rgb24::new(255, 127, 255),
         GoalMeterType::DistanceToExit => colours::WHITE,
+        GoalMeterType::SuperEggHealth => Rgb24::new(255, 85, 255),
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -44,6 +46,7 @@ pub fn meter_name(typ: MeterType) -> &'static str {
         MeterType::Stamina => "Stamina",
         MeterType::Kevlar => "Armour",
         MeterType::RailGun => "Railgun",
+        MeterType::Compass => "Compass",
     }
 }
 
@@ -83,6 +86,9 @@ impl MeterView {
             PassiveMeterType::Kevlar => {
                 write!(self.scratch, "{:1$}", "Armour", self.name_padding).unwrap()
             }
+            PassiveMeterType::Compass => {
+                write!(self.scratch, "{:1$}", "Compass", self.name_padding).unwrap()
+            }
         }
     }
     fn write_goal_name(&mut self, typ: GoalMeterType) {
@@ -93,6 +99,9 @@ impl MeterView {
             }
             GoalMeterType::DistanceToExit => {
                 write!(self.scratch, "{:1$}", "Metres", self.name_padding).unwrap()
+            }
+            GoalMeterType::SuperEggHealth => {
+                write!(self.scratch, "{:1$}", "SuperEgg", self.name_padding).unwrap()
             }
         }
     }
@@ -108,7 +117,7 @@ impl MeterView {
             self.scratch.push('░')
         }
 
-        write!(self.scratch, " {}/{}", meter.value, meter.max).unwrap();
+        write!(self.scratch, " {}/{}", value, max).unwrap();
     }
 }
 

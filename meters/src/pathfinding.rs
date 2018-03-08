@@ -21,14 +21,14 @@ impl<'a> SolidGrid for SpatialHashSolidCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
         self.grid
             .get(coord)
-            .map(|cell| cell.solid_count > 0 && (self.open_doors || cell.door_count == 0))
+            .map(|cell| cell.solid_count > 0 && !(self.open_doors && cell.door_count > 0))
     }
 }
 
 impl<'a> SolidGrid for SpatialHashSolidOrOccupiedCellGrid<'a> {
     fn is_solid(&self, coord: Coord) -> Option<bool> {
         self.grid.get(coord).map(|cell| {
-            (cell.solid_count > 0 && (self.open_doors || cell.door_count == 0))
+            (cell.solid_count > 0 && !(self.open_doors && cell.door_count > 0))
                 || !cell.npc_set.is_empty()
         })
     }
@@ -51,6 +51,14 @@ impl PathfindingContext {
             distance_map: UniformDistanceMap::new(size, DirectionsCardinal),
             distance_map_open_doors: UniformDistanceMap::new(size, DirectionsCardinal),
             path: Vec::new(),
+        }
+    }
+
+    pub fn distance_to_player(&self, coord: Coord) -> Option<u32> {
+        if let Some(cell) = self.distance_map_open_doors.get(coord).cell() {
+            Some(cell.cost())
+        } else {
+            None
         }
     }
 

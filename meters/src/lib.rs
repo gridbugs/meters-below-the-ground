@@ -1,3 +1,4 @@
+extern crate best;
 extern crate direction;
 #[macro_use]
 extern crate entity_store_helper;

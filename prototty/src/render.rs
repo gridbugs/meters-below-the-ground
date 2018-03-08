@@ -181,8 +181,12 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
         if health_meter.value == 1 && health_meter.max > 1 {
             text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
         } else {
-            if tile_info.tile == Tile::Beetoid && health_meter.value == 2 {
-                text_info.foreground_colour = Some(Rgb24::new(190, 50, 0));
+            if health_meter.value == 2 {
+                match tile_info.tile {
+                    Tile::Beetoid => text_info.foreground_colour = Some(Rgb24::new(190, 50, 0)),
+                    Tile::Egg => text_info.foreground_colour = Some(Rgb24::new(190, 190, 0)),
+                    _ => (),
+                }
             }
         }
     }

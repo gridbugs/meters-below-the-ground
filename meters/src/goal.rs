@@ -68,7 +68,7 @@ pub enum GoalState {
 }
 
 const GOAL_TYPE_CHOICES: &[GoalType] = &[
-    //    GoalType::KillEggs,
+    GoalType::KillEggs,
     GoalType::KillBoss,
 ];
 
@@ -83,6 +83,34 @@ impl GoalState {
             &GoalState::Escape { .. } => GoalType::Escape,
             &GoalState::KillEggs(_) => GoalType::KillEggs,
             &GoalState::KillBoss(_) => GoalType::KillBoss,
+        }
+    }
+    pub fn with_goal_coords<F>(&self, entity_store: &EntityStore, mut f: F)
+    where
+        F: FnMut(Coord),
+    {
+        match self {
+            &GoalState::Escape { .. } => {
+                if let Some(stairs_id) = entity_store.stairs.iter().next() {
+                    if let Some(&stairs_coord) = entity_store.coord.get(&stairs_id) {
+                        f(stairs_coord);
+                    }
+                }
+            }
+            &GoalState::KillEggs(ref ids) => {
+                for id in ids {
+                    if entity_store.countdown_max.contains_key(id) {
+                        if let Some(&coord) = entity_store.coord.get(&id) {
+                            f(coord);
+                        }
+                    }
+                }
+            }
+            &GoalState::KillBoss(id) => {
+                if let Some(&coord) = entity_store.coord.get(&id) {
+                    f(coord);
+                }
+            }
         }
     }
     pub fn with_goal_meters<F>(&self, entity_store: &EntityStore, mut f: F)
@@ -103,7 +131,18 @@ impl GoalState {
                     })
                 }
             }
-            &GoalState::KillEggs(_) => {}
+            &GoalState::KillEggs(ref ids) => {
+                for id in ids {
+                    if let Some(countdown) = entity_store.countdown.get(id).cloned() {
+                        if let Some(countdown_max) = entity_store.countdown_max.get(id).cloned() {
+                            f(GoalMeterInfo {
+                                typ: GoalMeterType::SuperEggHealth,
+                                meter: Meter::new(countdown, countdown_max),
+                            })
+                        }
+                    }
+                }
+            }
             &GoalState::KillBoss(id) => {
                 if let Some(health) = entity_store.health_meter.get(&id).cloned() {
                     f(GoalMeterInfo {
@@ -117,7 +156,14 @@ impl GoalState {
     pub fn is_complete(&self, entity_store: &EntityStore) -> bool {
         match self {
             &GoalState::Escape { .. } => false,
-            &GoalState::KillEggs(_) => false,
+            &GoalState::KillEggs(ref ids) => {
+                for id in ids {
+                    if entity_store.countdown_max.contains_key(id) {
+                        return false;
+                    }
+                }
+                true
+            }
             &GoalState::KillBoss(id) => !entity_store.health_meter.contains_key(&id),
         }
     }
@@ -127,6 +173,7 @@ impl GoalState {
 pub enum GoalMeterType {
     BossHealth,
     DistanceToExit,
+    SuperEggHealth,
 }
 
 #[derive(Clone, Debug)]

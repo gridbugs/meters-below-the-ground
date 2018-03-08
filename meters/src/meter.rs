@@ -14,6 +14,7 @@ pub enum MeterType {
     Stamina,
     Health,
     Kevlar,
+    Compass,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -28,6 +29,7 @@ pub enum PassiveMeterType {
     Health,
     Kevlar,
     Stamina,
+    Compass,
 }
 
 impl ActiveMeterType {
@@ -58,6 +60,7 @@ impl From<PassiveMeterType> for MeterType {
             PassiveMeterType::Health => MeterType::Health,
             PassiveMeterType::Kevlar => MeterType::Kevlar,
             PassiveMeterType::Stamina => MeterType::Stamina,
+            PassiveMeterType::Compass => MeterType::Compass,
         }
     }
 }
@@ -71,6 +74,7 @@ impl MeterType {
             ComponentType::RailGunMeter => Some(MeterType::RailGun),
             ComponentType::HealthMeter => Some(MeterType::Health),
             ComponentType::KevlarMeter => Some(MeterType::Kevlar),
+            ComponentType::CompassMeter => Some(MeterType::Compass),
             _ => None,
         }
     }
@@ -82,6 +86,7 @@ impl MeterType {
             MeterType::Stamina => ActiveOrPassive::Passive(PassiveMeterType::Stamina),
             MeterType::Health => ActiveOrPassive::Passive(PassiveMeterType::Health),
             MeterType::Kevlar => ActiveOrPassive::Passive(PassiveMeterType::Kevlar),
+            MeterType::Compass => ActiveOrPassive::Passive(PassiveMeterType::Compass),
         }
     }
     pub fn active(self) -> Option<ActiveMeterType> {
@@ -100,16 +105,17 @@ impl MeterType {
     pub fn player_max(self) -> i32 {
         match self {
             MeterType::Gun => 8,
-            MeterType::RailGun => 4,
+            MeterType::RailGun => 8,
             MeterType::Medkit => 8,
-            MeterType::Stamina => 4,
+            MeterType::Stamina => 8,
             MeterType::Health => 10,
             MeterType::Kevlar => 10,
+            MeterType::Compass => 100,
         }
     }
     pub fn player_component_value(self) -> ComponentValue {
         let max = self.player_max();
-        let initial = max / 2;
+        let initial = max;
         match self {
             MeterType::Gun => ComponentValue::GunMeter(Meter::new(initial, max)),
             MeterType::RailGun => ComponentValue::RailGunMeter(Meter::new(initial, max)),
@@ -117,6 +123,7 @@ impl MeterType {
             MeterType::Stamina => ComponentValue::StaminaMeter(Meter::new(initial, max)),
             MeterType::Health => ComponentValue::HealthMeter(Meter::full(max)),
             MeterType::Kevlar => ComponentValue::KevlarMeter(Meter::new(initial, max)),
+            MeterType::Compass => ComponentValue::CompassMeter(Meter::new(initial, max)),
         }
     }
     pub fn is_active(self) -> bool {
@@ -127,6 +134,7 @@ impl MeterType {
             MeterType::Stamina => false,
             MeterType::Health => false,
             MeterType::Kevlar => false,
+            MeterType::Compass => false,
         }
     }
     pub fn insert(self, id: EntityId, meter: Meter) -> EntityChange {
@@ -137,6 +145,7 @@ impl MeterType {
             MeterType::Health => insert::health_meter(id, meter),
             MeterType::Stamina => insert::stamina_meter(id, meter),
             MeterType::Kevlar => insert::kevlar_meter(id, meter),
+            MeterType::Compass => insert::compass_meter(id, meter),
         }
     }
     pub fn periodic_change(self) -> Option<PeriodicChange> {
@@ -144,7 +153,7 @@ impl MeterType {
             MeterType::Gun => None,
             MeterType::RailGun => None,
             MeterType::Medkit => Some(PeriodicChange {
-                turns: 3,
+                turns: 0,
                 change: 1,
             }),
             MeterType::Health => None,
@@ -153,6 +162,7 @@ impl MeterType {
                 change: 1,
             }),
             MeterType::Kevlar => None,
+            MeterType::Compass => None,
         }
     }
 }
@@ -166,6 +176,7 @@ impl From<MeterType> for ComponentType {
             MeterType::Health => ComponentType::HealthMeter,
             MeterType::Stamina => ComponentType::StaminaMeter,
             MeterType::Kevlar => ComponentType::KevlarMeter,
+            MeterType::Compass => ComponentType::CompassMeter,
         }
     }
 }
@@ -177,6 +188,7 @@ pub const ALL_METER_TYPES: &[MeterType] = &[
     MeterType::Health,
     MeterType::Stamina,
     MeterType::Kevlar,
+    MeterType::Compass,
 ];
 
 pub struct PeriodicChange {
@@ -211,6 +223,7 @@ impl Meter {
             ComponentRef::RailGunMeter(meter) => Some(*meter),
             ComponentRef::KevlarMeter(meter) => Some(*meter),
             ComponentRef::MedkitMeter(meter) => Some(*meter),
+            ComponentRef::CompassMeter(meter) => Some(*meter),
             _ => None,
         }
     }

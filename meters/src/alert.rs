@@ -5,4 +5,6 @@ pub enum Alert {
     NoMedkit,
     ArmourBlock,
     WalkIntoWall,
+    NoSuchMeter,
+    RailgunWhichDirection,
 }

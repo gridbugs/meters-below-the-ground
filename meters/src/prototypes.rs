@@ -126,7 +126,7 @@ pub fn larvae<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mu
         TileInfo::with_health(Tile::Larvae, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
-    messages.change(insert::countdown(id, 20 + rng.gen::<i32>() % 40));
+    messages.change(insert::countdown(id, 20 + rng.gen::<i32>().abs() % 40));
     messages.change(insert::transform(id, Transform::Chrysalis));
 }
 
@@ -190,7 +190,7 @@ pub fn chrysalis<M: PushMessages, R: Rng>(
         TileInfo::with_health(Tile::Chrysalis, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
-    messages.change(insert::countdown(id, 2 + rng.gen::<i32>() % 2));
+    messages.change(insert::countdown(id, 2 + rng.gen::<i32>().abs() % 2));
     if rng.gen() {
         messages.change(insert::transform(id, Transform::Aracnoid));
     } else {
@@ -215,7 +215,7 @@ pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M
         TileInfo::with_health(Tile::Egg, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
-    messages.change(insert::countdown(id, 8 + rng.gen::<i32>() % 30));
+    messages.change(insert::countdown(id, 8 + rng.gen::<i32>().abs() % 30));
     messages.change(insert::transform(id, Transform::Larvae));
 }
 
@@ -241,7 +241,9 @@ pub fn super_egg<M: PushMessages, R: Rng>(
         TileInfo::with_health(Tile::SuperEgg, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
-    messages.change(insert::countdown(id, 40 + rng.gen::<i32>() % 30));
+    let max = 200 + rng.gen::<i32>().abs() % 100;
+    messages.change(insert::countdown(id, max));
+    messages.change(insert::countdown_max(id, max));
     messages.change(insert::transform(id, Transform::Queen));
 }
 

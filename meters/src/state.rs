@@ -18,6 +18,7 @@ use event::*;
 use meter::*;
 use goal::*;
 use npc_info::*;
+use best::*;
 use common_animations;
 use prototypes;
 use weapons;
@@ -183,6 +184,7 @@ pub struct PassiveMeterInfoIter<'a> {
     entity_store: &'a EntityStore,
     entity_id: EntityId,
     meter_metadata: slice::Iter<'a, PassiveMeterType>,
+    compass_meter: Meter,
 }
 
 impl<'a> Iterator for PassiveMeterInfoIter<'a> {
@@ -190,8 +192,12 @@ impl<'a> Iterator for PassiveMeterInfoIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         self.meter_metadata.next().map(|&typ| {
             let general_typ: MeterType = typ.into();
-            let meter = Meter::from_entity_store(self.entity_id, self.entity_store, general_typ)
-                .expect("Meter list out of sync with game state");
+            let meter = if general_typ == MeterType::Compass {
+                self.compass_meter
+            } else {
+                Meter::from_entity_store(self.entity_id, self.entity_store, general_typ)
+                    .expect("Meter list out of sync with game state")
+            };
             PassiveMeterInfo { typ, meter }
         })
     }
@@ -341,6 +347,8 @@ impl State {
 
         self.visibility_grid.clear();
         self.update_visibility();
+
+        self.pathfinding.update_player_map(player_coord, &self.world.spatial_hash);
     }
 
     pub fn new(rng_seed: usize) -> Self {
@@ -428,13 +436,17 @@ impl State {
             }
         }
 
+        let mut pathfinding = PathfindingContext::new(world.size());
+
+        pathfinding.update_player_map(player_coord, &world.spatial_hash);
+
         Self {
             player_id,
             rng,
             turn: TurnState::Player,
             messages,
             swap_messages: MessageQueuesSwap::new(),
-            pathfinding: PathfindingContext::new(world.size()),
+            pathfinding,
             visibility_grid: VisibilityGrid::new(world.size()),
             npc_order: Vec::new(),
             seen_animation_channels: HashSet::new(),
@@ -502,11 +514,27 @@ impl State {
         }
     }
 
+    fn compass_meter(&self) -> Meter {
+        const MAX_DISTANCE: i32 = 30;
+        let mut closest = BestSetNonEmpty::new(MAX_DISTANCE);
+
+        if let Some(goal) = self.world.goal_state.as_ref() {
+
+            goal.with_goal_coords(&self.world.entity_store, |coord| {
+                if let Some(distance) = self.pathfinding.distance_to_player(coord) {
+                    closest.insert_lt(distance as i32);
+                }
+            });
+        }
+        Meter::new(closest.into(), MAX_DISTANCE)
+    }
+
     pub fn player_passive_meter_info(&self) -> PassiveMeterInfoIter {
         PassiveMeterInfoIter {
             entity_store: &self.world.entity_store,
             meter_metadata: self.passive_meters.iter(),
             entity_id: self.player_id,
+            compass_meter: self.compass_meter(),
         }
     }
 
@@ -632,7 +660,7 @@ impl State {
             .unwrap();
         if medkit.value > 0 {
             let heal_amount = medkit.value;
-            medkit.value = 0;
+            medkit.value = -1;
             self.messages
                 .change(insert::medkit_meter(self.player_id, medkit));
 
@@ -687,11 +715,11 @@ impl State {
                         },
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
-                            return None;
+                            return Some(Event::External(ExternalEvent::Alert(Alert::RailgunWhichDirection)));
                         }
                     }
                 } else {
-                    return None;
+                    return Some(Event::External(ExternalEvent::Alert(Alert::NoSuchMeter)));
                 }
             }
             Input::MeterDeselect => {
@@ -997,6 +1025,7 @@ impl State {
                 }
                 TurnState::Npcs => {
                     if let Some(event) = self.all_npc_turns() {
+                        self.process_turn_events();
                         Some(event)
                     } else {
                         self.process_turn_events()
