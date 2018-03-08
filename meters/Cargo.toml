@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
 [dependencies]
-best = "0.4"
+best = "0.5"
 direction = "0.14"
 enum_primitive = "0.1"
 entity_store_helper = "0.13"

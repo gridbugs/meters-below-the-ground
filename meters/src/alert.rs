@@ -7,4 +7,5 @@ pub enum Alert {
     WalkIntoWall,
     NoSuchMeter,
     RailgunWhichDirection,
+    BeaconActive,
 }

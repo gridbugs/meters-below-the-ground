@@ -7,6 +7,8 @@ use meter::Meter;
 use pickup::Pickup;
 use direction::*;
 use alert::*;
+use beacon::*;
+use tile::*;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -200,6 +202,15 @@ where
                         messages.ascend();
                     } else if sh_cell.exit_count > 0 {
                         messages.win();
+                    } else if let Some(beacon_id) = sh_cell.beacon_set.iter().next() {
+                        messages.change(insert::beacon(*beacon_id, BeaconStatus::Active));
+                        messages.alert(Alert::BeaconActive);
+                        for (&id, &info) in entity_store.npc.iter() {
+                            let mut info = info;
+                            info.active = true;
+                            messages.change(insert::npc(id, info));
+                        }
+                        return false;
                     } else {
                         if let Some(pickup_id) = sh_cell.pickup_set.iter().next() {
                             let &pickup = entity_store.pickup.get(pickup_id).unwrap();
@@ -266,6 +277,12 @@ where
                 stamina.value = ::std::cmp::min(stamina.max, stamina.value + 1);
                 messages.change(insert::stamina_meter(id, stamina));
                 messages.change(insert::stamina_tick(id, 0));
+            }
+        }
+        &EntityChange::Insert(id, ComponentValue::Beacon(BeaconStatus::Active)) => {
+            if let Some(mut tile_info) = entity_store.tile_info.get(&id).cloned() {
+                tile_info.tile = Tile::BeaconActive;
+                messages.change(insert::tile_info(id, tile_info));
             }
         }
         _ => (),

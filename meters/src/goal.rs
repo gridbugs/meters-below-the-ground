@@ -4,12 +4,14 @@ use grid_2d::Coord;
 use meter::*;
 use grid_search::*;
 use direction::*;
+use beacon::*;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GoalType {
     Escape,
     KillEggs,
     KillBoss,
+    ActivateBeacon,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +19,7 @@ pub enum GoalStateArgs {
     Escape { exit: Coord, player: Coord },
     KillEggs(Vec<EntityId>),
     KillBoss(EntityId),
+    ActivateBeacon(EntityId),
 }
 
 struct SpatialHashSolidCellGrid<'a>(&'a SpatialHashTable);
@@ -53,6 +56,7 @@ impl GoalStateArgs {
             }
             GoalStateArgs::KillEggs(coords) => GoalState::KillEggs(coords),
             GoalStateArgs::KillBoss(id) => GoalState::KillBoss(id),
+            GoalStateArgs::ActivateBeacon(id) => GoalState::ActivateBeacon(id),
         }
     }
 }
@@ -65,11 +69,13 @@ pub enum GoalState {
     },
     KillEggs(Vec<EntityId>),
     KillBoss(EntityId),
+    ActivateBeacon(EntityId),
 }
 
 const GOAL_TYPE_CHOICES: &[GoalType] = &[
     GoalType::KillEggs,
     GoalType::KillBoss,
+    GoalType::ActivateBeacon,
 ];
 
 pub fn choose_goal_type<R: Rng>(rng: &mut R) -> GoalType {
@@ -83,6 +89,7 @@ impl GoalState {
             &GoalState::Escape { .. } => GoalType::Escape,
             &GoalState::KillEggs(_) => GoalType::KillEggs,
             &GoalState::KillBoss(_) => GoalType::KillBoss,
+            &GoalState::ActivateBeacon(_) => GoalType::ActivateBeacon,
         }
     }
     pub fn with_goal_coords<F>(&self, entity_store: &EntityStore, mut f: F)
@@ -109,6 +116,15 @@ impl GoalState {
             &GoalState::KillBoss(id) => {
                 if let Some(&coord) = entity_store.coord.get(&id) {
                     f(coord);
+                }
+            }
+            &GoalState::ActivateBeacon(id) => {
+                if let Some(&status) = entity_store.beacon.get(&id) {
+                    if status == BeaconStatus::Inactive {
+                        if let Some(&coord) = entity_store.coord.get(&id) {
+                            f(coord);
+                        }
+                    }
                 }
             }
         }
@@ -151,6 +167,7 @@ impl GoalState {
                     })
                 }
             }
+            &GoalState::ActivateBeacon(_) => (),
         }
     }
     pub fn is_complete(&self, entity_store: &EntityStore) -> bool {
@@ -165,6 +182,13 @@ impl GoalState {
                 true
             }
             &GoalState::KillBoss(id) => !entity_store.health_meter.contains_key(&id),
+            &GoalState::ActivateBeacon(id) => {
+                if let Some(&status) = entity_store.beacon.get(&id) {
+                    status == BeaconStatus::Active
+                } else {
+                    false
+                }
+            }
         }
     }
 }

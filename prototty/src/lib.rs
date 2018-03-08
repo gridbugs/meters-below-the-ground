@@ -476,6 +476,10 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
             TextInfo::default().bold().foreground_colour(Rgb24::new(0, 255, 255)),
             "Select a direction to fire.",
         ),
+        Alert::BeaconActive => (
+            TextInfo::default().bold().foreground_colour(Rgb24::new(255, 0, 0)),
+            "EMERGENCY BEACON ACTIVE BEEP BEEP BEEP BEEP",
+        )
     }
 }
 

@@ -27,6 +27,8 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::AmmoPickup
         | Tile::HealthPickup
         | Tile::KevlarPickup
+        | Tile::BeaconActive
+        | Tile::BeaconInactive
         | Tile::RailGunAmmoPickup => true,
     }
 }
@@ -172,6 +174,18 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             TextInfo::default()
                 .bold()
                 .foreground_colour(Rgb24::new(255, 63, 0)),
+        ),
+        Tile::BeaconInactive => (
+            '◘',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 0, 0)),
+        ),
+        Tile::BeaconActive => (
+            '☼',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(0, 255, 0)),
         ),
     };
 

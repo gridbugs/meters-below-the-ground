@@ -9,6 +9,7 @@ use meter::*;
 use pickup::Pickup;
 use npc_info::*;
 use transform::*;
+use beacon::*;
 
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
@@ -358,5 +359,14 @@ pub fn kevlar_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::KevlarPickup, PICKUP_DEPTH),
+    ));
+}
+
+pub fn beacon<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::beacon(id, BeaconStatus::Inactive));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::BeaconInactive, PICKUP_DEPTH),
     ));
 }

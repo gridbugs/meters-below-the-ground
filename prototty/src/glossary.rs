@@ -37,6 +37,8 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         Tile::AmmoPickup => write!(stage, "{} {}", ch, "Quadgun Ammo"),
         Tile::RailGunAmmoPickup => write!(stage, "{} {}", ch, "Railgun Ammo"),
         Tile::KevlarPickup => write!(stage, "{} {}", ch, "Armour Shard"),
+        Tile::BeaconInactive => write!(stage, "{} {}", ch, "Beacon (inactive)"),
+        Tile::BeaconActive => write!(stage, "{} {}", ch, "Beacon (active)"),
         Tile::Wall
         | Tile::CavernWall
         | Tile::Door

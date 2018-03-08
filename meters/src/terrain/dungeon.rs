@@ -550,5 +550,14 @@ pub fn populate<R: Rng>(
             }
             DungeonPopulateResult::GoalStateArgs(GoalStateArgs::KillEggs(ids))
         }
+        GoalType::ActivateBeacon => {
+            if room_centres_in_largest_space.len() < 3 {
+                return DungeonPopulateResult::Retry;
+            }
+            let coord = room_centres_in_largest_space[2];
+            let id = id_allocator.allocate();
+            prototypes::beacon(id, coord, messages);
+            DungeonPopulateResult::GoalStateArgs(GoalStateArgs::ActivateBeacon(id))
+        }
     }
 }

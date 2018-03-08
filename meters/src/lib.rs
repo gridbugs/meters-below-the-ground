@@ -35,6 +35,7 @@ mod pickup;
 mod npc_info;
 mod weapons;
 mod transform;
+mod beacon;
 
 pub mod goal;
 pub mod input;

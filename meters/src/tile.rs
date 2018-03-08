@@ -24,4 +24,6 @@ pub enum Tile {
     AmmoPickup,
     RailGunAmmoPickup,
     KevlarPickup,
+    BeaconInactive,
+    BeaconActive,
 }

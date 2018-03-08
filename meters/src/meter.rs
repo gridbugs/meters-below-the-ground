@@ -106,8 +106,8 @@ impl MeterType {
         match self {
             MeterType::Gun => 8,
             MeterType::RailGun => 8,
-            MeterType::Medkit => 8,
-            MeterType::Stamina => 8,
+            MeterType::Medkit => 6,
+            MeterType::Stamina => 6,
             MeterType::Health => 10,
             MeterType::Kevlar => 10,
             MeterType::Compass => 100,

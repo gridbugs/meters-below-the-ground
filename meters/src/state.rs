@@ -515,18 +515,28 @@ impl State {
     }
 
     fn compass_meter(&self) -> Meter {
-        const MAX_DISTANCE: i32 = 30;
-        let mut closest = BestSetNonEmpty::new(MAX_DISTANCE);
+        const MAX_DISTANCE: i32 = 40;
+        let mut closest = BestSet::new();
 
-        if let Some(goal) = self.world.goal_state.as_ref() {
+            if let Some(goal) = self.world.goal_state.as_ref() {
+                goal.with_goal_coords(&self.world.entity_store, |coord| {
+                    if let Some(distance) = self.pathfinding.distance_to_player(coord) {
+                        closest.insert_lt(distance as i32);
+                    }
+                });
+            }
 
-            goal.with_goal_coords(&self.world.entity_store, |coord| {
-                if let Some(distance) = self.pathfinding.distance_to_player(coord) {
-                    closest.insert_lt(distance as i32);
+        if closest.is_empty() {
+            if let Some(id) = self.world.entity_store.stairs.iter().next() {
+                if let Some(coord) = self.world.entity_store.coord.get(id) {
+                    if let Some(distance) = self.pathfinding.distance_to_player(*coord) {
+                        closest.insert_lt(distance as i32);
+                    }
                 }
-            });
+            }
         }
-        Meter::new(closest.into(), MAX_DISTANCE)
+
+        Meter::new(closest.into().unwrap_or(MAX_DISTANCE), MAX_DISTANCE)
     }
 
     pub fn player_passive_meter_info(&self) -> PassiveMeterInfoIter {
