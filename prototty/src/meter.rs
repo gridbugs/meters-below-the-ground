@@ -124,6 +124,11 @@ impl MeterView {
         let value = ::std::cmp::max(meter.value, 0) as usize;
         let max = ::std::cmp::max(meter.max, 0) as usize;
         let filled_meter_width = (self.meter_width * value) / max;
+        let filled_meter_width = if value > 0 && filled_meter_width == 0 {
+            1
+        } else {
+            filled_meter_width
+        };
         let remaining_meter_width = self.meter_width.saturating_sub(filled_meter_width);
         for _ in 0..filled_meter_width {
             self.scratch.push('█');
