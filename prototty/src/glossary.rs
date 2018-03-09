@@ -36,6 +36,7 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         Tile::HealthPickup => write!(stage, "{} {}", ch, "Meds"),
         Tile::AmmoPickup => write!(stage, "{} {}", ch, "Quadgun Ammo"),
         Tile::RailGunAmmoPickup => write!(stage, "{} {}", ch, "Railgun Ammo"),
+        Tile::MetabolAmmoPickup => write!(stage, "{} {}", ch, "Metabol Ammo"),
         Tile::KevlarPickup => write!(stage, "{} {}", ch, "Armour Shard"),
         Tile::BeaconInactive => write!(stage, "{} {}", ch, "Beacon (inactive)"),
         Tile::BeaconActive => write!(stage, "{} {}", ch, "Beacon (active)"),
@@ -46,6 +47,7 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         | Tile::Punch(_)
         | Tile::Bullet
         | Tile::RailGunShotHorizontal
+        | Tile::MetabolWave
         | Tile::RailGunShotVertical => return false,
     }.unwrap();
 
@@ -61,11 +63,28 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
                 _ => (),
             }
         }
+
         if let Some(health_meter) = tile_info.health_meter {
             if tile_info.tile != Tile::Player && health_meter.value < health_meter.max {
                 write!(stage, " ({}hp)", health_meter.value).unwrap();
+                return true;
             }
         }
+
+        if tile_info.delayed_transform {
+            match tile_info.tile {
+                Tile::SuperEgg
+                    | Tile::Chrysalis
+                    | Tile::Egg
+                    | Tile::Larvae => {
+
+                    write!(stage, " (transform delayed)").unwrap();
+                    return true;
+                }
+                _ => (),
+            }
+        }
+
     }
 
     true

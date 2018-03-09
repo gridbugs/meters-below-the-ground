@@ -10,6 +10,7 @@ use pickup::Pickup;
 use npc_info::*;
 use transform::*;
 use beacon::*;
+use wave::*;
 
 const FLOOR_DEPTH: i32 = 1;
 const WALL_DEPTH: i32 = 2;
@@ -25,6 +26,7 @@ const ANIMATION_DEPTH: i32 = 9;
 pub enum Prototype {
     Punch(EntityId, Coord, CardinalDirection),
     RailGunShot(EntityId, Coord, CardinalDirection),
+    MetabolWave(EntityId, Coord, bool, CardinalDirection, i32),
 }
 
 impl Prototype {
@@ -36,6 +38,10 @@ impl Prototype {
             }
             Prototype::RailGunShot(id, coord, direction) => {
                 rail_gun_shot(id, coord, direction, messages);
+                id
+            }
+            Prototype::MetabolWave(id, coord, leader, direction, range) => {
+                metabol_wave(id, coord, leader, direction, range, messages);
                 id
             }
         }
@@ -55,7 +61,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::stamina_meter(
         id,
         Meter::new(
-            MeterType::Stamina.player_max() / 2,
+            MeterType::Stamina.player_max(),
             MeterType::Stamina.player_max(),
         ),
     ));
@@ -269,6 +275,7 @@ pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: 
             boss,
             health_meter: Some(health),
             countdown: None,
+            delayed_transform: false,
         },
     ));
     messages.change(insert::health_meter(id, health));
@@ -353,6 +360,15 @@ pub fn rail_gun_ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, message
     ));
 }
 
+pub fn metabol_ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::MetabolAmmo));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::MetabolAmmoPickup, PICKUP_DEPTH),
+    ));
+}
+
 pub fn kevlar_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::Kevlar));
@@ -370,3 +386,17 @@ pub fn beacon<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::new(Tile::BeaconInactive, PICKUP_DEPTH),
     ));
 }
+
+pub fn metabol_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
+    messages.change(insert::metabol_wave(id, Wave {
+        leader,
+        direction,
+        range,
+    }));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::MetabolWave, WALL_DEPTH),
+    ));
+    messages.change(insert::coord(id, coord));
+}
+

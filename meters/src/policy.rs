@@ -80,7 +80,49 @@ where
             if let Some(sh_cell) = spatial_hash.get(coord) {
                 let dest_npc = sh_cell.npc_set.iter().next();
 
+                if let Some(mut wave) = entity_store.metabol_wave.get(&id).cloned() {
+                    if sh_cell.solid_count > 0 {
+                        return false;
+                    }
+                    if wave.range == 0 {
+                        return false;
+                    }
+
+                    let next_id = id_allocator.allocate();
+                    common_animations::metabol_wave(
+                        next_id,
+                        coord + wave.direction.coord(),
+                        wave.leader,
+                        wave.direction,
+                        wave.range - 1,
+                        messages,
+                    );
+                    if wave.leader {
+                        let direction = wave.direction.left90();
+                        let next_id = id_allocator.allocate();
+                        common_animations::metabol_wave(
+                            next_id,
+                            coord + direction.coord(),
+                            false,
+                            direction,
+                            wave.range - 1,
+                            messages,
+                        );
+                    }
+                }
+
                 if let Some(npc_id) = dest_npc {
+                    if entity_store.metabol_wave.contains_key(&id) {
+                        if let Some(countdown) = entity_store.countdown.get(npc_id).cloned() {
+                            messages.change(insert::delayed_transform(*npc_id));
+                            messages.change(insert::countdown(*npc_id, countdown + 20));
+                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned() {
+                                tile_info.delayed_transform = true;
+                                messages.change(insert::tile_info(*npc_id, tile_info));
+                            }
+                        }
+                    }
+
                     if entity_store.player.contains(&id) {
                         if let Some(mut stamina) = entity_store.stamina_meter.get(&id).cloned() {
                             if stamina.value > 0 {
@@ -232,6 +274,16 @@ where
                                         messages.remove(*pickup_id);
                                     }
                                 }
+                                Pickup::MetabolAmmo => {
+                                    if let Some(mut ammo) =
+                                        entity_store.metabol_meter.get(&id).cloned()
+                                    {
+                                        ammo.value = ammo.max;
+                                        messages.change(insert::metabol_meter(id, ammo));
+                                        messages.remove(*pickup_id);
+                                    }
+                                }
+
                                 Pickup::Health => {
                                     if let Some(mut health) =
                                         entity_store.health_meter.get(&id).cloned()

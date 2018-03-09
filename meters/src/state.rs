@@ -661,6 +661,35 @@ impl State {
         }
     }
 
+    fn use_metabol(&mut self) -> Result<(), Alert> {
+        let mut metabol = self.world
+            .entity_store
+            .metabol_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+        if metabol.value > 0 {
+            metabol.value -= 1;
+            self.messages
+                .change(insert::metabol_meter(self.player_id, metabol));
+
+            let entity_coord = self.world
+                .entity_store
+                .coord
+                .get(&self.player_id)
+                .cloned()
+                .unwrap();
+
+            for direction in CardinalDirections {
+                let start_coord = entity_coord + direction.coord();
+                let id = self.world.id_allocator.allocate();
+                common_animations::metabol_wave(id, start_coord, true, direction, 8, &mut self.messages);
+            }
+            Ok(())
+        } else {
+            Err(Alert::NoAmmo)
+        }
+    }
     fn use_medkit(&mut self) -> Result<(), Alert> {
         let mut medkit = self.world
             .entity_store
@@ -704,6 +733,7 @@ impl State {
                     None => self.walk(direction),
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
+                    Some(ActiveMeterType::Metabol) => return None,
                     Some(ActiveMeterType::RailGun) => {
                         if let Err(alert) = self.use_rail_gun(direction) {
                             self.selected_meter = None;
@@ -723,6 +753,9 @@ impl State {
                         ActiveMeterType::Medkit => if let Err(alert) = self.use_medkit() {
                             return Some(Event::External(ExternalEvent::Alert(alert)));
                         },
+                        ActiveMeterType::Metabol => if let Err(alert) = self.use_metabol() {
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        }
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
                             return Some(Event::External(ExternalEvent::Alert(Alert::RailgunWhichDirection)));
@@ -859,6 +892,7 @@ impl State {
                 if countdown == 0 {
                     if let Some(&transform) = self.world.entity_store.transform.get(&id) {
                         if let Some(&coord) = self.world.entity_store.coord.get(&id) {
+                            self.messages.change(remove::delayed_transform(id));
                             match transform {
                                 Transform::Chrysalis => {
                                     prototypes::chrysalis(

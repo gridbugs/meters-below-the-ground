@@ -153,7 +153,10 @@ impl GoalState {
                         if let Some(countdown_max) = entity_store.countdown_max.get(id).cloned() {
                             f(GoalMeterInfo {
                                 typ: GoalMeterType::SuperEggHealth,
-                                meter: Meter::new(countdown, countdown_max),
+                                meter: Meter {
+                                    value: countdown,
+                                    max: countdown_max,
+                                },
                             })
                         }
                     }

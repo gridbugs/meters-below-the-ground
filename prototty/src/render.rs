@@ -16,6 +16,7 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::SuperEgg
         | Tile::Queen
         | Tile::Bullet
+        | Tile::MetabolWave
         | Tile::RailGunShotHorizontal
         | Tile::RailGunShotVertical => false,
         Tile::Wall
@@ -27,6 +28,7 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::AmmoPickup
         | Tile::HealthPickup
         | Tile::KevlarPickup
+        | Tile::MetabolAmmoPickup
         | Tile::BeaconActive
         | Tile::BeaconInactive
         | Tile::RailGunAmmoPickup => true,
@@ -35,6 +37,11 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
 
 pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
     let (ch, mut text_info) = match tile_info.tile {
+        Tile::MetabolWave => (
+            '.', // TODO this is a hack
+            TextInfo::default()
+                .background_colour(Rgb24::new(127, 0, 0)),
+        ),
         Tile::Player => (
             '@',
             TextInfo::default()
@@ -151,6 +158,12 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                 .bold()
                 .foreground_colour(Rgb24::new(150, 200, 50)),
         ),
+        Tile::MetabolAmmoPickup => (
+            '§',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(127, 0, 0)),
+        ),
         Tile::RailGunShotHorizontal => (
             '═',
             TextInfo::default()
@@ -193,15 +206,34 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
         text_info.foreground_colour = Some(Rgb24::new(255, 0, 0));
     } else if let Some(health_meter) = tile_info.health_meter {
         if health_meter.value == 1 && health_meter.max > 1 {
-            text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
+            if tile_info.delayed_transform {
+                text_info.foreground_colour = Some(Rgb24::new(0, 0, 0));
+            } else {
+                text_info.foreground_colour = Some(Rgb24::new(127, 0, 0));
+            }
         } else {
             if health_meter.value == 2 {
                 match tile_info.tile {
-                    Tile::Beetoid => text_info.foreground_colour = Some(Rgb24::new(190, 50, 0)),
+                    Tile::Beetoid => {
+                        text_info.foreground_colour = Some(Rgb24::new(190, 50, 0));
+                    }
                     Tile::Egg => text_info.foreground_colour = Some(Rgb24::new(190, 190, 0)),
                     _ => (),
                 }
             }
+        }
+    }
+
+    if tile_info.delayed_transform {
+        match tile_info.tile {
+            Tile::SuperEgg
+                | Tile::Chrysalis
+                | Tile::Egg
+                | Tile::Larvae => {
+
+                    text_info.background_colour = Some(Rgb24::new(127, 0, 0));
+                }
+            _ => (),
         }
     }
 
@@ -219,6 +251,5 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             _ => (),
         }
     }
-
     (ch, text_info)
 }

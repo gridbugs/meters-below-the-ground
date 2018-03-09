@@ -301,7 +301,11 @@ impl<S: Storage> View<App<S>> for AppView {
                                 if visibility == Visibility::Visible
                                     || render::render_when_non_visible(tile_info.tile)
                                 {
-                                    self.glossary.insert(*tile_info);
+                                    let mut tile_info = *tile_info;
+                                    if let Some(countdown) = tile_info.countdown.as_mut() {
+                                        *countdown = ::std::cmp::min(*countdown, 2); // fuck
+                                    }
+                                    self.glossary.insert(tile_info);
                                 }
                             }
                         }

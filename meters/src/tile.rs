@@ -26,4 +26,6 @@ pub enum Tile {
     KevlarPickup,
     BeaconInactive,
     BeaconActive,
+    MetabolWave,
+    MetabolAmmoPickup,
 }

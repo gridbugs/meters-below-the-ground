@@ -458,6 +458,12 @@ pub fn populate<R: Rng>(
         })
         .collect::<Vec<_>>();
 
+    for _ in 0..2 {
+        if let Some(coord) = floor_coords.pop() {
+            prototypes::metabol_ammo_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
     for _ in 0..3 {
         if let Some(coord) = floor_coords.pop() {
             prototypes::kevlar_pickup(id_allocator.allocate(), coord, messages);

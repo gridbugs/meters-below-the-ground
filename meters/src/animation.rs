@@ -109,14 +109,16 @@ impl Animation {
                 }
             }
             AnimationState::TemporaryEntity(prototype, remaining) => {
-                let id = prototype.instantiate(messages);
-
-                messages.animate(Animation::new(
-                    AnimationState::RemoveEntity(id, remaining - period),
-                    self.channel,
-                ));
-
-                AnimationStatus::continuing(self.channel)
+                if remaining > period {
+                    let id = prototype.instantiate(messages);
+                    messages.animate(Animation::new(
+                            AnimationState::RemoveEntity(id, remaining - period),
+                            self.channel,
+                            ));
+                    AnimationStatus::continuing(self.channel)
+                } else {
+                    AnimationStatus::Finished
+                }
             }
             AnimationState::Slide {
                 id,

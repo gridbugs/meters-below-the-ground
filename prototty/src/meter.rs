@@ -8,6 +8,7 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
     let colour = match typ {
         MeterType::Gun => Rgb24::new(150, 200, 50),
         MeterType::Medkit => colours::GREEN,
+        MeterType::Metabol => Rgb24::new(127, 0, 0),
         MeterType::Health => colours::BRIGHT_RED,
         MeterType::Stamina => colours::BRIGHT_BLUE,
         MeterType::Kevlar => Rgb24::new(255, 127, 0),
@@ -40,13 +41,14 @@ pub struct MeterView {
 
 pub fn meter_name(typ: MeterType) -> &'static str {
     match typ {
-        MeterType::Gun => "Quadgun",
-        MeterType::Medkit => "Medkit",
-        MeterType::Health => "Health",
-        MeterType::Stamina => "Stamina",
-        MeterType::Kevlar => "Armour",
-        MeterType::RailGun => "Railgun",
-        MeterType::Compass => "Compass",
+        MeterType::Gun => "Quadgun - shoot in 4 directions at once",
+        MeterType::Medkit => "Medkit - use to heal, recharges over time",
+        MeterType::Metabol => "Metabol - delay transformations of nearby enemies",
+        MeterType::Health => "Health - be alive",
+        MeterType::Stamina => "Stamina - spend to punch, recharges over time",
+        MeterType::Kevlar => "Armour - chance to negate damage",
+        MeterType::RailGun => "Railgun - shoot enemies in line",
+        MeterType::Compass => "Compass - know the distance to the nearest goal",
     }
 }
 
@@ -68,6 +70,9 @@ impl MeterView {
             }
             ActiveMeterType::Medkit => {
                 write!(self.scratch, "{:1$}", "Medkit", self.name_padding).unwrap()
+            }
+            ActiveMeterType::Metabol => {
+                write!(self.scratch, "{:1$}", "Metabol", self.name_padding).unwrap()
             }
             ActiveMeterType::RailGun => {
                 write!(self.scratch, "{:1$}", "Railgun", self.name_padding).unwrap()
