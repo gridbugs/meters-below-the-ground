@@ -13,6 +13,7 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
         MeterType::Stamina => colours::BRIGHT_BLUE,
         MeterType::Kevlar => Rgb24::new(255, 127, 0),
         MeterType::RailGun => Rgb24::new(0, 255, 255),
+        MeterType::Blink => Rgb24::new(127, 63, 255),
         MeterType::Compass => Rgb24::new(255, 255, 0),
     };
     TextInfo {
@@ -48,6 +49,7 @@ pub fn meter_name(typ: MeterType) -> &'static str {
         MeterType::Stamina => "Stamina - spend to punch, recharges over time",
         MeterType::Kevlar => "Armour - chance to negate damage",
         MeterType::RailGun => "Railgun - shoot enemies in line",
+        MeterType::Blink => "Blink - teleport a short distance",
         MeterType::Compass => "Compass - know the distance to the nearest goal",
     }
 }
@@ -76,6 +78,9 @@ impl MeterView {
             }
             ActiveMeterType::RailGun => {
                 write!(self.scratch, "{:1$}", "Railgun", self.name_padding).unwrap()
+            }
+            ActiveMeterType::Blink => {
+                write!(self.scratch, "{:1$}", "Blink", self.name_padding).unwrap()
             }
         }
     }
@@ -106,7 +111,7 @@ impl MeterView {
                 write!(self.scratch, "{:1$}", "Metres", self.name_padding).unwrap()
             }
             GoalMeterType::SuperEggHealth => {
-                write!(self.scratch, "{:1$}", "SuperEgg", self.name_padding).unwrap()
+                write!(self.scratch, "{:1$}", "Hatching", self.name_padding).unwrap()
             }
         }
     }

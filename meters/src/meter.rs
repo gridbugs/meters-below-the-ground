@@ -16,6 +16,7 @@ pub enum MeterType {
     Kevlar,
     Compass,
     Metabol,
+    Blink,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -24,6 +25,7 @@ pub enum ActiveMeterType {
     RailGun,
     Medkit,
     Metabol,
+    Blink,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -52,6 +54,7 @@ impl From<ActiveMeterType> for MeterType {
             ActiveMeterType::Gun => MeterType::Gun,
             ActiveMeterType::RailGun => MeterType::RailGun,
             ActiveMeterType::Medkit => MeterType::Medkit,
+            ActiveMeterType::Blink => MeterType::Blink,
             ActiveMeterType::Metabol => MeterType::Metabol,
         }
     }
@@ -73,6 +76,7 @@ impl MeterType {
         match component_type {
             ComponentType::GunMeter => Some(MeterType::Gun),
             ComponentType::MedkitMeter => Some(MeterType::Medkit),
+            ComponentType::BlinkMeter => Some(MeterType::Blink),
             ComponentType::MetabolMeter => Some(MeterType::Metabol),
             ComponentType::StaminaMeter => Some(MeterType::Stamina),
             ComponentType::RailGunMeter => Some(MeterType::RailGun),
@@ -87,6 +91,7 @@ impl MeterType {
             MeterType::Gun => ActiveOrPassive::Active(ActiveMeterType::Gun),
             MeterType::RailGun => ActiveOrPassive::Active(ActiveMeterType::RailGun),
             MeterType::Medkit => ActiveOrPassive::Active(ActiveMeterType::Medkit),
+            MeterType::Blink => ActiveOrPassive::Active(ActiveMeterType::Blink),
             MeterType::Metabol => ActiveOrPassive::Active(ActiveMeterType::Metabol),
             MeterType::Stamina => ActiveOrPassive::Passive(PassiveMeterType::Stamina),
             MeterType::Health => ActiveOrPassive::Passive(PassiveMeterType::Health),
@@ -112,6 +117,7 @@ impl MeterType {
             MeterType::Gun => 8,
             MeterType::RailGun => 8,
             MeterType::Medkit => 6,
+            MeterType::Blink => 8,
             MeterType::Metabol => 4,
             MeterType::Stamina => 6,
             MeterType::Health => 10,
@@ -126,6 +132,7 @@ impl MeterType {
             MeterType::Gun => ComponentValue::GunMeter(Meter::new(initial, max)),
             MeterType::RailGun => ComponentValue::RailGunMeter(Meter::new(initial, max)),
             MeterType::Medkit => ComponentValue::MedkitMeter(Meter::new(initial, max)),
+            MeterType::Blink => ComponentValue::BlinkMeter(Meter::new(initial, max)),
             MeterType::Metabol => ComponentValue::MetabolMeter(Meter::new(initial, max)),
             MeterType::Stamina => ComponentValue::StaminaMeter(Meter::new(initial, max)),
             MeterType::Health => ComponentValue::HealthMeter(Meter::full(max)),
@@ -138,6 +145,7 @@ impl MeterType {
             MeterType::Gun => true,
             MeterType::RailGun => true,
             MeterType::Medkit => true,
+            MeterType::Blink => true,
             MeterType::Metabol => true,
             MeterType::Stamina => false,
             MeterType::Health => false,
@@ -150,6 +158,7 @@ impl MeterType {
             MeterType::Gun => insert::gun_meter(id, meter),
             MeterType::RailGun => insert::rail_gun_meter(id, meter),
             MeterType::Medkit => insert::medkit_meter(id, meter),
+            MeterType::Blink => insert::blink_meter(id, meter),
             MeterType::Metabol => insert::metabol_meter(id, meter),
             MeterType::Health => insert::health_meter(id, meter),
             MeterType::Stamina => insert::stamina_meter(id, meter),
@@ -161,6 +170,10 @@ impl MeterType {
         match self {
             MeterType::Gun => None,
             MeterType::RailGun => None,
+            MeterType::Blink => Some(PeriodicChange {
+                turns: 0,
+                change: 1,
+            }),
             MeterType::Medkit => Some(PeriodicChange {
                 turns: 0,
                 change: 1,
@@ -183,6 +196,7 @@ impl From<MeterType> for ComponentType {
             MeterType::Gun => ComponentType::GunMeter,
             MeterType::RailGun => ComponentType::RailGunMeter,
             MeterType::Medkit => ComponentType::MedkitMeter,
+            MeterType::Blink => ComponentType::BlinkMeter,
             MeterType::Metabol => ComponentType::MetabolMeter,
             MeterType::Health => ComponentType::HealthMeter,
             MeterType::Stamina => ComponentType::StaminaMeter,
@@ -201,6 +215,7 @@ pub const ALL_METER_TYPES: &[MeterType] = &[
     MeterType::Stamina,
     MeterType::Kevlar,
     MeterType::Compass,
+    MeterType::Blink,
 ];
 
 pub struct PeriodicChange {
@@ -235,6 +250,7 @@ impl Meter {
             ComponentRef::RailGunMeter(meter) => Some(*meter),
             ComponentRef::KevlarMeter(meter) => Some(*meter),
             ComponentRef::MedkitMeter(meter) => Some(*meter),
+            ComponentRef::BlinkMeter(meter) => Some(*meter),
             ComponentRef::MetabolMeter(meter) => Some(*meter),
             ComponentRef::CompassMeter(meter) => Some(*meter),
             _ => None,

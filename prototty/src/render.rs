@@ -238,15 +238,16 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
     }
 
     if let Some(1) = tile_info.countdown {
+        let x = 31;
         match tile_info.tile {
             Tile::Egg => {
-                text_info.background_colour = Some(Rgb24::new(0, 63, 0));
+                text_info.background_colour = Some(Rgb24::new(0, x, 0));
             }
             Tile::Chrysalis => {
-                text_info.background_colour = Some(Rgb24::new(0, 63, 63));
+                text_info.background_colour = Some(Rgb24::new(0, x, x));
             }
             Tile::SuperEgg => {
-                text_info.background_colour = Some(Rgb24::new(63, 0, 63));
+                text_info.background_colour = Some(Rgb24::new(x, 0, x));
             }
             _ => (),
         }

@@ -465,11 +465,20 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
             TextInfo::default().bold().foreground_colour(colours::RED),
             "Out of Medkits!",
         ),
+        Alert::NoBlink => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "Out of Blink!",
+        ),
         Alert::NoSuchMeter => (
             TextInfo::default().bold().foreground_colour(colours::RED),
             "No such meter!",
         ),
-        Alert::WalkIntoWall => (Default::default(), "That location is impassible."),
+        Alert::WalkIntoWall => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "That location is impassible."),
+        Alert::BlinkIntoNonEmpty => (
+            TextInfo::default().bold().foreground_colour(colours::RED),
+            "Destination is impassible."),
         Alert::ArmourBlock => (
             TextInfo::default()
                 .bold()
@@ -479,6 +488,10 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
         Alert::RailgunWhichDirection => (
             TextInfo::default().bold().foreground_colour(Rgb24::new(0, 255, 255)),
             "Select a direction to fire.",
+        ),
+        Alert::BlinkWhichDirection => (
+            TextInfo::default().bold().foreground_colour(Rgb24::new(127, 63, 255)),
+            "Select a direction to blink.",
         ),
         Alert::BeaconActive => (
             TextInfo::default().bold().foreground_colour(Rgb24::new(255, 0, 0)),

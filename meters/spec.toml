@@ -25,6 +25,7 @@ stamina_meter = { type = '::meter::Meter', storage = 'hash' }
 compass_meter = { type = '::meter::Meter', storage = 'hash' }
 stamina_tick = { type = 'i32', storage = 'btree' }
 metabol_meter = { type = '::meter::Meter', storage = 'hash' }
+blink_meter = { type = '::meter::Meter', storage = 'hash' }
 opacity = { type = 'u8', storage = 'vector' }
 pickup = { type = '::pickup::Pickup', storage = 'hash' }
 transform = { type = '::transform::Transform', storage = 'hash' }

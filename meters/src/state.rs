@@ -718,22 +718,78 @@ impl State {
         }
     }
 
-    fn walk(&mut self, direction: CardinalDirection) {
+    fn walk(&mut self, direction: CardinalDirection) -> Result<(), Alert> {
         let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
         let next = current + direction.coord();
+
+        if let Some(sh_cell) = self.world.spatial_hash.get(next) {
+            let door_cell = sh_cell.door_count > 0;
+            let solid_cell = sh_cell.solid_count > 0 && !door_cell;
+            if solid_cell {
+                return Err(Alert::WalkIntoWall);
+            }
+        }
+
         self.messages
             .changes
             .push(insert::coord(self.player_id, next));
+
+        Ok(())
+    }
+
+    fn blink(&mut self, direction: CardinalDirection) -> Result<(), Alert> {
+        let mut blink = self.world
+            .entity_store
+            .blink_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+
+        if blink.value > 0 {
+            blink.value -= 2; // XXX
+            self.messages
+                .change(insert::blink_meter(self.player_id, blink));
+
+            let current = *self.world.entity_store.coord.get(&self.player_id).unwrap();
+            let next = current + direction.coord() + direction.coord();
+
+            if let Some(sh_cell) = self.world.spatial_hash.get(next) {
+                let door_cell = sh_cell.door_count > 0;
+                let npc_cell = !sh_cell.npc_set.is_empty();
+                let solid_cell = sh_cell.solid_count > 0 && !door_cell;
+                if solid_cell || npc_cell {
+                    return Err(Alert::BlinkIntoNonEmpty);
+                }
+            }
+
+            self.messages
+                .changes
+                .push(insert::coord(self.player_id, next));
+
+            Ok(())
+        } else {
+            Err(Alert::NoBlink)
+        }
     }
 
     fn player_turn(&mut self, input: Input) -> Option<Event> {
         match input {
             Input::Direction(direction) => {
                 match self.selected_meter {
-                    None => self.walk(direction),
+                    None => {
+                        if let Err(alert) = self.walk(direction) {
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        }
+                    }
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
                     Some(ActiveMeterType::Metabol) => return None,
+                    Some(ActiveMeterType::Blink) => {
+                        if let Err(alert) = self.blink(direction) {
+                            self.selected_meter = None;
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        }
+                    }
                     Some(ActiveMeterType::RailGun) => {
                         if let Err(alert) = self.use_rail_gun(direction) {
                             self.selected_meter = None;
@@ -755,6 +811,10 @@ impl State {
                         },
                         ActiveMeterType::Metabol => if let Err(alert) = self.use_metabol() {
                             return Some(Event::External(ExternalEvent::Alert(alert)));
+                        }
+                        ActiveMeterType::Blink => {
+                            self.selected_meter = Some(meter_type);
+                            return Some(Event::External(ExternalEvent::Alert(Alert::BlinkWhichDirection)));
                         }
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
@@ -793,6 +853,8 @@ impl State {
             &mut self.swap_messages,
             &mut self.rng,
         );
+
+        self.process_turn_events();
 
         ret
     }
@@ -1069,10 +1131,9 @@ impl State {
                 }
                 TurnState::Npcs => {
                     if let Some(event) = self.all_npc_turns() {
-                        self.process_turn_events();
                         Some(event)
                     } else {
-                        self.process_turn_events()
+                        None
                     }
                 }
                 TurnState::FastNpcs => self.fast_npc_turns(),
