@@ -28,4 +28,6 @@ pub enum Tile {
     BeaconActive,
     MetabolWave,
     MetabolAmmoPickup,
+    PushWave,
+    PushAmmoPickup,
 }

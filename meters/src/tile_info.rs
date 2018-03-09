@@ -10,6 +10,7 @@ pub struct TileInfo {
     pub health_meter: Option<Meter>,
     pub countdown: Option<i32>,
     pub delayed_transform: bool,
+    pub pushed: bool,
 }
 
 impl TileInfo {
@@ -22,6 +23,7 @@ impl TileInfo {
             health_meter: None,
             countdown: None,
             delayed_transform: false,
+            pushed: false,
         }
     }
     pub fn with_health(tile: Tile, depth: i32, health_meter: Meter) -> Self {
@@ -33,6 +35,7 @@ impl TileInfo {
             health_meter: Some(health_meter),
             countdown: None,
             delayed_transform: false,
+            pushed: false,
         }
     }
 }

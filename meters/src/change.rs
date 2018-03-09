@@ -63,6 +63,30 @@ impl ChangeContext {
                 world.entity_components.update(&change);
                 world.entity_store.commit(change);
             }
+
+            if world.entity_store.push_wave.is_empty() {
+                let mut pushed = world.entity_store.pushed.iter().collect::<Vec<_>>();
+                pushed.sort_by(|a, b| {
+                    b.1.distance.cmp(&a.1.distance)
+                });
+                for (id, pushed) in pushed.drain(..) {
+                    if let Some(&coord) = world.entity_store.coord.get(id) {
+                        let dest = coord + pushed.direction.coord();
+                        messages.change(insert::coord(*id, dest));
+                        if pushed.range == 0 {
+                            messages.change(remove::pushed(*id));
+                        } else {
+                            let mut pushed = *pushed;
+                            pushed.range -= 1;
+                            messages.change(insert::pushed(*id, pushed));
+                        }
+                        if let Some(mut tile) = world.entity_store.tile_info.get(id).cloned() {
+                            tile.pushed = false;
+                            messages.change(insert::tile_info(*id, tile));
+                        }
+                    }
+                }
+            }
         }
 
         for id in self.ids_to_free.drain() {

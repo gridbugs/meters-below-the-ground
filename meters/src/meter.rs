@@ -17,6 +17,7 @@ pub enum MeterType {
     Compass,
     Metabol,
     Blink,
+    Push,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -25,6 +26,7 @@ pub enum ActiveMeterType {
     RailGun,
     Medkit,
     Metabol,
+    Push,
     Blink,
 }
 
@@ -56,6 +58,7 @@ impl From<ActiveMeterType> for MeterType {
             ActiveMeterType::Medkit => MeterType::Medkit,
             ActiveMeterType::Blink => MeterType::Blink,
             ActiveMeterType::Metabol => MeterType::Metabol,
+            ActiveMeterType::Push => MeterType::Push,
         }
     }
 }
@@ -78,6 +81,7 @@ impl MeterType {
             ComponentType::MedkitMeter => Some(MeterType::Medkit),
             ComponentType::BlinkMeter => Some(MeterType::Blink),
             ComponentType::MetabolMeter => Some(MeterType::Metabol),
+            ComponentType::PushMeter => Some(MeterType::Push),
             ComponentType::StaminaMeter => Some(MeterType::Stamina),
             ComponentType::RailGunMeter => Some(MeterType::RailGun),
             ComponentType::HealthMeter => Some(MeterType::Health),
@@ -93,6 +97,7 @@ impl MeterType {
             MeterType::Medkit => ActiveOrPassive::Active(ActiveMeterType::Medkit),
             MeterType::Blink => ActiveOrPassive::Active(ActiveMeterType::Blink),
             MeterType::Metabol => ActiveOrPassive::Active(ActiveMeterType::Metabol),
+            MeterType::Push => ActiveOrPassive::Active(ActiveMeterType::Push),
             MeterType::Stamina => ActiveOrPassive::Passive(PassiveMeterType::Stamina),
             MeterType::Health => ActiveOrPassive::Passive(PassiveMeterType::Health),
             MeterType::Kevlar => ActiveOrPassive::Passive(PassiveMeterType::Kevlar),
@@ -119,6 +124,7 @@ impl MeterType {
             MeterType::Medkit => 6,
             MeterType::Blink => 8,
             MeterType::Metabol => 4,
+            MeterType::Push => 4,
             MeterType::Stamina => 6,
             MeterType::Health => 10,
             MeterType::Kevlar => 10,
@@ -134,6 +140,7 @@ impl MeterType {
             MeterType::Medkit => ComponentValue::MedkitMeter(Meter::new(initial, max)),
             MeterType::Blink => ComponentValue::BlinkMeter(Meter::new(initial, max)),
             MeterType::Metabol => ComponentValue::MetabolMeter(Meter::new(initial, max)),
+            MeterType::Push => ComponentValue::PushMeter(Meter::new(initial, max)),
             MeterType::Stamina => ComponentValue::StaminaMeter(Meter::new(initial, max)),
             MeterType::Health => ComponentValue::HealthMeter(Meter::full(max)),
             MeterType::Kevlar => ComponentValue::KevlarMeter(Meter::new(initial, max)),
@@ -147,6 +154,7 @@ impl MeterType {
             MeterType::Medkit => true,
             MeterType::Blink => true,
             MeterType::Metabol => true,
+            MeterType::Push => true,
             MeterType::Stamina => false,
             MeterType::Health => false,
             MeterType::Kevlar => false,
@@ -160,6 +168,7 @@ impl MeterType {
             MeterType::Medkit => insert::medkit_meter(id, meter),
             MeterType::Blink => insert::blink_meter(id, meter),
             MeterType::Metabol => insert::metabol_meter(id, meter),
+            MeterType::Push => insert::push_meter(id, meter),
             MeterType::Health => insert::health_meter(id, meter),
             MeterType::Stamina => insert::stamina_meter(id, meter),
             MeterType::Kevlar => insert::kevlar_meter(id, meter),
@@ -185,6 +194,7 @@ impl MeterType {
             }),
             MeterType::Kevlar => None,
             MeterType::Metabol => None,
+            MeterType::Push => None,
             MeterType::Compass => None,
         }
     }
@@ -198,6 +208,7 @@ impl From<MeterType> for ComponentType {
             MeterType::Medkit => ComponentType::MedkitMeter,
             MeterType::Blink => ComponentType::BlinkMeter,
             MeterType::Metabol => ComponentType::MetabolMeter,
+            MeterType::Push => ComponentType::PushMeter,
             MeterType::Health => ComponentType::HealthMeter,
             MeterType::Stamina => ComponentType::StaminaMeter,
             MeterType::Kevlar => ComponentType::KevlarMeter,
@@ -211,6 +222,7 @@ pub const ALL_METER_TYPES: &[MeterType] = &[
     MeterType::RailGun,
     MeterType::Medkit,
     MeterType::Metabol,
+    MeterType::Push,
     MeterType::Health,
     MeterType::Stamina,
     MeterType::Kevlar,
@@ -252,6 +264,7 @@ impl Meter {
             ComponentRef::MedkitMeter(meter) => Some(*meter),
             ComponentRef::BlinkMeter(meter) => Some(*meter),
             ComponentRef::MetabolMeter(meter) => Some(*meter),
+            ComponentRef::PushMeter(meter) => Some(*meter),
             ComponentRef::CompassMeter(meter) => Some(*meter),
             _ => None,
         }

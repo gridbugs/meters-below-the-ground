@@ -14,7 +14,8 @@ fn meter_text_info(typ: MeterType) -> TextInfo {
         MeterType::Kevlar => Rgb24::new(255, 127, 0),
         MeterType::RailGun => Rgb24::new(0, 255, 255),
         MeterType::Blink => Rgb24::new(127, 63, 255),
-        MeterType::Compass => Rgb24::new(255, 255, 0),
+        MeterType::Compass => Rgb24::new(255, 63, 255),
+        MeterType::Push => Rgb24::new(255, 255, 0),
     };
     TextInfo {
         foreground_colour: Some(colour),
@@ -45,6 +46,7 @@ pub fn meter_name(typ: MeterType) -> &'static str {
         MeterType::Gun => "Quadgun - shoot in 4 directions at once",
         MeterType::Medkit => "Medkit - use to heal, recharges over time",
         MeterType::Metabol => "Metabol - delay transformations of nearby enemies",
+        MeterType::Push => "Push - push nearby enemies away from you",
         MeterType::Health => "Health - be alive",
         MeterType::Stamina => "Stamina - spend to punch, recharges over time",
         MeterType::Kevlar => "Armour - chance to negate damage",
@@ -75,6 +77,9 @@ impl MeterView {
             }
             ActiveMeterType::Metabol => {
                 write!(self.scratch, "{:1$}", "Metabol", self.name_padding).unwrap()
+            }
+            ActiveMeterType::Push => {
+                write!(self.scratch, "{:1$}", "Push", self.name_padding).unwrap()
             }
             ActiveMeterType::RailGun => {
                 write!(self.scratch, "{:1$}", "Railgun", self.name_padding).unwrap()

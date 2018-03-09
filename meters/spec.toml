@@ -26,13 +26,16 @@ compass_meter = { type = '::meter::Meter', storage = 'hash' }
 stamina_tick = { type = 'i32', storage = 'btree' }
 metabol_meter = { type = '::meter::Meter', storage = 'hash' }
 blink_meter = { type = '::meter::Meter', storage = 'hash' }
+push_meter = { type = '::meter::Meter', storage = 'hash' }
 opacity = { type = 'u8', storage = 'vector' }
 pickup = { type = '::pickup::Pickup', storage = 'hash' }
 transform = { type = '::transform::Transform', storage = 'hash' }
 countdown = { type = 'i32', storage = 'hash' }
 countdown_max = { type = 'i32', storage = 'hash' }
 delayed_transform = { storage = 'hash' }
+pushed = { type = '::pushed::PushedInfo', storage = 'hash' }
 metabol_wave = { type = '::wave::Wave', storage = 'hash' }
+push_wave = { type = '::wave::Wave', storage = 'hash' }
 beacon = { type = '::beacon::BeaconStatus', storage = 'btree' }
 
 [spatial_hash]

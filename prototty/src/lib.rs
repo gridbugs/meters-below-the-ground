@@ -305,6 +305,7 @@ impl<S: Storage> View<App<S>> for AppView {
                                     if let Some(countdown) = tile_info.countdown.as_mut() {
                                         *countdown = ::std::cmp::min(*countdown, 2); // fuck
                                     }
+                                    tile_info.pushed = false;
                                     self.glossary.insert(tile_info);
                                 }
                             }

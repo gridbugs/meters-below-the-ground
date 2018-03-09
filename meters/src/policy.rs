@@ -9,6 +9,7 @@ use direction::*;
 use alert::*;
 use beacon::*;
 use tile::*;
+use pushed::*;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -111,6 +112,37 @@ where
                     }
                 }
 
+                if let Some(mut wave) = entity_store.push_wave.get(&id).cloned() {
+                    if sh_cell.solid_count > 0 {
+                        return false;
+                    }
+                    if wave.range == 0 {
+                        return false;
+                    }
+
+                    let next_id = id_allocator.allocate();
+                    common_animations::push_wave(
+                        next_id,
+                        coord + wave.direction.coord(),
+                        wave.leader,
+                        wave.direction,
+                        wave.range - 1,
+                        messages,
+                    );
+                    if wave.leader {
+                        let direction = wave.direction.left90();
+                        let next_id = id_allocator.allocate();
+                        common_animations::push_wave(
+                            next_id,
+                            coord + direction.coord(),
+                            false,
+                            direction,
+                            wave.range - 1,
+                            messages,
+                        );
+                    }
+                }
+
                 if let Some(npc_id) = dest_npc {
                     if entity_store.metabol_wave.contains_key(&id) {
                         if let Some(countdown) = entity_store.countdown.get(npc_id).cloned() {
@@ -118,6 +150,42 @@ where
                             messages.change(insert::countdown(*npc_id, countdown + 20));
                             if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned() {
                                 tile_info.delayed_transform = true;
+                                messages.change(insert::tile_info(*npc_id, tile_info));
+                            }
+                        }
+                    }
+
+                    if let Some(wave) = entity_store.push_wave.get(&id) {
+
+                        let player_id = entity_store.player.iter().next().unwrap();
+                        let player_coord = entity_store.coord.get(player_id).cloned().unwrap();
+
+                        if let Some(npc_coord) = entity_store.coord.get(&npc_id).cloned() {
+
+                            let delta = npc_coord - player_coord;
+
+                            let direction = if delta.x.abs() > delta.y.abs() {
+                                if delta.x > 0 {
+                                    CardinalDirection::East
+                                } else {
+                                    CardinalDirection::West
+                                }
+                            } else {
+                                if delta.y > 0 {
+                                    CardinalDirection::South
+                                } else {
+                                    CardinalDirection::North
+                                }
+                            };
+
+                            let pushed = PushedInfo {
+                                direction,
+                                distance: wave.range,
+                                range: 2,
+                            };
+                            messages.change(insert::pushed(*npc_id, pushed));
+                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned() {
+                                tile_info.pushed = true;
                                 messages.change(insert::tile_info(*npc_id, tile_info));
                             }
                         }
@@ -283,7 +351,15 @@ where
                                         messages.remove(*pickup_id);
                                     }
                                 }
-
+                                Pickup::PushAmmo => {
+                                    if let Some(mut ammo) =
+                                        entity_store.push_meter.get(&id).cloned()
+                                    {
+                                        ammo.value = ammo.max;
+                                        messages.change(insert::push_meter(id, ammo));
+                                        messages.remove(*pickup_id);
+                                    }
+                                }
                                 Pickup::Health => {
                                     if let Some(mut health) =
                                         entity_store.health_meter.get(&id).cloned()

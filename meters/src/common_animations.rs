@@ -39,6 +39,23 @@ pub fn metabol_wave<M: PushMessages>(
     );
 }
 
+pub fn push_wave<M: PushMessages>(
+    id: EntityId,
+    coord: Coord,
+    leader: bool,
+    direction: CardinalDirection,
+    range: i32,
+    messages: &mut M,
+) {
+    let wave = Prototype::PushWave(id, coord, leader, direction, range);
+    temporary_at_coord(
+        coord,
+        wave,
+        Duration::from_millis(timing::WAVE_MILLIS),
+        messages,
+    );
+}
+
 pub fn rail_gun_shot<M: PushMessages>(
     id: EntityId,
     coord: Coord,

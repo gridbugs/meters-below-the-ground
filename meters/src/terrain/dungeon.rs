@@ -460,6 +460,12 @@ pub fn populate<R: Rng>(
 
     for _ in 0..2 {
         if let Some(coord) = floor_coords.pop() {
+            prototypes::push_ammo_pickup(id_allocator.allocate(), coord, messages);
+        }
+    }
+
+    for _ in 0..2 {
+        if let Some(coord) = floor_coords.pop() {
             prototypes::metabol_ammo_pickup(id_allocator.allocate(), coord, messages);
         }
     }

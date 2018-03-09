@@ -661,6 +661,35 @@ impl State {
         }
     }
 
+    fn use_push(&mut self) -> Result<(), Alert> {
+        let mut push = self.world
+            .entity_store
+            .push_meter
+            .get(&self.player_id)
+            .cloned()
+            .unwrap();
+        if push.value > 0 {
+            push.value -= 1;
+            self.messages
+                .change(insert::push_meter(self.player_id, push));
+
+            let entity_coord = self.world
+                .entity_store
+                .coord
+                .get(&self.player_id)
+                .cloned()
+                .unwrap();
+
+            for direction in CardinalDirections {
+                let start_coord = entity_coord + direction.coord();
+                let id = self.world.id_allocator.allocate();
+                common_animations::push_wave(id, start_coord, true, direction, 8, &mut self.messages);
+            }
+            Ok(())
+        } else {
+            Err(Alert::NoAmmo)
+        }
+    }
     fn use_metabol(&mut self) -> Result<(), Alert> {
         let mut metabol = self.world
             .entity_store
@@ -784,6 +813,7 @@ impl State {
                     Some(ActiveMeterType::Gun) => return None,
                     Some(ActiveMeterType::Medkit) => return None,
                     Some(ActiveMeterType::Metabol) => return None,
+                    Some(ActiveMeterType::Push) => return None,
                     Some(ActiveMeterType::Blink) => {
                         if let Err(alert) = self.blink(direction) {
                             self.selected_meter = None;
@@ -810,6 +840,9 @@ impl State {
                             return Some(Event::External(ExternalEvent::Alert(alert)));
                         },
                         ActiveMeterType::Metabol => if let Err(alert) = self.use_metabol() {
+                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        }
+                        ActiveMeterType::Push => if let Err(alert) = self.use_push() {
                             return Some(Event::External(ExternalEvent::Alert(alert)));
                         }
                         ActiveMeterType::Blink => {

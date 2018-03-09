@@ -27,6 +27,7 @@ pub enum Prototype {
     Punch(EntityId, Coord, CardinalDirection),
     RailGunShot(EntityId, Coord, CardinalDirection),
     MetabolWave(EntityId, Coord, bool, CardinalDirection, i32),
+    PushWave(EntityId, Coord, bool, CardinalDirection, i32),
 }
 
 impl Prototype {
@@ -42,6 +43,10 @@ impl Prototype {
             }
             Prototype::MetabolWave(id, coord, leader, direction, range) => {
                 metabol_wave(id, coord, leader, direction, range, messages);
+                id
+            }
+            Prototype::PushWave(id, coord, leader, direction, range) => {
+                push_wave(id, coord, leader, direction, range, messages);
                 id
             }
         }
@@ -67,6 +72,7 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
     messages.change(insert::stamina_tick(id, 0));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::push_meter(id, Meter::full(4)));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -135,6 +141,7 @@ pub fn larvae<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mu
     messages.change(insert::health_meter(id, health));
     messages.change(insert::countdown(id, 20 + rng.gen::<i32>().abs() % 40));
     messages.change(insert::transform(id, Transform::Chrysalis));
+    messages.change(insert::collider(id));
 }
 
 pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -154,6 +161,7 @@ pub fn beetoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::with_health(Tile::Beetoid, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::collider(id));
 }
 
 pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -173,6 +181,7 @@ pub fn aracnoid<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
         TileInfo::with_health(Tile::Aracnoid, NPC_DEPTH, health),
     ));
     messages.change(insert::health_meter(id, health));
+    messages.change(insert::collider(id));
 }
 
 pub fn chrysalis<M: PushMessages, R: Rng>(
@@ -203,6 +212,7 @@ pub fn chrysalis<M: PushMessages, R: Rng>(
     } else {
         messages.change(insert::transform(id, Transform::Beetoid));
     }
+    messages.change(insert::collider(id));
 }
 
 pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M, rng: &mut R) {
@@ -224,6 +234,7 @@ pub fn egg<M: PushMessages, R: Rng>(id: EntityId, coord: Coord, messages: &mut M
     messages.change(insert::health_meter(id, health));
     messages.change(insert::countdown(id, 8 + rng.gen::<i32>().abs() % 30));
     messages.change(insert::transform(id, Transform::Larvae));
+    messages.change(insert::collider(id));
 }
 
 pub fn super_egg<M: PushMessages, R: Rng>(
@@ -252,6 +263,7 @@ pub fn super_egg<M: PushMessages, R: Rng>(
     messages.change(insert::countdown(id, max));
     messages.change(insert::countdown_max(id, max));
     messages.change(insert::transform(id, Transform::Queen));
+    messages.change(insert::collider(id));
 }
 
 pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: &mut M) {
@@ -276,6 +288,7 @@ pub fn queen<M: PushMessages>(id: EntityId, coord: Coord, boss: bool, messages: 
             health_meter: Some(health),
             countdown: None,
             delayed_transform: false,
+            pushed: false,
         },
     ));
     messages.change(insert::health_meter(id, health));
@@ -369,6 +382,15 @@ pub fn metabol_ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages
     ));
 }
 
+pub fn push_ammo_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
+    messages.change(insert::coord(id, coord));
+    messages.change(insert::pickup(id, Pickup::PushAmmo));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::PushAmmoPickup, PICKUP_DEPTH),
+    ));
+}
+
 pub fn kevlar_pickup<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     messages.change(insert::coord(id, coord));
     messages.change(insert::pickup(id, Pickup::Kevlar));
@@ -396,6 +418,19 @@ pub fn metabol_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, d
     messages.change(insert::tile_info(
         id,
         TileInfo::new(Tile::MetabolWave, WALL_DEPTH),
+    ));
+    messages.change(insert::coord(id, coord));
+}
+
+pub fn push_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
+    messages.change(insert::push_wave(id, Wave {
+        leader,
+        direction,
+        range,
+    }));
+    messages.change(insert::tile_info(
+        id,
+        TileInfo::new(Tile::PushWave, WALL_DEPTH),
     ));
     messages.change(insert::coord(id, coord));
 }

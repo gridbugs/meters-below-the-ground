@@ -17,6 +17,7 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::Queen
         | Tile::Bullet
         | Tile::MetabolWave
+        | Tile::PushWave
         | Tile::RailGunShotHorizontal
         | Tile::RailGunShotVertical => false,
         Tile::Wall
@@ -29,6 +30,7 @@ pub fn render_when_non_visible(tile: Tile) -> bool {
         | Tile::HealthPickup
         | Tile::KevlarPickup
         | Tile::MetabolAmmoPickup
+        | Tile::PushAmmoPickup
         | Tile::BeaconActive
         | Tile::BeaconInactive
         | Tile::RailGunAmmoPickup => true,
@@ -41,6 +43,11 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
             '.', // TODO this is a hack
             TextInfo::default()
                 .background_colour(Rgb24::new(127, 0, 0)),
+        ),
+        Tile::PushWave => (
+            '.', // TODO this is a hack
+            TextInfo::default()
+                .background_colour(Rgb24::new(255, 255, 0)),
         ),
         Tile::Player => (
             '@',
@@ -164,6 +171,12 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                 .bold()
                 .foreground_colour(Rgb24::new(127, 0, 0)),
         ),
+        Tile::PushAmmoPickup => (
+            '♣',
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 255, 0)),
+        ),
         Tile::RailGunShotHorizontal => (
             '═',
             TextInfo::default()
@@ -235,6 +248,10 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
                 }
             _ => (),
         }
+    }
+
+    if tile_info.pushed {
+        text_info.background_colour = Some(Rgb24::new(255, 255, 0));
     }
 
     if let Some(1) = tile_info.countdown {

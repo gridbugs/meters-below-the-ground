@@ -37,6 +37,7 @@ mod weapons;
 mod transform;
 mod beacon;
 mod wave;
+mod pushed;
 
 pub mod goal;
 pub mod input;

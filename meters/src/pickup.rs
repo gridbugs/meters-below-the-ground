@@ -5,4 +5,5 @@ pub enum Pickup {
     RailGunAmmo,
     Kevlar,
     MetabolAmmo,
+    PushAmmo,
 }
