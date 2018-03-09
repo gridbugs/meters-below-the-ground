@@ -41,13 +41,11 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
     let (ch, mut text_info) = match tile_info.tile {
         Tile::MetabolWave => (
             '.', // TODO this is a hack
-            TextInfo::default()
-                .background_colour(Rgb24::new(127, 0, 0)),
+            TextInfo::default().background_colour(Rgb24::new(127, 0, 0)),
         ),
         Tile::PushWave => (
             '.', // TODO this is a hack
-            TextInfo::default()
-                .background_colour(Rgb24::new(255, 255, 0)),
+            TextInfo::default().background_colour(Rgb24::new(255, 255, 0)),
         ),
         Tile::Player => (
             '@',
@@ -239,13 +237,9 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
 
     if tile_info.delayed_transform {
         match tile_info.tile {
-            Tile::SuperEgg
-                | Tile::Chrysalis
-                | Tile::Egg
-                | Tile::Larvae => {
-
-                    text_info.background_colour = Some(Rgb24::new(127, 0, 0));
-                }
+            Tile::SuperEgg | Tile::Chrysalis | Tile::Egg | Tile::Larvae => {
+                text_info.background_colour = Some(Rgb24::new(127, 0, 0));
+            }
             _ => (),
         }
     }
@@ -255,7 +249,7 @@ pub fn tile_text(tile_info: TileInfo) -> (char, TextInfo) {
     }
 
     if let Some(1) = tile_info.countdown {
-        let x = 31;
+        let x = 80;
         match tile_info.tile {
             Tile::Egg => {
                 text_info.background_colour = Some(Rgb24::new(0, x, 0));

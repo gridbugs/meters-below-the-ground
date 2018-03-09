@@ -41,7 +41,7 @@ mod render;
 const SAVE_PERIOD_MS: u64 = 10000;
 const SAVE_FILE: &'static str = "save";
 
-const GAME_OVER_MS: u64 = 1000;
+const GAME_OVER_MS: u64 = 4000;
 const GAME_WIDTH: u32 = 29;
 
 const GAME_TOP_PADDING: i32 = 5;
@@ -402,10 +402,40 @@ impl<S: Storage> View<App<S>> for AppView {
             },
             AppState::GameOver(message) => match message {
                 GameOverMessage::Lose => {
-                    StringView.view(&"You Died", offset, depth, grid);
+                    Decorated::new(
+                        TextInfoStringView,
+                        Align::new(
+                            self.title_screen_view.decorator.size,
+                            Alignment::Centre,
+                            Alignment::Centre,
+                        ),
+                    ).view(
+                        &(
+                            TextInfo::default().bold().foreground_colour(colours::RED),
+                            "You Died",
+                        ),
+                        offset,
+                        depth,
+                        grid,
+                    );
                 }
                 GameOverMessage::Win => {
-                    StringView.view(&"You Win!", offset, depth, grid);
+                    Decorated::new(
+                        TextInfoStringView,
+                        Align::new(
+                            self.title_screen_view.decorator.size,
+                            Alignment::Centre,
+                            Alignment::Centre,
+                        ),
+                    ).view(
+                        &(
+                            TextInfo::default().bold().foreground_colour(colours::GREEN),
+                            "You Escaped",
+                        ),
+                        offset,
+                        depth,
+                        grid,
+                    );
                 }
             },
         }
@@ -476,10 +506,12 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
         ),
         Alert::WalkIntoWall => (
             TextInfo::default().bold().foreground_colour(colours::RED),
-            "That location is impassible."),
+            "That location is impassible.",
+        ),
         Alert::BlinkIntoNonEmpty => (
             TextInfo::default().bold().foreground_colour(colours::RED),
-            "Destination is impassible."),
+            "Destination is impassible.",
+        ),
         Alert::ArmourBlock => (
             TextInfo::default()
                 .bold()
@@ -487,17 +519,23 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
             "Your armour absorbs the damage.",
         ),
         Alert::RailgunWhichDirection => (
-            TextInfo::default().bold().foreground_colour(Rgb24::new(0, 255, 255)),
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(0, 255, 255)),
             "Select a direction to fire.",
         ),
         Alert::BlinkWhichDirection => (
-            TextInfo::default().bold().foreground_colour(Rgb24::new(127, 63, 255)),
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(127, 63, 255)),
             "Select a direction to blink.",
         ),
         Alert::BeaconActive => (
-            TextInfo::default().bold().foreground_colour(Rgb24::new(255, 0, 0)),
+            TextInfo::default()
+                .bold()
+                .foreground_colour(Rgb24::new(255, 0, 0)),
             "EMERGENCY BEACON ACTIVE BEEP BEEP BEEP BEEP",
-        )
+        ),
     }
 }
 

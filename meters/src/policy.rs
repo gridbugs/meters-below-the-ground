@@ -90,25 +90,64 @@ where
                     }
 
                     let next_id = id_allocator.allocate();
-                    common_animations::metabol_wave(
-                        next_id,
-                        coord + wave.direction.coord(),
-                        wave.leader,
-                        wave.direction,
-                        wave.range - 1,
-                        messages,
-                    );
                     if wave.leader {
-                        let direction = wave.direction.left90();
-                        let next_id = id_allocator.allocate();
                         common_animations::metabol_wave(
                             next_id,
-                            coord + direction.coord(),
+                            coord + wave.direction.coord(),
+                            true,
                             false,
-                            direction,
+                            false,
+                            wave.direction,
                             wave.range - 1,
                             messages,
                         );
+
+                        if wave.left {
+                            common_animations::metabol_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.left45(),
+                                true,
+                                true,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+                            common_animations::metabol_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.left90(),
+                                false,
+                                false,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+
+                        }
+                        if wave.right {
+                            common_animations::metabol_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.right45(),
+                                true,
+                                false,
+                                true,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+                            common_animations::metabol_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.right90(),
+                                false,
+                                false,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+
+                        }
                     }
                 }
 
@@ -121,26 +160,66 @@ where
                     }
 
                     let next_id = id_allocator.allocate();
-                    common_animations::push_wave(
-                        next_id,
-                        coord + wave.direction.coord(),
-                        wave.leader,
-                        wave.direction,
-                        wave.range - 1,
-                        messages,
-                    );
                     if wave.leader {
-                        let direction = wave.direction.left90();
-                        let next_id = id_allocator.allocate();
                         common_animations::push_wave(
                             next_id,
-                            coord + direction.coord(),
+                            coord + wave.direction.coord(),
+                            true,
                             false,
-                            direction,
+                            false,
+                            wave.direction,
                             wave.range - 1,
                             messages,
                         );
+
+                        if wave.left {
+                            common_animations::push_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.left45(),
+                                true,
+                                true,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+                            common_animations::push_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.left90(),
+                                false,
+                                false,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+
+                        }
+                        if wave.right {
+                            common_animations::push_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.right45(),
+                                true,
+                                false,
+                                true,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+                            common_animations::push_wave(
+                                id_allocator.allocate(),
+                                coord + wave.direction.right90(),
+                                false,
+                                false,
+                                false,
+                                wave.direction,
+                                wave.range - 1,
+                                messages,
+                                );
+
+                        }
                     }
+
                 }
 
                 if let Some(npc_id) = dest_npc {

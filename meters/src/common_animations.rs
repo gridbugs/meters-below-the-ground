@@ -26,15 +26,22 @@ pub fn metabol_wave<M: PushMessages>(
     id: EntityId,
     coord: Coord,
     leader: bool,
+    left: bool,
+    right: bool,
     direction: CardinalDirection,
     range: i32,
     messages: &mut M,
 ) {
-    let wave = Prototype::MetabolWave(id, coord, leader, direction, range);
+    let ms = if leader {
+        timing::WAVE_MILLIS
+    } else {
+        timing::WAVE_MILLIS / 2
+    };
+    let wave = Prototype::MetabolWave(id, coord, leader, left, right, direction, range);
     temporary_at_coord(
         coord,
         wave,
-        Duration::from_millis(timing::WAVE_MILLIS),
+        Duration::from_millis(ms),
         messages,
     );
 }
@@ -43,15 +50,22 @@ pub fn push_wave<M: PushMessages>(
     id: EntityId,
     coord: Coord,
     leader: bool,
+    left: bool,
+    right: bool,
     direction: CardinalDirection,
     range: i32,
     messages: &mut M,
 ) {
-    let wave = Prototype::PushWave(id, coord, leader, direction, range);
+    let ms = if leader {
+        timing::WAVE_MILLIS
+    } else {
+        timing::WAVE_MILLIS / 2
+    };
+    let wave = Prototype::PushWave(id, coord, leader, left, right, direction, range);
     temporary_at_coord(
         coord,
         wave,
-        Duration::from_millis(timing::WAVE_MILLIS),
+        Duration::from_millis(ms),
         messages,
     );
 }

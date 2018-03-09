@@ -683,7 +683,7 @@ impl State {
             for direction in CardinalDirections {
                 let start_coord = entity_coord + direction.coord();
                 let id = self.world.id_allocator.allocate();
-                common_animations::push_wave(id, start_coord, true, direction, 8, &mut self.messages);
+                common_animations::push_wave(id, start_coord, true, true, true, direction, 8, &mut self.messages);
             }
             Ok(())
         } else {
@@ -712,7 +712,7 @@ impl State {
             for direction in CardinalDirections {
                 let start_coord = entity_coord + direction.coord();
                 let id = self.world.id_allocator.allocate();
-                common_animations::metabol_wave(id, start_coord, true, direction, 8, &mut self.messages);
+                common_animations::metabol_wave(id, start_coord, true, true, true, direction, 8, &mut self.messages);
             }
             Ok(())
         } else {

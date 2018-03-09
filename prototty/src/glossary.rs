@@ -75,18 +75,13 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
 
         if tile_info.delayed_transform {
             match tile_info.tile {
-                Tile::SuperEgg
-                    | Tile::Chrysalis
-                    | Tile::Egg
-                    | Tile::Larvae => {
-
+                Tile::SuperEgg | Tile::Chrysalis | Tile::Egg | Tile::Larvae => {
                     write!(stage, " (transform delayed)").unwrap();
                     return true;
                 }
                 _ => (),
             }
         }
-
     }
 
     true

@@ -26,8 +26,8 @@ const ANIMATION_DEPTH: i32 = 9;
 pub enum Prototype {
     Punch(EntityId, Coord, CardinalDirection),
     RailGunShot(EntityId, Coord, CardinalDirection),
-    MetabolWave(EntityId, Coord, bool, CardinalDirection, i32),
-    PushWave(EntityId, Coord, bool, CardinalDirection, i32),
+    MetabolWave(EntityId, Coord, bool, bool, bool, CardinalDirection, i32),
+    PushWave(EntityId, Coord, bool, bool, bool, CardinalDirection, i32),
 }
 
 impl Prototype {
@@ -41,12 +41,12 @@ impl Prototype {
                 rail_gun_shot(id, coord, direction, messages);
                 id
             }
-            Prototype::MetabolWave(id, coord, leader, direction, range) => {
-                metabol_wave(id, coord, leader, direction, range, messages);
+            Prototype::MetabolWave(id, coord, leader, left, right, direction, range) => {
+                metabol_wave(id, coord, leader, left, right, direction, range, messages);
                 id
             }
-            Prototype::PushWave(id, coord, leader, direction, range) => {
-                push_wave(id, coord, leader, direction, range, messages);
+            Prototype::PushWave(id, coord, leader, left, right, direction, range) => {
+                push_wave(id, coord, leader, left, right, direction, range, messages);
                 id
             }
         }
@@ -72,7 +72,8 @@ pub fn player<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
     messages.change(insert::stamina_tick(id, 0));
     messages.change(insert::health_meter(id, health));
-    messages.change(insert::push_meter(id, Meter::full(4)));
+    messages.change(insert::push_meter(id, health));
+    messages.change(insert::metabol_meter(id, health));
 }
 
 pub fn floor<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
@@ -409,11 +410,13 @@ pub fn beacon<M: PushMessages>(id: EntityId, coord: Coord, messages: &mut M) {
     ));
 }
 
-pub fn metabol_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
+pub fn metabol_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, left: bool, right: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
     messages.change(insert::metabol_wave(id, Wave {
         leader,
         direction,
         range,
+        left,
+        right,
     }));
     messages.change(insert::tile_info(
         id,
@@ -422,11 +425,13 @@ pub fn metabol_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, d
     messages.change(insert::coord(id, coord));
 }
 
-pub fn push_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
+pub fn push_wave<M: PushMessages>(id: EntityId, coord: Coord, leader: bool, left: bool, right: bool, direction: CardinalDirection, range: i32, messages: &mut M) {
     messages.change(insert::push_wave(id, Wave {
         leader,
         direction,
         range,
+        left,
+        right,
     }));
     messages.change(insert::tile_info(
         id,
