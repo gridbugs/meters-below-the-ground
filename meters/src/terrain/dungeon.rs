@@ -482,7 +482,7 @@ pub fn populate<R: Rng>(
         }
     }
 
-    for _ in 0..6 {
+    for _ in 0..3 {
         if let Some(coord) = floor_coords.pop() {
             prototypes::health_pickup(id_allocator.allocate(), coord, messages);
         }
@@ -494,17 +494,28 @@ pub fn populate<R: Rng>(
         }
     }
 
-    for _ in 0..10 {
+    for _ in 0..(10 + config.level * 3) {
         if let Some(coord) = floor_coords.pop() {
             prototypes::egg(id_allocator.allocate(), coord, messages, rng);
         }
     }
 
-    for _ in 0..8 {
+    for _ in 0..(6 + config.level) {
         if let Some(coord) = floor_coords.pop() {
-            prototypes::egg(id_allocator.allocate(), coord, messages, rng);
+            prototypes::larvae(id_allocator.allocate(), coord, messages, rng);
         }
     }
+
+    for _ in 0..(config.level / 2) {
+        if let Some(coord) = floor_coords.pop() {
+            if rng.gen() {
+                prototypes::aracnoid(id_allocator.allocate(), coord, messages);
+            } else {
+                prototypes::beetoid(id_allocator.allocate(), coord, messages);
+            }
+        }
+    }
+
 
     for (coord, &cell) in grid.enumerate() {
         match cell {
@@ -551,7 +562,7 @@ pub fn populate<R: Rng>(
             player: player_coord,
         }),
         GoalType::KillEggs => {
-            let num_eggs = 2;
+            let num_eggs = 2 + config.level / 3;
             let mut ids = Vec::new();
             for _ in 0..num_eggs {
                 if let Some(coord) = floor_coords.pop() {

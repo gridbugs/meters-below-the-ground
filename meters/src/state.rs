@@ -356,10 +356,23 @@ impl State {
 
         let mut levels = Vec::new();
 
-        for _ in 0..(NUM_LEVELS - 1) {
+        let mut goals = vec![
+            GoalType::KillEggs,
+            GoalType::KillBoss,
+            GoalType::ActivateBeacon,
+        ];
+
+        while goals.len() < NUM_LEVELS {
+            goals.push(choose_goal_type(&mut rng));
+        }
+
+        rng.shuffle(&mut goals);
+
+        for i in 0..(NUM_LEVELS - 1) {
             let config = TerrainConfig {
                 final_level: false,
-                goal_type: choose_goal_type(&mut rng),
+                goal_type: goals.pop().unwrap(),
+                level: i as i32,
             };
             let info = TerrainInfo {
                 typ: TerrainType::Dungeon,
@@ -371,6 +384,7 @@ impl State {
         let final_config = TerrainConfig {
             final_level: true,
             goal_type: GoalType::Escape,
+            level: NUM_LEVELS as i32 - 1,
         };
 
         let final_info = TerrainInfo {
@@ -931,7 +945,7 @@ impl State {
                 id,
                 &self.world.entity_store,
                 &self.world.spatial_hash,
-                PathfindingConfig { open_doors: false },
+                PathfindingConfig { open_doors: true },
                 &mut self.messages,
             );
             if let Some(meta) = self.change_context.process(
@@ -1044,7 +1058,7 @@ impl State {
                 id,
                 &self.world.entity_store,
                 &self.world.spatial_hash,
-                PathfindingConfig { open_doors: false },
+                PathfindingConfig { open_doors: true },
                 &mut self.messages,
             );
             if let Some(Event::External(meta)) = self.change_context.process(

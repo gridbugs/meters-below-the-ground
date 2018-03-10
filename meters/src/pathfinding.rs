@@ -67,7 +67,7 @@ impl PathfindingContext {
             .populate_uniform_distance_map(
                 &SpatialHashSolidCellGrid {
                     grid: spatial_hash,
-                    open_doors: false,
+                    open_doors: true,
                 },
                 player_coord,
                 Default::default(),

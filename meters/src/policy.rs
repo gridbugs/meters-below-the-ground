@@ -82,9 +82,6 @@ where
                 let dest_npc = sh_cell.npc_set.iter().next();
 
                 if let Some(mut wave) = entity_store.metabol_wave.get(&id).cloned() {
-                    if sh_cell.solid_count > 0 {
-                        return false;
-                    }
                     if wave.range == 0 {
                         return false;
                     }
@@ -152,7 +149,7 @@ where
                 }
 
                 if let Some(mut wave) = entity_store.push_wave.get(&id).cloned() {
-                    if sh_cell.solid_count > 0 {
+                    if sh_cell.solid_count > 0 && sh_cell.door_count == 0 {
                         return false;
                     }
                     if wave.range == 0 {
@@ -326,7 +323,7 @@ where
                     }
                 }
 
-                let door_cell = sh_cell.door_count > 0 && entity_store.door_opener.contains(&id);
+                let door_cell = sh_cell.door_count > 0;
 
                 let solid_cell =
                     (sh_cell.solid_count > 0 && !door_cell) || sh_cell.npc_set.len() > 0;

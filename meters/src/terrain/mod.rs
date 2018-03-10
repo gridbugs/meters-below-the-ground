@@ -58,6 +58,7 @@ impl TerrainInfo {
 pub struct TerrainConfig {
     pub final_level: bool,
     pub goal_type: GoalType,
+    pub level: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -16,6 +16,7 @@ const USER_DIR: &'static str = "user";
 fn main() {
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
+        .with_title("Meters Below the Ground")
         .with_window_dimensions(960, 720)
         .with_font_scale(16.0, 16.0)
         .with_cell_dimensions(16, 16)
