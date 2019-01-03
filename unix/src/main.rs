@@ -4,13 +4,13 @@ extern crate prototty_file_storage;
 extern crate prototty_unix;
 extern crate rand;
 
-use std::time::Duration;
-use std::thread;
-use rand::Rng;
-use prototty_unix::Context;
+use meters_prototty::*;
 use prototty::Renderer;
 use prototty_file_storage::FileStorage;
-use meters_prototty::*;
+use prototty_unix::Context;
+use rand::Rng;
+use std::thread;
+use std::time::Duration;
 
 const USER_DIR: &'static str = "user";
 const TICK_MILLIS: u64 = 33;
@@ -33,6 +33,7 @@ fn main() {
         if let Some(control_flow) = app.tick(
             context.drain_input().unwrap(),
             Duration::from_millis(TICK_MILLIS),
+            &view,
         ) {
             match control_flow {
                 ControlFlow::Quit => break,

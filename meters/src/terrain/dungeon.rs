@@ -1,10 +1,11 @@
-use std::mem;
-use std::collections::{HashSet, VecDeque};
-use rand::Rng;
+use super::*;
 use direction::*;
 use entity_store::EntityIdAllocator;
-use super::*;
+use grid_2d::coord_system::{CoordSystem, XThenY};
 use prototypes;
+use rand::Rng;
+use std::collections::{HashSet, VecDeque};
+use std::mem;
 
 pub fn size() -> Size {
     Size::new(29, 29)
@@ -102,7 +103,7 @@ fn choose_rooms<R: Rng>(rng: &mut R) -> Vec<Room> {
         let room = PrelimRoom { position, size };
 
         let mut valid = true;
-        for coord in size.coords().map(|c| c + position) {
+        for coord in XThenY::from(size).coord_iter().map(|c| c + position) {
             let cell = prelim_grid.get_mut(coord).unwrap();
             if *cell {
                 valid = false;
@@ -147,7 +148,10 @@ fn place_rooms<R: Rng>(
     let mut doors = Vec::new();
 
     for room in rooms.iter() {
-        for coord in room.size.coords().map(|c| c + room.position) {
+        for coord in XThenY::from(room.size)
+            .coord_iter()
+            .map(|c| c + room.position)
+        {
             let cell = grid.get_mut(coord).unwrap();
             *cell = Cell::Floor;
         }
@@ -219,8 +223,10 @@ fn place_caverns<R: Rng>(grid: &mut Grid<Cell>, rng: &mut R) {
     let height = conway_grid.height();
 
     for _ in 0..NUM_CAVERN_STEPS {
-        for coord in conway_grid.coords() {
-            if coord.x == 0 || coord.y == 0 || coord.x == width as i32 - 1
+        for coord in conway_grid.coord_iter() {
+            if coord.x == 0
+                || coord.y == 0
+                || coord.x == width as i32 - 1
                 || coord.y == height as i32 - 1
             {
                 let cell = conway_grid.get_mut(coord).unwrap();
@@ -250,7 +256,7 @@ fn place_caverns<R: Rng>(grid: &mut Grid<Cell>, rng: &mut R) {
         }
     }
 
-    for coord in conway_grid.coords() {
+    for coord in conway_grid.coord_iter() {
         let should_process = {
             let cell = conway_grid.get(coord).unwrap();
             !cell.alive && !cell.post_processed
@@ -348,7 +354,7 @@ const PRUNE_SIZE_THRESHOLD: usize = 12;
 fn prune_small_areas(grid: &mut Grid<Cell>) {
     let mut processed: Grid<bool> = Grid::new_default(size());
 
-    for coord in grid.coords() {
+    for coord in grid.coord_iter() {
         if *grid.get(coord).unwrap() == Cell::Floor && !processed.get(coord).unwrap() {
             let mut seen = Vec::new();
             let mut to_visit = vec![coord];
@@ -383,7 +389,7 @@ fn identify_largest_contiguous_space(grid: &Grid<Cell>) -> Vec<Coord> {
         _ => false,
     };
 
-    for coord in grid.coords() {
+    for coord in grid.coord_iter() {
         if !processed.get(coord).unwrap() && is_candidate(*grid.get(coord).unwrap()) {
             let mut seen = Vec::new();
             let mut to_visit = vec![coord];
@@ -453,7 +459,8 @@ pub fn populate<R: Rng>(
         .iter()
         .cloned()
         .filter(|&coord| {
-            coord != player_coord && coord != stairs_coord
+            coord != player_coord
+                && coord != stairs_coord
                 && *grid.get(coord).unwrap() == Cell::Floor
         })
         .collect::<Vec<_>>();
@@ -515,7 +522,6 @@ pub fn populate<R: Rng>(
             }
         }
     }
-
 
     for (coord, &cell) in grid.enumerate() {
         match cell {

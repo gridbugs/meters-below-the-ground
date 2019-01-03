@@ -1,15 +1,15 @@
-use rand::Rng;
-use entity_store::*;
-use direction::CardinalDirection;
+use alert::*;
+use beacon::*;
 use common_animations;
+use direction::CardinalDirection;
+use direction::*;
+use entity_store::*;
 use message_queues::PushMessages;
 use meter::Meter;
 use pickup::Pickup;
-use direction::*;
-use alert::*;
-use beacon::*;
-use tile::*;
 use pushed::*;
+use rand::Rng;
+use tile::*;
 
 pub fn precheck<'a, I: IntoIterator<Item = &'a EntityChange>>(
     changes: I,
@@ -102,48 +102,46 @@ where
                         if wave.left {
                             common_animations::metabol_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.left45(),
+                                coord + wave.direction.left45().coord(),
                                 true,
                                 true,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
+                            );
                             common_animations::metabol_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.left90(),
+                                coord + wave.direction.left90().coord(),
                                 false,
                                 false,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
-
+                            );
                         }
                         if wave.right {
                             common_animations::metabol_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.right45(),
+                                coord + wave.direction.right45().coord(),
                                 true,
                                 false,
                                 true,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
+                            );
                             common_animations::metabol_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.right90(),
+                                coord + wave.direction.right90().coord(),
                                 false,
                                 false,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
-
+                            );
                         }
                     }
                 }
@@ -172,51 +170,48 @@ where
                         if wave.left {
                             common_animations::push_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.left45(),
+                                coord + wave.direction.left45().coord(),
                                 true,
                                 true,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
+                            );
                             common_animations::push_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.left90(),
+                                coord + wave.direction.left90().coord(),
                                 false,
                                 false,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
-
+                            );
                         }
                         if wave.right {
                             common_animations::push_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.right45(),
+                                coord + wave.direction.right45().coord(),
                                 true,
                                 false,
                                 true,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
+                            );
                             common_animations::push_wave(
                                 id_allocator.allocate(),
-                                coord + wave.direction.right90(),
+                                coord + wave.direction.right90().coord(),
                                 false,
                                 false,
                                 false,
                                 wave.direction,
                                 wave.range - 1,
                                 messages,
-                                );
-
+                            );
                         }
                     }
-
                 }
 
                 if let Some(npc_id) = dest_npc {
@@ -224,7 +219,8 @@ where
                         if let Some(countdown) = entity_store.countdown.get(npc_id).cloned() {
                             messages.change(insert::delayed_transform(*npc_id));
                             messages.change(insert::countdown(*npc_id, countdown + 20));
-                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned() {
+                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned()
+                            {
                                 tile_info.delayed_transform = true;
                                 messages.change(insert::tile_info(*npc_id, tile_info));
                             }
@@ -232,12 +228,10 @@ where
                     }
 
                     if let Some(wave) = entity_store.push_wave.get(&id) {
-
                         let player_id = entity_store.player.iter().next().unwrap();
                         let player_coord = entity_store.coord.get(player_id).cloned().unwrap();
 
                         if let Some(npc_coord) = entity_store.coord.get(&npc_id).cloned() {
-
                             let delta = npc_coord - player_coord;
 
                             let direction = if delta.x.abs() > delta.y.abs() {
@@ -260,7 +254,8 @@ where
                                 range: 2,
                             };
                             messages.change(insert::pushed(*npc_id, pushed));
-                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned() {
+                            if let Some(mut tile_info) = entity_store.tile_info.get(npc_id).cloned()
+                            {
                                 tile_info.pushed = true;
                                 messages.change(insert::tile_info(*npc_id, tile_info));
                             }
@@ -286,10 +281,7 @@ where
                                         if !sh_cell.npc_set.is_empty() {
                                             let punch_id = id_allocator.allocate();
                                             common_animations::punch(
-                                                punch_id,
-                                                coord,
-                                                direction,
-                                                messages,
+                                                punch_id, coord, direction, messages,
                                             );
                                         }
                                     }

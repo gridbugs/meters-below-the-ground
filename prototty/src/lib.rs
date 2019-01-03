@@ -9,21 +9,21 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
+use direction::CardinalDirection;
+use meters::alert::*;
+use meters::input::ActiveMeterIdentifier;
+use meters::input::Input as MetersInput;
+use meters::meter::*;
+use meters::state::*;
+use meters::tile_info::TileInfo;
+use meters::*;
+use prototty::inputs as prototty_inputs;
+use prototty::Input as ProtottyInput;
+use prototty::*;
+use prototty_common::*;
+use rand::{Rng, SeedableRng, StdRng};
 use std::collections::BTreeSet;
 use std::time::Duration;
-use rand::{Rng, SeedableRng, StdRng};
-use direction::CardinalDirection;
-use meters::state::*;
-use meters::meter::*;
-use meters::tile_info::TileInfo;
-use prototty::*;
-use prototty::Input as ProtottyInput;
-use prototty::inputs as prototty_inputs;
-use prototty_common::*;
-use meters::input::Input as MetersInput;
-use meters::input::ActiveMeterIdentifier;
-use meters::alert::*;
-use meters::*;
 
 use self::CardinalDirection::*;
 
@@ -189,7 +189,7 @@ impl GameMenuView {
     fn new(info: TextInfo) -> Self {
         Self {
             title_view: RichStringView::with_info(info),
-            main_menu_view: DefaultMenuInstanceView,
+            main_menu_view: DefaultMenuInstanceView::new(),
         }
     }
 }
@@ -409,7 +409,8 @@ impl<S: Storage> View<App<S>> for AppView {
                             Alignment::Centre,
                             Alignment::Centre,
                         ),
-                    ).view(
+                    )
+                    .view(
                         &(
                             TextInfo::default().bold().foreground_colour(colours::RED),
                             "You Died",
@@ -427,7 +428,8 @@ impl<S: Storage> View<App<S>> for AppView {
                             Alignment::Centre,
                             Alignment::Centre,
                         ),
-                    ).view(
+                    )
+                    .view(
                         &(
                             TextInfo::default().bold().foreground_colour(colours::GREEN),
                             "You Escaped",
@@ -469,9 +471,10 @@ fn make_main_menu(in_progress: bool, frontend: Frontend) -> MenuInstance<MainMen
             },
             Some(("New Game", MainMenuChoice::NewGame)),
             Some(("Clear Data", MainMenuChoice::ClearData)),
-        ].into_iter()
-            .filter_map(|x| x)
-            .collect()
+        ]
+        .into_iter()
+        .filter_map(|x| x)
+        .collect()
     } else {
         vec![
             ("New Game", MainMenuChoice::NewGame),
@@ -541,7 +544,7 @@ fn alert_str(alert: Alert) -> (TextInfo, &'static str) {
 
 impl<S: Storage> App<S> {
     pub fn new(frontend: Frontend, storage: S, seed: usize) -> Self {
-        let mut rng = StdRng::from_seed(&[seed]);
+        let mut rng = StdRng::seed_from_u64(seed as u64);
 
         let existing_state: Option<FullSaveState> = storage.load(SAVE_FILE).ok();
 
@@ -600,7 +603,7 @@ impl<S: Storage> App<S> {
         }
     }
 
-    pub fn tick<I>(&mut self, inputs: I, period: Duration) -> Option<ControlFlow>
+    pub fn tick<I>(&mut self, inputs: I, period: Duration, view: &AppView) -> Option<ControlFlow>
     where
         I: IntoIterator<Item = ProtottyInput>,
     {
@@ -613,7 +616,10 @@ impl<S: Storage> App<S> {
 
         match self.app_state {
             AppState::MainMenu => {
-                if let Some(menu_output) = self.main_menu.tick(inputs) {
+                if let Some(menu_output) = self
+                    .main_menu
+                    .tick_with_mouse(inputs, &view.title_screen_view.view.main_menu_view)
+                {
                     match menu_output {
                         MenuOutput::Quit => Some(ControlFlow::Quit),
                         MenuOutput::Cancel => {
@@ -742,7 +748,10 @@ impl<S: Storage> App<S> {
                     }
                     GameState::UpgradeMenu => {
                         if let Some(menu) = self.between_level_menu.as_mut() {
-                            if let Some(output) = menu.tick(inputs) {
+                            if let Some(output) = menu.tick_with_mouse(
+                                inputs,
+                                &view.between_level_view.view.main_menu_view,
+                            ) {
                                 match output {
                                     MenuOutput::Quit => return Some(ControlFlow::Quit),
                                     MenuOutput::Cancel => {

@@ -4,12 +4,12 @@ extern crate prototty_file_storage;
 extern crate prototty_glutin;
 extern crate rand;
 
-use std::time::Instant;
-use rand::Rng;
+use meters_prototty::*;
 use prototty::Renderer;
 use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
-use meters_prototty::*;
+use rand::Rng;
+use std::time::Instant;
 
 const USER_DIR: &'static str = "user";
 
@@ -57,7 +57,7 @@ fn main() {
             input_buffer.push(input);
         });
 
-        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration) {
+        if let Some(control_flow) = app.tick(input_buffer.drain(..), duration, &view) {
             match control_flow {
                 ControlFlow::Quit => running = false,
             }

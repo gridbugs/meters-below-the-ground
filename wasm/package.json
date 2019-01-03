@@ -8,12 +8,11 @@
     "author": "",
     "license": "MIT",
     "devDependencies": {
-        "uglifyjs-webpack-plugin": "^1.2.2",
-        "webpack": "^4.1.0",
-        "webpack-cli": "^2.0.10"
+        "webpack": "^4.28.3",
+        "webpack-cli": "^3.2.0"
     },
     "dependencies": {
         "jquery": "^3.3.1",
-        "prototty-terminal-js": "^0.7.1"
+        "prototty-terminal-js": "^0.9.0"
     }
 }

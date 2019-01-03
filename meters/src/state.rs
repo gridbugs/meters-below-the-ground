@@ -1,33 +1,33 @@
-use std::time::Duration;
-use std::collections::HashSet;
-use std::slice;
-use std::iter::Enumerate;
-use grid_2d::Size;
-use entity_store::*;
-use input::*;
-use policy;
-use animation::*;
-use transform::*;
-use rand::{Rng, SeedableRng, StdRng};
-use pathfinding::*;
-use message_queues::*;
-use terrain::*;
-use world::World;
-use change::ChangeContext;
-use event::*;
-use meter::*;
-use goal::*;
-use npc_info::*;
-use best::*;
-use common_animations;
-use prototypes;
-use weapons;
-use shadowcast::{self, ShadowcastContext};
-use tile_info::*;
-use grid_2d::*;
-use grid_2d;
-use direction::*;
 use alert::*;
+use animation::*;
+use best::*;
+use change::ChangeContext;
+use common_animations;
+use direction::*;
+use entity_store::*;
+use event::*;
+use goal::*;
+use grid_2d;
+use grid_2d::Size;
+use grid_2d::*;
+use input::*;
+use message_queues::*;
+use meter::*;
+use npc_info::*;
+use pathfinding::*;
+use policy;
+use prototypes;
+use rand::{Rng, SeedableRng, StdRng};
+use shadowcast::{self, ShadowcastContext};
+use std::collections::HashSet;
+use std::iter::Enumerate;
+use std::slice;
+use std::time::Duration;
+use terrain::*;
+use tile_info::*;
+use transform::*;
+use weapons;
+use world::World;
 
 const NUM_LEVELS: usize = 6;
 
@@ -41,7 +41,7 @@ struct VisibilityCell {
 struct VisibilityGrid(Grid<VisibilityCell>);
 
 pub struct VisibilityIter<'a> {
-    iter: grid_2d::CoordEnumerate<'a, VisibilityCell>,
+    iter: grid_2d::GridEnumerate<'a, VisibilityCell>,
     time: u64,
 }
 
@@ -94,35 +94,44 @@ struct VisibilityRefs<'a> {
     world: &'a World,
 }
 
-impl<'a> shadowcast::OutputGrid for VisibilityRefs<'a> {
-    fn see(&mut self, coord: Coord, _: DirectionBitmap, time: u64) {
-        if let Some(cell) = self.grid.0.get_mut(coord) {
-            if let Some(sh_cell) = self.world.spatial_hash.get(coord) {
-                if sh_cell.last_updated > cell.last_updated {
-                    cell.tiles.clear();
-                    for id in sh_cell.tile_set.iter() {
-                        if let Some(&tile_info) = self.world.entity_store.tile_info.get(&id) {
-                            cell.tiles.push(tile_info);
+fn for_each_visible_cell(
+    player_coord: Coord,
+    time: u64,
+    refs: &mut VisibilityRefs,
+    ctx: &mut ShadowcastContext<u8>,
+) {
+    ctx.for_each(
+        player_coord,
+        &refs.world.spatial_hash,
+        shadowcast::vision_distance::Square::new(128),
+        1,
+        |coord, _, _| {
+            if let Some(cell) = refs.grid.0.get_mut(coord) {
+                if let Some(sh_cell) = refs.world.spatial_hash.get(coord) {
+                    if sh_cell.last_updated > cell.last_updated {
+                        cell.tiles.clear();
+                        for id in sh_cell.tile_set.iter() {
+                            if let Some(&tile_info) = refs.world.entity_store.tile_info.get(&id) {
+                                cell.tiles.push(tile_info);
+                            }
                         }
                     }
+                    cell.last_updated = time;
                 }
-                cell.last_updated = time;
             }
-        }
-    }
+        },
+    );
 }
 
 impl shadowcast::InputGrid for SpatialHashTable {
     type Opacity = u8;
-    type Visibility = u8;
     fn size(&self) -> Size {
         SpatialHashTable::size(self)
     }
-    fn get_opacity(&self, coord: Coord) -> Option<Self::Opacity> {
-        self.get(coord).map(|cell| cell.opacity_total)
-    }
-    fn initial_visibility() -> Self::Visibility {
-        1
+    fn get_opacity(&self, coord: Coord) -> Self::Opacity {
+        self.get(coord)
+            .map(|cell| cell.opacity_total)
+            .expect("tried to get opacity out of bounds")
     }
 }
 
@@ -292,7 +301,8 @@ impl State {
             .next()
             .expect("No player");
 
-        for change in self.world
+        for change in self
+            .world
             .component_drain_insert(self.player_id, next_player_id)
         {
             if change.typ() == ComponentType::Coord {
@@ -348,11 +358,12 @@ impl State {
         self.visibility_grid.clear();
         self.update_visibility();
 
-        self.pathfinding.update_player_map(player_coord, &self.world.spatial_hash);
+        self.pathfinding
+            .update_player_map(player_coord, &self.world.spatial_hash);
     }
 
     pub fn new(rng_seed: usize) -> Self {
-        let mut rng = StdRng::from_seed(&[rng_seed]);
+        let mut rng = StdRng::seed_from_u64(rng_seed as u64);
 
         let mut levels = Vec::new();
 
@@ -510,12 +521,11 @@ impl State {
             grid: &mut self.visibility_grid,
             world: &self.world,
         };
-        self.shadowcast.observe(
+        for_each_visible_cell(
             player_coord,
-            &self.world.spatial_hash,
-            128,
             self.world.count,
             &mut output_grid,
+            &mut self.shadowcast,
         );
     }
 
@@ -532,13 +542,13 @@ impl State {
         const MAX_DISTANCE: i32 = 40;
         let mut closest = BestSet::new();
 
-            if let Some(goal) = self.world.goal_state.as_ref() {
-                goal.with_goal_coords(&self.world.entity_store, |coord| {
-                    if let Some(distance) = self.pathfinding.distance_to_player(coord) {
-                        closest.insert_lt(distance as i32);
-                    }
-                });
-            }
+        if let Some(goal) = self.world.goal_state.as_ref() {
+            goal.with_goal_coords(&self.world.entity_store, |coord| {
+                if let Some(distance) = self.pathfinding.distance_to_player(coord) {
+                    closest.insert_lt(distance as i32);
+                }
+            });
+        }
 
         if closest.is_empty() {
             if let Some(id) = self.world.entity_store.stairs.iter().next() {
@@ -550,7 +560,7 @@ impl State {
             }
         }
 
-        Meter::new(closest.into().unwrap_or(MAX_DISTANCE), MAX_DISTANCE)
+        Meter::new(closest.into_value().unwrap_or(MAX_DISTANCE), MAX_DISTANCE)
     }
 
     pub fn player_passive_meter_info(&self) -> PassiveMeterInfoIter {
@@ -594,7 +604,8 @@ impl State {
     }
 
     fn use_rail_gun(&mut self, direction: CardinalDirection) -> Result<(), Alert> {
-        let mut ammo = self.world
+        let mut ammo = self
+            .world
             .entity_store
             .rail_gun_meter
             .get(&self.player_id)
@@ -602,7 +613,8 @@ impl State {
             .unwrap();
 
         if ammo.value > 0 {
-            let entity_coord = self.world
+            let entity_coord = self
+                .world
                 .entity_store
                 .coord
                 .get(&self.player_id)
@@ -638,7 +650,8 @@ impl State {
     }
 
     fn use_gun(&mut self) -> Result<(), Alert> {
-        let mut ammo = self.world
+        let mut ammo = self
+            .world
             .entity_store
             .gun_meter
             .get(&self.player_id)
@@ -646,7 +659,8 @@ impl State {
             .unwrap();
 
         if ammo.value > 0 {
-            let entity_coord = self.world
+            let entity_coord = self
+                .world
                 .entity_store
                 .coord
                 .get(&self.player_id)
@@ -676,7 +690,8 @@ impl State {
     }
 
     fn use_push(&mut self) -> Result<(), Alert> {
-        let mut push = self.world
+        let mut push = self
+            .world
             .entity_store
             .push_meter
             .get(&self.player_id)
@@ -687,7 +702,8 @@ impl State {
             self.messages
                 .change(insert::push_meter(self.player_id, push));
 
-            let entity_coord = self.world
+            let entity_coord = self
+                .world
                 .entity_store
                 .coord
                 .get(&self.player_id)
@@ -697,7 +713,16 @@ impl State {
             for direction in CardinalDirections {
                 let start_coord = entity_coord + direction.coord();
                 let id = self.world.id_allocator.allocate();
-                common_animations::push_wave(id, start_coord, true, true, true, direction, 8, &mut self.messages);
+                common_animations::push_wave(
+                    id,
+                    start_coord,
+                    true,
+                    true,
+                    true,
+                    direction,
+                    8,
+                    &mut self.messages,
+                );
             }
             Ok(())
         } else {
@@ -705,7 +730,8 @@ impl State {
         }
     }
     fn use_metabol(&mut self) -> Result<(), Alert> {
-        let mut metabol = self.world
+        let mut metabol = self
+            .world
             .entity_store
             .metabol_meter
             .get(&self.player_id)
@@ -716,7 +742,8 @@ impl State {
             self.messages
                 .change(insert::metabol_meter(self.player_id, metabol));
 
-            let entity_coord = self.world
+            let entity_coord = self
+                .world
                 .entity_store
                 .coord
                 .get(&self.player_id)
@@ -726,7 +753,16 @@ impl State {
             for direction in CardinalDirections {
                 let start_coord = entity_coord + direction.coord();
                 let id = self.world.id_allocator.allocate();
-                common_animations::metabol_wave(id, start_coord, true, true, true, direction, 8, &mut self.messages);
+                common_animations::metabol_wave(
+                    id,
+                    start_coord,
+                    true,
+                    true,
+                    true,
+                    direction,
+                    8,
+                    &mut self.messages,
+                );
             }
             Ok(())
         } else {
@@ -734,7 +770,8 @@ impl State {
         }
     }
     fn use_medkit(&mut self) -> Result<(), Alert> {
-        let mut medkit = self.world
+        let mut medkit = self
+            .world
             .entity_store
             .medkit_meter
             .get(&self.player_id)
@@ -746,7 +783,8 @@ impl State {
             self.messages
                 .change(insert::medkit_meter(self.player_id, medkit));
 
-            let mut health = self.world
+            let mut health = self
+                .world
                 .entity_store
                 .health_meter
                 .get(&self.player_id)
@@ -781,7 +819,8 @@ impl State {
     }
 
     fn blink(&mut self, direction: CardinalDirection) -> Result<(), Alert> {
-        let mut blink = self.world
+        let mut blink = self
+            .world
             .entity_store
             .blink_meter
             .get(&self.player_id)
@@ -847,25 +886,37 @@ impl State {
             Input::ActiveMeterSelect(identifier) => {
                 if let Some(meter_type) = self.active_meters.get(identifier.to_index()).cloned() {
                     match meter_type {
-                        ActiveMeterType::Gun => if let Err(alert) = self.use_gun() {
-                            return Some(Event::External(ExternalEvent::Alert(alert)));
-                        },
-                        ActiveMeterType::Medkit => if let Err(alert) = self.use_medkit() {
-                            return Some(Event::External(ExternalEvent::Alert(alert)));
-                        },
-                        ActiveMeterType::Metabol => if let Err(alert) = self.use_metabol() {
-                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        ActiveMeterType::Gun => {
+                            if let Err(alert) = self.use_gun() {
+                                return Some(Event::External(ExternalEvent::Alert(alert)));
+                            }
                         }
-                        ActiveMeterType::Push => if let Err(alert) = self.use_push() {
-                            return Some(Event::External(ExternalEvent::Alert(alert)));
+                        ActiveMeterType::Medkit => {
+                            if let Err(alert) = self.use_medkit() {
+                                return Some(Event::External(ExternalEvent::Alert(alert)));
+                            }
+                        }
+                        ActiveMeterType::Metabol => {
+                            if let Err(alert) = self.use_metabol() {
+                                return Some(Event::External(ExternalEvent::Alert(alert)));
+                            }
+                        }
+                        ActiveMeterType::Push => {
+                            if let Err(alert) = self.use_push() {
+                                return Some(Event::External(ExternalEvent::Alert(alert)));
+                            }
                         }
                         ActiveMeterType::Blink => {
                             self.selected_meter = Some(meter_type);
-                            return Some(Event::External(ExternalEvent::Alert(Alert::BlinkWhichDirection)));
+                            return Some(Event::External(ExternalEvent::Alert(
+                                Alert::BlinkWhichDirection,
+                            )));
                         }
                         ActiveMeterType::RailGun => {
                             self.selected_meter = Some(meter_type);
-                            return Some(Event::External(ExternalEvent::Alert(Alert::RailgunWhichDirection)));
+                            return Some(Event::External(ExternalEvent::Alert(
+                                Alert::RailgunWhichDirection,
+                            )));
                         }
                     }
                 } else {
@@ -1069,7 +1120,7 @@ impl State {
             ) {
                 match meta {
                     ExternalEvent::Lose | ExternalEvent::Win | ExternalEvent::Ascend(_) => {
-                        return Some(Event::External(meta))
+                        return Some(Event::External(meta));
                     }
                     ExternalEvent::Alert(_) => event = Some(Event::External(meta)),
                 }
@@ -1115,7 +1166,8 @@ impl State {
                             self.player_id,
                             &self.world.entity_store,
                             general_typ,
-                        ).expect("Missing meter for player turn event");
+                        )
+                        .expect("Missing meter for player turn event");
                         meter.value =
                             ::std::cmp::max(::std::cmp::min(meter.value + change, meter.max), 0);
                         let typ: MeterType = typ.into();
@@ -1123,7 +1175,8 @@ impl State {
                     }
                     PlayerTurnEvent::ChangePassiveMeter(typ, change) => match typ {
                         PassiveMeterType::Stamina => {
-                            let stamina_tick = self.world
+                            let stamina_tick = self
+                                .world
                                 .entity_store
                                 .stamina_tick
                                 .get(&self.player_id)
@@ -1136,7 +1189,8 @@ impl State {
                                 self.player_id,
                                 &self.world.entity_store,
                                 general_typ,
-                            ).expect("Missing meter for player turn event");
+                            )
+                            .expect("Missing meter for player turn event");
                             meter.value = ::std::cmp::max(
                                 ::std::cmp::min(meter.value + change, meter.max),
                                 0,
@@ -1218,7 +1272,7 @@ impl From<SaveState> for State {
         Self {
             world,
             player_id,
-            rng: StdRng::from_seed(&[next_rng_seed]),
+            rng: StdRng::seed_from_u64(next_rng_seed as u64),
             turn,
             messages,
             swap_messages: MessageQueuesSwap::new(),

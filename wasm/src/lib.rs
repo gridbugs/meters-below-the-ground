@@ -3,11 +3,11 @@ extern crate prototty;
 extern crate prototty_wasm;
 extern crate rand;
 
-use std::time::Duration;
-use prototty_wasm::*;
-use prototty::Renderer;
-use prototty::Input as ProtottyInput;
 use meters_prototty::*;
+use prototty::Input as ProtottyInput;
+use prototty::Renderer;
+use prototty_wasm::*;
+use std::time::Duration;
 
 pub struct WebApp {
     app: App<WasmStorage>,
@@ -28,7 +28,7 @@ impl WebApp {
         I: IntoIterator<Item = ProtottyInput>,
     {
         self.view.set_size(self.context.size());
-        if let Some(control_flow) = self.app.tick(inputs, period) {
+        if let Some(control_flow) = self.app.tick(inputs, period, &self.view) {
             match control_flow {
                 ControlFlow::Quit => {
                     self.context.quit();
@@ -51,15 +51,8 @@ pub unsafe extern "C" fn alloc_app(
 }
 
 #[no_mangle]
-pub unsafe fn tick(
-    app: *mut WebApp,
-    key_codes: *const u8,
-    key_mods: *const u8,
-    num_inputs: usize,
-    period_millis: f64,
-) {
+pub unsafe fn tick(app: *mut WebApp, inputs: *const u64, num_inputs: usize, period_millis: f64) {
     let period = Duration::from_millis(period_millis as u64);
-
-    let input_iter = input::js_event_input_iter(key_codes, key_mods, num_inputs);
+    let input_iter = input::js_event_input_iter(inputs, num_inputs);
     (*app).tick(input_iter, period);
 }
