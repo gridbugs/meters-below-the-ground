@@ -1,11 +1,9 @@
 extern crate meters_prototty;
-extern crate prototty;
 extern crate prototty_file_storage;
 extern crate prototty_glutin;
 extern crate rand;
 
 use meters_prototty::*;
-use prototty::Renderer;
 use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
 use rand::Rng;
@@ -14,15 +12,18 @@ use std::time::Instant;
 const USER_DIR: &'static str = "user";
 
 fn main() {
+    let size = Size::new(960, 720);
     let mut context = ContextBuilder::new_with_font(include_bytes!("fonts/PxPlus_IBM_CGAthin.ttf"))
         .with_bold_font(include_bytes!("fonts/PxPlus_IBM_CGA.ttf"))
         .with_title("Meters Below the Ground")
-        .with_window_dimensions(960, 720)
+        .with_window_dimensions(size)
+        .with_min_window_dimensions(size)
+        .with_max_window_dimensions(size)
         .with_font_scale(16.0, 16.0)
-        .with_cell_dimensions(16, 16)
+        .with_cell_dimensions(Size::new(16, 16))
         .with_underline_position(14)
         .with_underline_width(1)
-        .with_max_grid_size(60, 45)
+        .with_max_grid_size(Size::new(60, 45))
         .build()
         .unwrap();
 

@@ -1,7 +1,7 @@
-use std::fmt::Write;
-use prototty::*;
-use prototty_common::*;
 use meters::goal::*;
+use prototty_common::*;
+use prototty_render::*;
+use std::fmt::Write;
 
 pub struct GoalView {
     scratch: String,

@@ -2,8 +2,10 @@ extern crate direction;
 #[macro_use]
 extern crate itertools;
 extern crate meters;
-extern crate prototty;
 extern crate prototty_common;
+extern crate prototty_input;
+extern crate prototty_render;
+extern crate prototty_storage;
 extern crate rand;
 extern crate serde;
 #[macro_use]
@@ -17,11 +19,13 @@ use meters::meter::*;
 use meters::state::*;
 use meters::tile_info::TileInfo;
 use meters::*;
-use prototty::inputs as prototty_inputs;
-use prototty::Input as ProtottyInput;
-use prototty::*;
 use prototty_common::*;
-use rand::{Rng, SeedableRng, StdRng};
+use prototty_input::inputs as prototty_inputs;
+use prototty_input::Input as ProtottyInput;
+use prototty_render::*;
+use prototty_storage::*;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::collections::BTreeSet;
 use std::time::Duration;
 
@@ -90,53 +94,51 @@ impl Frontend {
     }
 }
 
-fn colour_cell<C: ViewCell>(cell: &mut C, fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) {
+fn colour_cell(fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) -> ViewCellInfo {
+    let mut cell = ViewCellInfo::new();
     if visible {
         if let Some(fg) = fg {
-            cell.set_foreground_colour(fg);
+            cell.set_foreground(fg);
         }
         if let Some(bg) = bg {
-            cell.set_background_colour(bg);
+            cell.set_background(bg);
         }
     } else {
         let b = |c| c / 8;
         let f = |c| c / 2;
         if let Some(Rgb24 { red, green, blue }) = fg {
-            cell.set_foreground_colour(Rgb24 {
+            cell.set_foreground(Rgb24 {
                 red: f(red),
                 green: f(green),
                 blue: f(blue),
             });
         }
         if let Some(Rgb24 { red, green, blue }) = bg {
-            cell.set_background_colour(Rgb24 {
+            cell.set_background(Rgb24 {
                 red: b(red),
                 green: b(green),
                 blue: b(blue),
             });
         }
     }
+    cell
 }
 
-fn view_tile<C: ViewCell>(tile_info: TileInfo, cell: &mut C, visibility: Visibility) {
+fn view_tile(tile_info: TileInfo, visibility: Visibility) -> ViewCellInfo {
     let visible = match visibility {
         Visibility::Visible => true,
         Visibility::Remembered => false,
     };
     if !visible && !render::render_when_non_visible(tile_info.tile) {
-        return;
+        return Default::default();
     }
     let (ch, info) = render::tile_text(tile_info);
+    let mut cell = colour_cell(info.foreground_colour, info.background_colour, visible);
     cell.set_character(ch);
-    colour_cell(
-        cell,
-        info.foreground_colour,
-        info.background_colour,
-        visible,
-    );
     if info.bold {
         cell.set_bold(true);
     }
+    cell
 }
 
 const INITIAL_INPUT_BUFFER_SIZE: usize = 16;
@@ -293,22 +295,24 @@ impl<S: Storage> View<App<S>> for AppView {
                     self.glossary.clear();
                     for (tiles, coord, visibility) in app.state.visible_cells() {
                         for tile_info in tiles {
-                            if let Some(cell) = grid.get_mut(
+                            grid.set_cell(
                                 offset + Coord::new(coord.x, coord.y + GAME_TOP_PADDING),
                                 tile_info.depth + depth,
-                            ) {
-                                view_tile(*tile_info, cell, visibility);
-                                if visibility == Visibility::Visible
-                                    || render::render_when_non_visible(tile_info.tile)
                                 {
-                                    let mut tile_info = *tile_info;
-                                    if let Some(countdown) = tile_info.countdown.as_mut() {
-                                        *countdown = ::std::cmp::min(*countdown, 2); // fuck
+                                    let cell = view_tile(*tile_info, visibility);
+                                    if visibility == Visibility::Visible
+                                        || render::render_when_non_visible(tile_info.tile)
+                                    {
+                                        let mut tile_info = *tile_info;
+                                        if let Some(countdown) = tile_info.countdown.as_mut() {
+                                            *countdown = ::std::cmp::min(*countdown, 2); // fuck
+                                        }
+                                        tile_info.pushed = false;
+                                        self.glossary.insert(tile_info);
                                     }
-                                    tile_info.pushed = false;
-                                    self.glossary.insert(tile_info);
-                                }
-                            }
+                                    cell
+                                },
+                            );
                         }
                     }
 

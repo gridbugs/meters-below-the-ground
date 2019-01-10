@@ -1,9 +1,9 @@
+use meters::tile::*;
+use meters::tile_info::*;
+use prototty_common::*;
+use prototty_render::*;
 use std::collections::BTreeSet;
 use std::fmt::Write;
-use prototty::*;
-use prototty_common::*;
-use meters::tile_info::*;
-use meters::tile::*;
 
 use super::render;
 
@@ -51,7 +51,8 @@ fn write_tile(stage: &mut String, ch: char, tile_info: TileInfo) -> bool {
         | Tile::MetabolWave
         | Tile::PushWave
         | Tile::RailGunShotVertical => return false,
-    }.unwrap();
+    }
+    .unwrap();
 
     if tile_info.boss {
         write!(stage, " (boss)").unwrap();

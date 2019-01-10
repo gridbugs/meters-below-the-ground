@@ -7,7 +7,9 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-rand = "0.6"
 meters_prototty = { path = "../prototty" }
-prototty = "0.21"
-prototty_wasm = "0.21"
+prototty_wasm_render = { path = "/home/steve/src/prototty/wasm-render" }
+prototty_wasm_input = { path = "/home/steve/src/prototty/wasm-input" }
+prototty_wasm_storage = { path = "/home/steve/src/prototty/wasm-storage" }
+rand = { version = "0.6", features = ["wasm-bindgen"] }
+wasm-bindgen = "0.2"

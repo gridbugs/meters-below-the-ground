@@ -1,8 +1,8 @@
-use std::fmt::Write;
-use prototty::*;
-use prototty_common::*;
-use meters::meter::*;
 use meters::goal::*;
+use meters::meter::*;
+use prototty_common::*;
+use prototty_render::*;
+use std::fmt::Write;
 
 fn meter_text_info(typ: MeterType) -> TextInfo {
     let colour = match typ {

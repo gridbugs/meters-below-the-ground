@@ -6,6 +6,5 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.6"
 meters_prototty = { path = "../prototty" }
-prototty = "0.21"
-prototty_unix = "0.21"
-prototty_file_storage = "0.21"
+prototty_file_storage = { path = "/home/steve/src/prototty/file-storage" }
+prototty_unix = { path = "/home/steve/src/prototty/unix" }

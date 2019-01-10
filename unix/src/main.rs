@@ -1,11 +1,9 @@
 extern crate meters_prototty;
-extern crate prototty;
 extern crate prototty_file_storage;
 extern crate prototty_unix;
 extern crate rand;
 
 use meters_prototty::*;
-use prototty::Renderer;
 use prototty_file_storage::FileStorage;
 use prototty_unix::Context;
 use rand::Rng;
@@ -22,10 +20,10 @@ fn main() {
 
     let mut app = App::new(Frontend::Unix, storage, rand::thread_rng().gen());
 
-    let mut view = AppView::new(context.size());
+    let mut view = AppView::new(context.size().unwrap());
 
     loop {
-        view.set_size(context.size());
+        view.set_size(context.size().unwrap());
 
         context.render(&mut view, &app).unwrap();
         thread::sleep(Duration::from_millis(TICK_MILLIS));
