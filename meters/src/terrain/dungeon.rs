@@ -3,6 +3,7 @@ use direction::*;
 use entity_store::EntityIdAllocator;
 use grid_2d::coord_system::{CoordSystem, XThenY};
 use prototypes;
+use rand::seq::SliceRandom;
 use rand::Rng;
 use std::collections::{HashSet, VecDeque};
 use std::mem;
@@ -31,7 +32,7 @@ impl PrelimRoom {
     fn room<R: Rng>(&self, rng: &mut R) -> Room {
         use self::CardinalDirection::*;
         let mut door_sides = vec![North, East, South, West];
-        rng.shuffle(&mut door_sides);
+        door_sides.shuffle(rng);
         let sides_to_remove = random_between_inclusive(1, 2, rng);
         for _ in 0..sides_to_remove {
             door_sides.pop();
@@ -433,13 +434,13 @@ pub fn populate<R: Rng>(
 
     let rooms = choose_rooms(rng);
     let mut doors = place_rooms(&mut grid, &rooms, rng);
-    rng.shuffle(&mut doors);
+    doors.shuffle(rng);
 
     prune_small_areas(&mut grid);
     door_dig(&mut grid, &doors);
 
     let mut largest_space = identify_largest_contiguous_space(&grid);
-    rng.shuffle(&mut largest_space);
+    largest_space.shuffle(rng);
 
     let room_centres = rooms.iter().map(|r| r.centre()).collect::<HashSet<_>>();
     let room_centres_in_largest_space = largest_space

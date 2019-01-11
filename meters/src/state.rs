@@ -17,7 +17,9 @@ use npc_info::*;
 use pathfinding::*;
 use policy;
 use prototypes;
-use rand::{Rng, SeedableRng, StdRng};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::{Rng, SeedableRng};
 use shadowcast::{self, ShadowcastContext};
 use std::collections::HashSet;
 use std::iter::Enumerate;
@@ -262,7 +264,7 @@ fn shuffled_unequipped_meters<R: Rng>(world: &World, id: EntityId, rng: &mut R) 
             !type_set.contains(component_type)
         })
         .collect::<Vec<_>>();
-    rng.shuffle(&mut types);
+    types.shuffle(rng);
     types
 }
 
@@ -377,7 +379,7 @@ impl State {
             goals.push(choose_goal_type(&mut rng));
         }
 
-        rng.shuffle(&mut goals);
+        goals.shuffle(&mut rng);
 
         for i in 0..(NUM_LEVELS - 1) {
             let config = TerrainConfig {

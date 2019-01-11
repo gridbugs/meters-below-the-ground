@@ -1,7 +1,9 @@
 #!/bin/bash
 set -euxo pipefail
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-WASM_FILE=meters_wasm.wasm
+NAME=$(cat Cargo.toml | grep 'name *=' | head -n1 | cut -d= -f2 | xargs echo)
+WASM_FILE=$NAME.wasm
 
 if [ "$#" -ne 1 ]; then
     echo "Usage $0 (release|debug)"
@@ -9,7 +11,6 @@ if [ "$#" -ne 1 ]; then
 fi
 MODE=$1
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TOP_LEVEL_DIR="$DIR/../"
 WASM_DIR_RAW=$TOP_LEVEL_DIR/target/wasm32-unknown-unknown/$MODE
 WASM_DIR=wasm_out

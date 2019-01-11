@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+set -euxo pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cargo clean --manifest-path=$DIR/../unix/Cargo.toml

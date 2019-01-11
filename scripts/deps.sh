@@ -14,7 +14,7 @@ fi
 
 case $TRAVIS_OS_NAME in
     linux)
-        pyenv version 3.6
+        pyenv version 3
         PIP=pip
         PYTHON=python
 
@@ -31,8 +31,8 @@ case $TRAVIS_OS_NAME in
         PYTHON=python3
         ;;
     local-archlinux)
-        PIP=pip3.6
-        PYTHON=python3.6
+        PIP=pip3
+        PYTHON=python3
         ;;
 esac
 

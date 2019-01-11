@@ -7,7 +7,7 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 best = { version = "0.13", features = ["serialize"] }
 direction = { version = "0.17", features = ["serialize"] }
 enum_primitive = "0.1"
-entity_store_helper = { path = "/home/steve/src/entity-store/helper" }
+entity_store_helper = "0.17"
 grid_2d = { version = "0.12", features = ["serialize"] }
 grid_search = { version = "0.15", features = ["serialize"] }
 itertools = "0.8"
@@ -16,4 +16,4 @@ shadowcast = "0.4"
 serde = { version = "1.0", features = ["serde_derive"] }
 
 [build-dependencies]
-entity_store_code_gen = { path = "/home/steve/src/entity-store/code-gen" }
+entity_store_code_gen = "0.17"

@@ -124,8 +124,8 @@ def make_macos_app(args):
 def build_wasm(args):
   crate_paths = [os.path.normpath(crate_path) for crate_path in args.crate_path]
   for crate_path in crate_paths:
-    sh.bash(os.path.join(crate_path, "build.sh"), "--with-npm-install",
-      **SH_KWARGS)
+    sh.npm("install", "--prefix", crate_path, **SH_KWARGS)
+    sh.bash(os.path.join(crate_path, "build_dist.sh"), **SH_KWARGS)
 
     output_dir_path = os.path.join(args.upload_path, APP_NAME)
     os.makedirs(output_dir_path)

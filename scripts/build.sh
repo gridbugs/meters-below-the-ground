@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+set -euxo pipefail
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 BIN_NAME=meters
