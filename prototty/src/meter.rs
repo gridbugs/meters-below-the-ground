@@ -1,7 +1,6 @@
 use meters::goal::*;
 use meters::meter::*;
-use prototty_common::*;
-use prototty_render::*;
+use prototty::*;
 use std::fmt::Write;
 
 fn meter_text_info(typ: MeterType) -> TextInfo {

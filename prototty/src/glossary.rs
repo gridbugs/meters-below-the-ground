@@ -1,7 +1,6 @@
 use meters::tile::*;
 use meters::tile_info::*;
-use prototty_common::*;
-use prototty_render::*;
+use prototty::*;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 

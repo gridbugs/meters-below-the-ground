@@ -1,6 +1,5 @@
 use meters::goal::*;
-use prototty_common::*;
-use prototty_render::*;
+use prototty::*;
 use std::fmt::Write;
 
 pub struct GoalView {

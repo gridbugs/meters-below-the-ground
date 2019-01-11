@@ -1,10 +1,8 @@
 extern crate meters_prototty;
-extern crate prototty_file_storage;
 extern crate prototty_glutin;
 extern crate rand;
 
 use meters_prototty::*;
-use prototty_file_storage::FileStorage;
 use prototty_glutin::*;
 use rand::Rng;
 use std::time::Instant;

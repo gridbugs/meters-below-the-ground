@@ -7,10 +7,6 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 rand = "0.6"
 itertools = "0.8"
 meters = { path = "../meters" }
-prototty_storage = { path = "/home/steve/src/prototty/storage" }
-prototty_render = { path = "/home/steve/src/prototty/render", features = ["serialize"] }
-prototty_input = { path = "/home/steve/src/prototty/input", features = ["serialize"] }
-prototty_common = { path = "/home/steve/src/prototty/common", features = ["serialize"] }
+prototty = { version = "0.22", features = ["serialize", "storage"] }
 direction = { version = "0.17", features = ["serialize"] }
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", features = ["serde_derive"] }

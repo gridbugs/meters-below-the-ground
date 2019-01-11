@@ -1,8 +1,7 @@
 use direction::CardinalDirection;
 use meters::tile::Tile;
 use meters::tile_info::TileInfo;
-use prototty_common::*;
-use prototty_render::*;
+use prototty::*;
 
 pub fn render_when_non_visible(tile: Tile) -> bool {
     match tile {

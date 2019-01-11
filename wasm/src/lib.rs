@@ -1,16 +1,11 @@
 extern crate meters_prototty;
-extern crate prototty_wasm_input;
-extern crate prototty_wasm_render;
-extern crate prototty_wasm_storage;
+extern crate prototty_wasm;
 extern crate wasm_bindgen;
 
 use meters_prototty::*;
-use prototty_wasm_render::*;
-use prototty_wasm_storage::*;
+use prototty_wasm::*;
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
-
-pub use prototty_wasm_input::InputBuffer;
 
 #[wasm_bindgen]
 pub struct WebApp {

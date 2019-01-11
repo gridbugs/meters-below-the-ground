@@ -1,11 +1,9 @@
 extern crate meters_prototty;
-extern crate prototty_file_storage;
 extern crate prototty_unix;
 extern crate rand;
 
 use meters_prototty::*;
-use prototty_file_storage::FileStorage;
-use prototty_unix::Context;
+use prototty_unix::{Context, FileStorage};
 use rand::Rng;
 use std::thread;
 use std::time::Duration;

@@ -2,14 +2,10 @@ extern crate direction;
 #[macro_use]
 extern crate itertools;
 extern crate meters;
-extern crate prototty_common;
-extern crate prototty_input;
-extern crate prototty_render;
-extern crate prototty_storage;
+extern crate prototty;
 extern crate rand;
-extern crate serde;
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 use direction::CardinalDirection;
 use meters::alert::*;
@@ -19,11 +15,7 @@ use meters::meter::*;
 use meters::state::*;
 use meters::tile_info::TileInfo;
 use meters::*;
-use prototty_common::*;
-use prototty_input::inputs as prototty_inputs;
-use prototty_input::Input as ProtottyInput;
-use prototty_render::*;
-use prototty_storage::*;
+use prototty::*;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::collections::BTreeSet;
@@ -94,8 +86,8 @@ impl Frontend {
     }
 }
 
-fn colour_cell(fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) -> ViewCellInfo {
-    let mut cell = ViewCellInfo::new();
+fn colour_cell(fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) -> ViewCell {
+    let mut cell = ViewCell::new();
     if visible {
         if let Some(fg) = fg {
             cell.set_foreground(fg);
@@ -124,7 +116,7 @@ fn colour_cell(fg: Option<Rgb24>, bg: Option<Rgb24>, visible: bool) -> ViewCellI
     cell
 }
 
-fn view_tile(tile_info: TileInfo, visibility: Visibility) -> ViewCellInfo {
+fn view_tile(tile_info: TileInfo, visibility: Visibility) -> ViewCell {
     let visible = match visibility {
         Visibility::Visible => true,
         Visibility::Remembered => false,
