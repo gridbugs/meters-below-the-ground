@@ -12,6 +12,10 @@ matrix:
   allow_failures:
   - rust: nightly
 dist: trusty
+before_script:
+  - cargo install wasm-bindgen-cli
+  - npm install -g npx
+  - rustup target add wasm32-unknown-unknown
 script:
 - scripts/build.sh
 deploy:

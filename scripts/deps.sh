@@ -17,11 +17,6 @@ case $TRAVIS_OS_NAME in
         pyenv version 3
         PIP=pip
         PYTHON=python
-
-        if [[ "$TRAVIS_RUST_VERSION" == "beta" ]] || [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
-            rustup target add wasm32-unknown-unknown
-            cargo install --git https://github.com/alexcrichton/wasm-gc
-        fi
         ;;
     osx)
         if ! which python3 > /dev/null; then
