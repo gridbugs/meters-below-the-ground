@@ -27,7 +27,6 @@ impl WebApp {
             js_grid,
         }
     }
-
     pub fn tick(&mut self, input_buffer: &InputBuffer, period_ms: f64) {
         let period = Duration::from_millis(period_ms as u64);
         self.app.tick(input_buffer.iter(), period, &self.app_view);

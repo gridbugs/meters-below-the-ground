@@ -1,7 +1,7 @@
 'use strict';
 
 import { Context, rngSeed } from 'prototty';
-const wasm = import('../wasm_out/meters_wasm');
+const wasm = import('../wasm_out/app');
 
 wasm.then(async wasm => {
     let config = {
