@@ -13,7 +13,41 @@ BUILD_DIR=$PROJECT_ROOT/build
 UPLOAD_DIR=$PROJECT_ROOT/uploads
 WEB_UPLOAD_DIR=$PROJECT_ROOT/web_uploads
 
-source $DIR/deps.sh
+if [ -z ${TRAVIS_OS_NAME+x} ]; then
+    case `uname -s` in
+        Linux)
+            TRAVIS_OS_NAME=linux
+            ;;
+        Darwin)
+            TRAVIS_OS_NAME=osx
+            ;;
+        *)
+            echo "Unknown OS"
+            exit 1
+    esac
+fi
+
+case $TRAVIS_OS_NAME in
+    linux)
+        pyenv version 3
+        PIP=pip
+        PYTHON=python
+        ;;
+    osx)
+        if ! which python3 > /dev/null; then
+            brew install python3 || brew upgrade python
+        fi
+        PIP=pip3
+        PYTHON=python3
+        ;;
+    local-archlinux)
+        PIP=pip3
+        PYTHON=python3
+        ;;
+esac
+
+$PIP install --quiet --user sh toml
+
 BUILD_PY="$PYTHON $DIR/build.py"
 BUILD_PY_COMMON="$PYTHON $DIR/build.py --root-path=$PROJECT_ROOT --build-path=$BUILD_DIR --upload-path=$UPLOAD_DIR"
 
@@ -23,14 +57,9 @@ rm -rf $WEB_UPLOAD_DIR
 
 case $TRAVIS_OS_NAME in
     linux)
-        if [[ "$TRAVIS_RUST_VERSION" == "beta" ]] || [[ "$TRAVIS_RUST_VERSION" == "nightly" ]]; then
-            $BUILD_PY --root-path=$PROJECT_ROOT --build-path=$BUILD_DIR --upload-path=$WEB_UPLOAD_DIR \
-                --os=unknown --frontend=wasm --crate-path=$WASM_CRATE
-        fi
-        if [[ "$TRAVIS_RUST_VERSION" != "beta" ]]; then
-            # This can take a long time, and it's important that beta succeeds and uploads the wasm build artifact
-            $BUILD_PY_COMMON --os=linux --frontend=unix --frontend=glutin --crate-path=$UNIX_CRATE --crate-path=$GLUTIN_CRATE
-        fi
+        $BUILD_PY --root-path=$PROJECT_ROOT --build-path=$BUILD_DIR --upload-path=$WEB_UPLOAD_DIR \
+            --os=unknown --frontend=wasm --crate-path=$WASM_CRATE
+        $BUILD_PY_COMMON --os=linux --frontend=unix --frontend=glutin --crate-path=$UNIX_CRATE --crate-path=$GLUTIN_CRATE
         ;;
     osx)
         $BUILD_PY_COMMON --os=macos --frontend=unix --frontend=glutin --crate-path=$UNIX_CRATE --crate-path=$GLUTIN_CRATE
