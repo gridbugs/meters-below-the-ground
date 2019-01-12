@@ -41,7 +41,8 @@ deploy:
     on:
       all_branches: true
       repo: stevebob/meters-below-the-ground
-      condition: "$TRAVIS_RUST_VERSION = stable && $TRAVIS_OS_NAME = linux"
+      condition: "$TRAVIS_RUST_VERSION = stable"
+      condition: "$TRAVIS_OS_NAME = linux"
     access_key_id: AKIAJTZWT26OECTU2UVQ
     secret_access_key:
       secure: nIOyYg+4Mzfdmx7/i53V87eD2Gh/uUlxZhtvs8D/GdlyE20vqkco5UA+kUnpKviLT1CRJXhILAkO94f+byO+4WnlfkbAQhBq63CawzbIBecHcpHadP0YRD1F++mGQgQ+dQyUGaFKCqigs7/cOWe2Nrv5k59ylnOaCEbQUz7nlamKUh9W1vrEKaVkVBY0Mgi8LLAF/ThRR2Q3zUFl2W0mOCoF7XBXpsUR+MzPNY1ghNGiSWksy4b1y+g6XHgqQiLWka1vDK9o02smcE4umUD3Uuawo9m86ufXfocGw2WqyvRqqo4y7zgrXUfW6PSOJRIhEj2cUoNFMI7lo6mESfSI1NKJ/97Lbo0pyjuaeFhJCSVhF4Inhtl3ZWryyd6X9dvU1Hpx6Es/QtWMR+3+Z4QvJNBNQvwT9o79sUJbExC1cN3wuWvcZqYuHYW63PKPWKRCTdQxOpc2NnCMdc8JOcoyNfSz8hU0TD/apVxZLvla79ravTvdNBy01n0nkhk90I1Yh+Uk4HfUWbfbA1cV2eUH1Bit6JohRNljfKT0DepJYxnCQx7RbVdJNi231wdIHRUtWvu/RPoqEL3EVRt2fkZpwlCy5wYf7sD1FVtURgocT0hrhS6z+ZmYGrk+0riOA/jwgcOjjmAsG0uMDLbG1FyPxk3by3HLvIf844MQ/ItHeUw=
