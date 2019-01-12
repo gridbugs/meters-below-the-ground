@@ -10,6 +10,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, "dist"),
         filename: "bundle.js",
+        webassemblyModuleFilename: "app.wasm",
     },
     plugins: [
         new CopyWebpackPlugin([{ from: "static_web" }]),
