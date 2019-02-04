@@ -8,6 +8,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 meters_prototty = { path = "../prototty" }
-prototty_wasm = { version = "0.22", features = ["storage"] }
+prototty_wasm = { version = "0.23", features = ["storage"] }
 rand = "0.6"
 wasm-bindgen = "0.2"

@@ -6,4 +6,4 @@ authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 [dependencies]
 rand = "0.6"
 meters_prototty = { path = "../prototty" }
-prototty_glutin = { version = "0.22", features = ["storage"] }
+prototty_glutin = { version = "0.23", features = ["storage"] }
